@@ -1,140 +1,162 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import Footer from '../../karumi/components/Footer.jsx';
 
 export default function About() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const audioRef = useRef(null);
+  const founders = [
+    {
+      name: 'Dr. Umair Rehman',
+      title:
+        'Co-founder · Assistant Professor (Tenure-track), Computer Science · Western University · Leads HCCG',
+      initials: 'UR',
+      imageSrc: '/umair.jpg',
+      bioParts: [
+        "Dr. Umair Rehman is the co-founder of Phraze and an Assistant Professor (tenure-track) in Computer Science at Western University, where he leads the Human-Centered Computing Group (HCCG). His career has been built around one core idea: if software is going to shape human judgment, learning, and high-stakes decisions, we need infrastructure for measurement and accountability, not just better demos. He develops human-centered, statistically grounded evaluation methods that make complex systems auditable: what works, for whom, under what conditions, and why.",
+        "Phraze was born from that exact gap. In his lab and partner projects, AI conversations quickly became the “source code” for decisions, but the moment the chat ended, the work collapsed into scattered screenshots, copy-pasted transcripts, and lost rationale. Umair recognized this as an inevitability of the next computing shift: language models turn thinking into a first-class interface, so the missing layer isn’t another model. It’s a shared, structured way for teams to collaborate, preserve context, and compound insight over time. Phraze emerged as the product answer to that thesis: turning ephemeral prompts into durable, collective work.",
+      ],
+      accent: 'bg-slate-100',
+    },
+    {
+      name: 'Het Patel',
+      title: 'Founder · Founding Engineer · Honours Computer Science Student · Western University',
+      initials: 'HP',
+      imageSrc: '/het.png',
+      bioParts: [
+        "Het Patel is the founder and founding engineer of Phraze, and the lead software engineer behind the platform. He designed and built the core product experience end-to-end.",
+        "Phraze started as a scrappy Chrome extension idea. After a year of shipping iterations, talking to users, and rebuilding the workflow again and again, the pattern became obvious: the hardest part wasn’t generating answers, it was keeping track of decisions, context, and the reasoning that led there. That’s when it made sense to transition from a small add-on into a single, unified platform. One place where conversations, annotations, and collaboration could live together without the workflow falling apart.",
+      ],
+      accent: 'bg-amber-100',
+    },
+  ];
 
-  const handlePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-    }
-  };
-
-  const handleSpeedChange = (speed) => {
-    setPlaybackSpeed(speed);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = speed;
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
-  };
-
-  const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Phraze Overview',
-          text: 'Listen to the overview of Phraze - an interactive platform for annotating conversations with AI models.',
-          url: window.location.href
-        });
-      } catch (err) {
-        console.log('Share cancelled or failed');
-      }
-    } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-      } catch (err) {
-        console.log('Failed to copy to clipboard');
-      }
-    }
-  };
+  const [avatarStatus, setAvatarStatus] = useState(() =>
+    founders.reduce((acc, person) => {
+      acc[person.name] = person.imageSrc ? 'loading' : 'no-image';
+      return acc;
+    }, {})
+  );
 
   return (
-    <main style={{ 
-      background: 'radial-gradient(900px 600px at 15% 3%, rgba(148, 163, 184, 0.14) 0%, rgba(148, 163, 184, 0.07) 25%, rgba(255, 255, 255, 0) 60%), radial-gradient(1100px 700px at 85% 10%, rgba(148, 163, 184, 0.14) 0%, rgba(148, 163, 184, 0.08) 30%, rgba(255, 255, 255, 0) 65%), radial-gradient(900px 600px at 50% 95%, rgba(148, 163, 184, 0.12) 0%, rgba(255, 255, 255, 0) 55%), linear-gradient(180deg, #f8f9fd 0%, #ffffff 70%, #f8f9fd 100%)',
-      minHeight: '100vh',
-      padding: '4rem 2rem'
-    }}>
-      <div className="container" style={{ maxWidth: '850px', margin: '0 auto' }}>
-        <div className="hero-samples" style={{ paddingTop: '2rem' }}>
-          <div className="audio-player-compact">
-            <button 
-              className={`audio-play-btn-compact ${isPlaying ? 'playing' : ''}`}
-              onClick={handlePlayPause}
-              aria-label={isPlaying ? "Pause overview audio" : "Play overview audio"}
-            >
-              <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
-            </button>
-            
-            <div className="audio-time-display">
-              {formatTime(currentTime)}
-            </div>
-            
-            <div className="audio-speed-controls">
-              {[0.5, 1, 1.5, 2].map(speed => (
-                <button
-                  key={speed}
-                  className={`speed-btn ${playbackSpeed === speed ? 'active' : ''}`}
-                  onClick={() => handleSpeedChange(speed)}
-                  aria-label={`Play at ${speed}x speed`}
+    <>
+      <div className="min-h-screen bg-[#FFFCF6]">
+        <div className="relative overflow-hidden">
+          <div className="max-w-6xl mx-auto px-6 pt-24 pb-24 relative">
+            <div className="max-w-3xl">
+              <h1 className="mt-5 text-4xl md:text-6xl font-serif font-bold text-slate-900 tracking-tight leading-[1.05]">
+                Building infrastructure for
+                <span
+                  className="block"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.22)), url("/turk.jpg")',
+                    backgroundSize: '160%',
+                    backgroundPosition: '50% 50%',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    color: 'transparent',
+                    display: 'inline-block',
+                  }}
                 >
-                  {speed}x
-                </button>
+                  durable AI work.
+                </span>
+              </h1>
+              <p className="mt-6 text-lg md:text-xl text-slate-500 font-light leading-relaxed">
+                Phraze turns conversations into a shared workspace, so teams can capture rationale, preserve context, and build
+                compounding insight over time.
+              </p>
+            </div>
+
+            <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {founders.map((person) => (
+                <div
+                  key={person.name}
+                  className="rounded-[28px] border border-gray-100 bg-white/80 supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:backdrop-blur-xl shadow-[0_24px_60px_-18px_rgba(0,0,0,0.12)] overflow-hidden"
+                >
+                  <div className="p-8">
+                    <div className="flex items-start gap-5">
+                      <div className="w-24 aspect-square flex-shrink-0 rounded-2xl border border-gray-100 shadow-sm overflow-hidden bg-white relative">
+                        {(() => {
+                          const status = avatarStatus[person.name] || 'loading';
+                          const showFallback = !person.imageSrc || status === 'error' || status === 'no-image';
+                          const showImage = !!person.imageSrc && status === 'loaded';
+
+                          return (
+                            <>
+                              <div
+                                className={`absolute inset-0 ${person.accent} flex items-center justify-center text-slate-800 font-semibold transition-opacity duration-200 ${
+                                  showFallback ? 'opacity-100' : 'opacity-0'
+                                }`}
+                                aria-hidden="true"
+                              >
+                                {person.initials}
+                              </div>
+                              {person.imageSrc ? (
+                                <img
+                                  src={person.imageSrc}
+                                  alt={person.name}
+                                  className={`absolute inset-0 w-full h-full object-cover rounded-2xl block transition-opacity duration-200 ${
+                                    showImage ? 'opacity-100' : 'opacity-0'
+                                  }`}
+                                  loading="eager"
+                                  decoding="async"
+                                  onLoad={() => {
+                                    setAvatarStatus((prev) => ({ ...prev, [person.name]: 'loaded' }));
+                                  }}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    setAvatarStatus((prev) => ({ ...prev, [person.name]: 'error' }));
+                                  }}
+                                />
+                              ) : null}
+                            </>
+                          );
+                        })()}
+                      </div>
+
+                      <div className="min-w-0">
+                        <h2 className="text-xl font-serif font-bold text-slate-900 truncate">{person.name}</h2>
+                        <p className="mt-1 text-sm text-slate-500 font-medium leading-relaxed">{person.title}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 text-slate-600 text-[15px] leading-relaxed font-light">
+                      {person.bioParts.map((paragraph, idx) => {
+                        const isUmairQuote = person.name === 'Dr. Umair Rehman' && idx === 1;
+
+                        if (isUmairQuote) {
+                          return (
+                            <div
+                              key={paragraph.slice(0, 24)}
+                              className="mt-0 mb-5 last:mb-0 rounded-2xl border border-gray-100 bg-slate-50/60 px-5 py-4"
+                            >
+                              <div className="border-l-2 border-slate-300 pl-4 italic text-slate-600">
+                                {paragraph}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <p key={paragraph.slice(0, 24)} className="mt-0 mb-5 last:mb-0">
+                            {paragraph}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-            
-            <button 
-              className="audio-share-btn-compact" 
-              onClick={handleShare}
-              aria-label="Share overview"
-            >
-              <i className="fas fa-share"></i>
-            </button>
-            
-            <audio
-              ref={audioRef}
-              onEnded={() => setIsPlaying(false)}
-              onPause={() => setIsPlaying(false)}
-              onPlay={() => setIsPlaying(true)}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-            >
-              <source src="/voice.mp3" type="audio/mpeg" />
-              Your browser does not support the audio element.
-            </audio>
           </div>
-          <h2 className="samples-title" style={{
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
-            fontSize: '1.7rem'
-          }}>Overview</h2>
-          <p className="samples-description">
-            Phraze is a collaborative workspace for conversations with language models. Instead of exporting transcripts or switching between platforms, teams can work directly in the chat thread. With built-in labels, notes, and annotations, Phraze organizes discussions and captures insights as they happen.
-          </p>
-          <p className="samples-description">
-            The future of language models is not individuals talking to isolated agents, but shared spaces where users can collaborate. Phraze enables teams to engage with an AI collectively, annotate in real time, exchange ideas, and make informed decisions together. Collaboration is built in at the core.
-          </p>
-          <p className="samples-description" style={{ marginBottom: '8rem' }}>
-            Unlike traditional tools that leave dialogue static, Phraze keeps everything in context and transforms conversations into a living workspace. Try it now at phrazeapp.ai.
-          </p>
         </div>
       </div>
-    </main>
+      <Footer
+        backgroundImageSrc="/secondflower.jpg"
+        headlineLine1="See the story behind Phraze"
+        headlineLine2="in a live demo."
+      />
+    </>
   );
 }
 

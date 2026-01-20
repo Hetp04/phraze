@@ -26,7 +26,7 @@ export default function Layout({ children, currentProject, onProjectChange }) {
     // Batch DOM operations to reduce reflows
     requestAnimationFrame(() => {
       const mainElement = document.querySelector('main');
-      const navbarElement = document.querySelector('.navbar');
+      const navbarElement = document.querySelector('.karumi-navbar');
       
       if (mainElement) {
         mainElement.classList.add('reveal');
@@ -40,7 +40,6 @@ export default function Layout({ children, currentProject, onProjectChange }) {
 
   // Hide navbar on specific pages
   const shouldHideNavbar = location.pathname === '/demo' ||
-                          location.pathname === '/demonstration' || 
                           location.pathname === '/auth' || 
                           location.pathname === '/access-denied' ||
                           location.pathname === '/onboarding';

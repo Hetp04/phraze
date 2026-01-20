@@ -6,6 +6,7 @@ import { getImagePath, getVideoPath } from '../utils/assetPaths';
 import ProjectStack from '../components/ProjectStack';
 import AnnotationPanel from '../components/AnnotationPanel';
 import DataManagementPanel from '../components/DataManagementPanel';
+import Footer from '../../karumi/components/Footer.jsx';
 
 export default function Features() {
   // Initialize scroll animation
@@ -5790,58 +5791,12 @@ export default function Features() {
         </div>
       </section>
 
-      {/* Footer */}
-      <div style={{
-        textAlign: 'center',
-        padding: '3rem 0 2rem 0',
-        marginTop: '4rem',
-        borderTop: '1px solid rgba(0, 0, 0, 0.06)'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '2rem',
-          marginBottom: '1rem',
-          flexWrap: 'wrap'
-        }}>
-          <Link to="/terms" style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
-            transition: 'color 0.2s ease'
-          }}>Terms of Service</Link>
-          <Link to="/privacy" style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
-            transition: 'color 0.2s ease'
-          }}>Privacy Policy</Link>
-          <Link to="/cookies" style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
-            transition: 'color 0.2s ease'
-          }}>Cookie Policy</Link>
-          <Link to="/contact" style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
-            transition: 'color 0.2s ease'
-          }}>Contact</Link>
-        </div>
-        <p style={{
-          fontSize: '14px',
-          color: '#6b7280',
-          margin: '0',
-          fontFamily: '"Inter", "Inter Fallback", sans-serif'
-        }}>
-          © 2025 Phraze. All rights reserved. Affiliated with Human-Centered Computing Group (HCCG).
-        </p>
-      </div>
+      <Footer
+        backgroundImageSrc="/pedals.jpg"
+        headlineLine1="Get the full walkthrough"
+        headlineLine2="in a live demo."
+      />
     </main>
   );
-} 
+}
+ 

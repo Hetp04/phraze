@@ -2,13 +2,37 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
-export default function Footer() {
+export default function Footer(
+  {
+    backgroundImageSrc = '/flower.jpg',
+    headlineLine1 = 'Accelerate your growth',
+    headlineLine2 = 'with a live demo.',
+  } = {}
+) {
   const navigate = useNavigate();
 
   return (
     <div className="w-full bg-white relative overflow-hidden border-t border-gray-50">
       <div className="relative overflow-hidden pt-32 pb-48">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div
+            className="absolute bottom-0 left-0 w-full h-[720px]"
+            style={{
+              backgroundImage: `url("${backgroundImageSrc}")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center bottom',
+              backgroundSize: 'cover',
+              opacity: 0.28,
+              filter: 'brightness(1.25) contrast(0.95) saturate(0.9)',
+              WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0) 100%)',
+              maskImage: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0) 100%)',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskSize: '100% 100%',
+              maskSize: '100% 100%',
+            }}
+          />
+
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-64 w-[2800px] h-[1050px]"
             style={{
@@ -37,7 +61,7 @@ export default function Footer() {
 
         <div className="relative z-10 max-w-4xl mx-auto text-center px-6">
           <h2 className="text-5xl md:text-7xl font-serif text-slate-900 mb-8 tracking-tight leading-[1.1]">
-            Accelerate your growth <br /> with a live demo.
+            {headlineLine1} <br /> {headlineLine2}
           </h2>
           <button
             className="bg-[#1a1a1a] text-white px-8 py-4 rounded-xl font-medium text-sm hover:bg-black transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 duration-300 inline-flex items-center gap-2"
