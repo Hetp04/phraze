@@ -40,6 +40,7 @@ export default function Layout({ children, currentProject, onProjectChange }) {
 
   // Hide navbar on specific pages
   const shouldHideNavbar = location.pathname === '/demo' ||
+                          location.pathname === '/demonstration' ||
                           location.pathname === '/auth' || 
                           location.pathname === '/access-denied' ||
                           location.pathname === '/onboarding';

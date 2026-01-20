@@ -12649,7 +12649,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       color: '#111827',
                       cursor: 'pointer',
                       minWidth: 'auto',
-                      display: 'flex',
+                      display: 'none',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',

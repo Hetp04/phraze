@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { useScroll, useSpring, useMotionValueEvent } from 'framer-motion';
 import { 
   MessageSquare,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import IconTile from './IconTile';
 import { mapRange, smoothStep, clamp } from '../utils/animation';
+import { ExpandableScreenTrigger, useExpandableScreen } from '../../src/components/ui/expandable-screen.jsx';
 import adobeIconPng from '../../animationIcons/adobe.png';
 import slackIconSvg from '../../animationIcons/Slack_icon_2019.svg';
 import googleDocsIconPng from '../../animationIcons/docs.png';
@@ -27,6 +28,12 @@ const easeOutBack = (t: number) => {
 const ScrollHero: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
+  const { isExpanded } = useExpandableScreen();
+  const isExpandedRef = useRef(isExpanded);
+
+  useEffect(() => {
+    isExpandedRef.current = isExpanded;
+  }, [isExpanded]);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -36,6 +43,7 @@ const ScrollHero: React.FC = () => {
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 220, damping: 34, mass: 0.22 });
 
   useMotionValueEvent(smoothProgress, 'change', (v) => {
+    if (isExpandedRef.current) return;
     const deadZone = 0.025;
     const delayed = v <= deadZone ? 0 : (v - deadZone) / (1 - deadZone);
     setProgress(clamp(delayed, 0, 1));
@@ -250,16 +258,18 @@ const ScrollHero: React.FC = () => {
             }}
           >
               <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 mb-4">
-                  <span className="font-serif italic text-3xl md:text-5xl text-stone-400">Meet</span>
+                  <span className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter">Meet</span>
                   
                   {/* Hero Logo Block (Dark Mode Inverse) */}
                   <div className="flex items-center gap-5">
                     <div className="w-16 h-16 md:w-20 md:h-20 bg-stone-900 text-white rounded-2xl border border-stone-800 shadow-2xl flex items-center justify-center relative overflow-hidden">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10">
-                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        <img
+                          src="/star.png"
+                          alt="Phraze"
+                          className="relative z-10 w-11 h-11 md:w-12 md:h-12 object-contain"
+                          draggable={false}
+                          style={{ filter: 'brightness(0) invert(1)' }}
+                        />
                     </div>
 
                     <span className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter">phraze</span>
@@ -289,15 +299,21 @@ const ScrollHero: React.FC = () => {
               </div>
               
               {/* CTA Button */}
-              <button 
-                 className="mt-10 px-8 py-3.5 rounded-full bg-stone-900 text-white font-medium hover:bg-stone-800 transition-all shadow-xl shadow-stone-900/10"
-                 style={{ 
-                    opacity: clamp(mapRange(progress, 0.85, 0.95, 0, 1), 0, 1),
-                    transform: `translateY(${mapRange(progress, 0.85, 0.95, 10, 0)}px)`
-                 }}
+              <div
+                style={{
+                  opacity: clamp(mapRange(progress, 0.85, 0.95, 0, 1), 0, 1),
+                  transform: `translateY(${mapRange(progress, 0.85, 0.95, 10, 0)}px)`,
+                }}
               >
-                  Get Started Free
-              </button>
+                <ExpandableScreenTrigger layoutId="get-started-free-button">
+                  <button 
+                     className="mt-10 px-8 py-3.5 rounded-full bg-stone-900 text-white font-medium hover:bg-stone-800 transition-all shadow-xl shadow-stone-900/10"
+                     type="button"
+                  >
+                      Get Started Free
+                  </button>
+                </ExpandableScreenTrigger>
+              </div>
           </div>
 
         </div>

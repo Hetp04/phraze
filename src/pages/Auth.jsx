@@ -547,30 +547,6 @@ export default function Auth({ embedded = false }) {
                 Continue with Google
               </button>
 
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ marginTop: '12px' }}
-              >
-                <svg viewBox="0 0 23 23" style={{ width: '20px', height: '20px', marginRight: '8px' }}>
-                  <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
-                  <path fill="#f35325" d="M1 1h10v10H1z"/>
-                  <path fill="#81bc06" d="M12 1h10v10H12z"/>
-                  <path fill="#05a6f0" d="M1 12h10v10H1z"/>
-                  <path fill="#ffba08" d="M12 12h10v10H12z"/>
-                </svg>
-                Continue with Microsoft
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ marginTop: '12px' }}
-              >
-                <HiOutlinePhone style={{ width: '20px', height: '20px', marginRight: '8px' }} />
-                Continue with Phone Number
-              </button>
-
               {showGoogleSignup && (
                 <div className="google-signup-expanded">
                   <div className="form-group" style={{ marginTop: "1rem" }}>
