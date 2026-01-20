@@ -52,7 +52,8 @@ export default function Navbar() {
       className="navbar"
       style={{
         backgroundColor: 'white',
-        transition: 'background-color 0.3s ease'
+        transition: 'background-color 0.3s ease',
+        fontFamily: 'Times New Roman, Times, serif'
       }}
     >
       <div className="nav-container">
@@ -64,10 +65,10 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="nav-center">
-          <Link to="/" className="nav-link">Home</Link>
-          <Link to="/features" className="nav-link">Features</Link>
-          <Link to="/about" className="nav-link">About</Link>
-          <Link to="/contact" className="nav-link">Contact</Link>
+          <Link to="/" className="nav-link" style={{ fontSize: '18px' }}>Home</Link>
+          <Link to="/features" className="nav-link" style={{ fontSize: '18px' }}>Features</Link>
+          <Link to="/about" className="nav-link" style={{ fontSize: '18px' }}>About</Link>
+          <Link to="/contact" className="nav-link" style={{ fontSize: '18px' }}>Contact</Link>
         </div>
         <div className="nav-right" style={{
           display: 'flex',
@@ -96,7 +97,7 @@ export default function Navbar() {
                   display: 'inline-block',
                   border: 'none',
                   cursor: 'pointer',
-                  fontFamily: 'inherit'
+                  fontFamily: 'Times New Roman, Times, serif'
                 }}
               >
                 Login

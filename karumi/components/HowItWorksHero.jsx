@@ -871,7 +871,7 @@ const StepSection = ({ number, title, description, visual, reversed = false }) =
       <p className="text-slate-500 text-lg leading-relaxed font-light">{description}</p>
     </div>
 
-    <div className="flex-1 w-full flex justify-center md:justify-end">{visual}</div>
+    <div className="flex-1 w-full flex justify-center md:justify-end select-none">{visual}</div>
   </div>
 );
 

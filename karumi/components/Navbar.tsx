@@ -65,10 +65,10 @@ export const Navbar: React.FC = () => {
                 isCompact ? 'opacity-0 pointer-events-none' : 'opacity-100'
               }`}
             >
-              <Link to="/" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Home</Link>
-              <Link to="/features" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Features</Link>
-              <Link to="/about" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">About</Link>
-              <Link to="/contact" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Contact</Link>
+              <Link to="/" className="text-base font-medium text-gray-500 hover:text-gray-900 transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Home</Link>
+              <Link to="/features" className="text-base font-medium text-gray-500 hover:text-gray-900 transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Features</Link>
+              <Link to="/about" className="text-base font-medium text-gray-500 hover:text-gray-900 transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>About</Link>
+              <Link to="/contact" className="text-base font-medium text-gray-500 hover:text-gray-900 transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Contact</Link>
             </nav>
 
             <nav
@@ -77,10 +77,10 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/60 px-2 py-1 shadow-sm">
-                <Link to="/" className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors">Home</Link>
-                <Link to="/features" className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors">Features</Link>
-                <Link to="/about" className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors">About</Link>
-                <Link to="/contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors">Contact</Link>
+                <Link to="/" className="text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Home</Link>
+                <Link to="/features" className="text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Features</Link>
+                <Link to="/about" className="text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>About</Link>
+                <Link to="/contact" className="text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Contact</Link>
               </div>
             </nav>
           </div>
@@ -95,6 +95,7 @@ export const Navbar: React.FC = () => {
                     ? 'bg-gray-900 hover:bg-gray-800 text-white shadow-sm'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-900 border border-transparent'
                 }`}
+                style={{ fontFamily: 'Times New Roman, Times, serif' }}
               >
                 Login
               </div>

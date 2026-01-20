@@ -150,7 +150,7 @@ const ToolsAndAnalyticsSection = () => {
             Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.
           </p>
 
-          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-12 h-[400px] flex items-center justify-center relative overflow-hidden">
+          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-12 h-[400px] flex items-center justify-center relative overflow-hidden select-none">
             <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-8 w-full max-w-md">
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-slate-700">
@@ -175,7 +175,7 @@ const ToolsAndAnalyticsSection = () => {
             Visualize trends and uncover hidden patterns in your conversations with powerful analytics tools.
           </p>
 
-          <div className="bg-white rounded-[32px] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.06)] border border-gray-100 p-12 h-[400px] flex items-center justify-center relative overflow-hidden">
+          <div className="bg-white rounded-[32px] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.06)] border border-gray-100 p-12 h-[400px] flex items-center justify-center relative overflow-hidden select-none">
             <AnalyticsVisual />
           </div>
         </div>

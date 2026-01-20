@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Footer() {
   const navigate = useNavigate();
@@ -57,14 +57,14 @@ export default function Footer() {
               <h4 className="font-bold text-slate-900 text-sm">Company</h4>
               <ul className="space-y-3 text-sm text-slate-500 font-medium">
                 <li>
-                  <a href="#" className="hover:text-slate-900 transition-colors">
+                  <Link to="/about" className="hover:text-slate-900 transition-colors">
                     About
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-slate-900 transition-colors">
+                  <Link to="/contact" className="hover:text-slate-900 transition-colors">
                     Contact
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -73,9 +73,9 @@ export default function Footer() {
               <h4 className="font-bold text-slate-900 text-sm">Product</h4>
               <ul className="space-y-3 text-sm text-slate-500 font-medium">
                 <li>
-                  <a href="#" className="hover:text-slate-900 transition-colors">
+                  <Link to="/features" className="hover:text-slate-900 transition-colors">
                     Features
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -84,19 +84,19 @@ export default function Footer() {
               <h4 className="font-bold text-slate-900 text-sm">Legal</h4>
               <ul className="space-y-3 text-sm text-slate-500 font-medium">
                 <li>
-                  <a href="#" className="hover:text-slate-900 transition-colors">
+                  <Link to="/privacy" className="hover:text-slate-900 transition-colors">
                     Privacy Policy
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-slate-900 transition-colors">
+                  <Link to="/terms" className="hover:text-slate-900 transition-colors">
                     Terms of Service
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-slate-900 transition-colors">
+                  <Link to="/cookies" className="hover:text-slate-900 transition-colors">
                     Cookie Policy
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

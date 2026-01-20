@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 
 export default function Demo() {
   const [isEmbedReady, setIsEmbedReady] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const NAMESPACE = 'phraze-demo';
@@ -96,6 +99,17 @@ export default function Demo() {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-5xl mx-auto px-6 py-16">
+        {isEmbedReady && (
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="text-sm font-medium px-5 py-2 rounded-lg transition-all duration-300 bg-gray-100 hover:bg-gray-200 text-gray-900 border border-transparent inline-flex items-center gap-2 mb-10"
+            style={{ fontFamily: 'Times New Roman, Times, serif' }}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back
+          </button>
+        )}
         <div
           id="cal-embed"
           className="w-full"

@@ -1,34 +1,11 @@
-import { useEffect, useState, useLayoutEffect } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import Navbar from './Navbar';
 import Footer from './Footer';
 import { Navbar as KarumiNavbar } from '../../karumi/components/Navbar';
 
 export default function Layout({ children, currentProject, onProjectChange }) {
   const location = useLocation();
-  const [navbarHeight, setNavbarHeight] = useState(0);
   const isHomeRoute = location.pathname === '/';
-
-  useLayoutEffect(() => {
-    if (isHomeRoute) {
-      setNavbarHeight(80);
-      return;
-    }
-
-    const el = document.querySelector('.navbar');
-    if (!el) {
-      setNavbarHeight(0);
-      return;
-    }
-
-    const update = () => setNavbarHeight(el.offsetHeight || 0);
-    update();
-
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => update());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [location.pathname]);
 
   useEffect(() => {
     // Use a single, optimized scroll operation
@@ -62,8 +39,7 @@ export default function Layout({ children, currentProject, onProjectChange }) {
   }, [location]);
 
   // Hide navbar on specific pages
-  const shouldHideNavbar = location.pathname === '/' ||
-                          location.pathname === '/demo' ||
+  const shouldHideNavbar = location.pathname === '/demo' ||
                           location.pathname === '/demonstration' || 
                           location.pathname === '/auth' || 
                           location.pathname === '/access-denied' ||
@@ -71,12 +47,8 @@ export default function Layout({ children, currentProject, onProjectChange }) {
 
   return (
     <>
-      {/* Only show navbar if NOT on demonstration, auth, access-denied, or onboarding pages */}
-      {!shouldHideNavbar && (
-        <Navbar currentProject={currentProject} onProjectChange={onProjectChange}/>
-      )}
-      {isHomeRoute && <KarumiNavbar />}
-      <div style={{ paddingTop: isHomeRoute ? 0 : navbarHeight }}>
+      {!shouldHideNavbar && <KarumiNavbar />}
+      <div style={{ paddingTop: shouldHideNavbar ? 0 : 80 }}>
         {children}
       </div>
       {/* <Footer /> */}
