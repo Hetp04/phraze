@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Presence Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .user { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .status { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .online { background: #10b981; }
+        .away { background: #f59e0b; }
+        .offline { background: #9ca3af; }
+    </style>
+</head>
+<body>
+    <h1>Presence System Test</h1>
+    <button onclick="testPresence()">Test Presence</button>
+    <div id="results"></div>
+
+    <script type="module">
+        import { database, auth } from './src/firebase-init.js';
+        import { ref, onValue } from 'firebase/database';
+        
+        window.testPresence = async function() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Loading...</p>';
+            
+            try {
+                // Check current user
+                const user = auth.currentUser;
+                resultsDiv.innerHTML += `<p>Current User: ${user ? user.email : 'Not logged in'}</p>`;
+                
+                // Listen to all presence data
+                const presenceRef = ref(database, 'presence');
+                onValue(presenceRef, (snapshot) => {
+                    const data = snapshot.val();
+                    resultsDiv.innerHTML = '<h2>All Users Status:</h2>';
+                    
+                    if (data) {
+                        Object.keys(data).forEach(userEmail => {
+                            const userStatus = data[userEmail];
+                            const email = userEmail.replace(',', '.');
+                            resultsDiv.innerHTML += `
+                                <div class="user">
+                                    <span class="status ${userStatus.status}"></span>
+                                    <strong>${email}</strong>: ${userStatus.status}
+                                    ${userStatus.lastSeen ? `(Last seen: ${new Date(userStatus.lastSeen).toLocaleString()})` : ''}
+                                </div>
+                            `;
+                        });
+                    } else {
+                        resultsDiv.innerHTML += '<p>No presence data found</p>';
+                    }
+                });
+            } catch (error) {
+                resultsDiv.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        };
+    </script>
+</body>
+</html>

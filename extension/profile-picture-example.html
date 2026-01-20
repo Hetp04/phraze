@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Profile Picture Example</title>
+    <style>
+        .profile-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        .profile-pic {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #4285f4;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .user-email {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        button:hover {
+            background-color: #3367d6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Google Profile Picture Integration</h1>
+    
+    <div class="profile-container">
+        <img id="user-profile-pic" class="profile-pic" src="https://via.placeholder.com/50" alt="User Profile">
+        <div class="user-info">
+            <div id="user-name" class="user-name">User Name</div>
+            <div id="user-email" class="user-email">user@example.com</div>
+        </div>
+    </div>
+    
+    <button onclick="fetchProfilePictureForCurrentUser()">Refresh Profile Picture</button>
+    <button onclick="testProfilePicture()">Test with Sample Picture</button>
+    
+    <h2>How to Use:</h2>
+    <ol>
+        <li><strong>Enable Google People API:</strong> Go to Google Cloud Console → APIs & Services → Library → Search for "Google People API" → Enable it</li>
+        <li><strong>Update OAuth Scopes:</strong> The code already includes the necessary scope: <code>https://www.googleapis.com/auth/userinfo.profile</code></li>
+        <li><strong>Sign in with Google:</strong> Use your existing Google sign-in button</li>
+        <li><strong>Profile picture will automatically load:</strong> After successful authentication</li>
+    </ol>
+    
+    <h2>Functions Available:</h2>
+    <ul>
+        <li><code>fetchUserProfilePicture(accessToken)</code> - Fetch profile picture with access token</li>
+        <li><code>fetchProfilePictureForCurrentUser()</code> - Fetch for already signed-in user</li>
+        <li><code>updateProfilePicture(imageUrl)</code> - Update UI with profile picture</li>
+    </ul>
+    
+    <script>
+        // Test function to demonstrate profile picture update
+        function testProfilePicture() {
+            const sampleImageUrl = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+            updateProfilePicture(sampleImageUrl);
+        }
+        
+        // Mock function for testing (replace with actual implementation)
+        function updateProfilePicture(imageUrl) {
+            const profilePic = document.getElementById('user-profile-pic');
+            if (profilePic) {
+                profilePic.src = imageUrl;
+                console.log('Profile picture updated:', imageUrl);
+            }
+        }
+        
+        // Mock function for testing
+        function fetchProfilePictureForCurrentUser() {
+            console.log('This would fetch the profile picture for the current user');
+            alert('This function is implemented in your auth.js file. Make sure you have a valid Google access token.');
+        }
+    </script>
+</body>
+</html>

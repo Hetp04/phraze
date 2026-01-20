@@ -1,0 +1,2194 @@
+import { showFrame, hideAllSubFrames } from './partials/utils.js';
+import { getUserName, getMainCompanyEmail, isUserLoggedIn2 } from './partials/auth.js';
+import { mainMenu, showToast, callGetItem, sendRuntimeMessage, getUserEmail, getCurrentProject, listenerFirebaseData, removeFirebaseListener } from './frames.js';
+import { isOnWebsite } from './globalVariables.js';
+
+function showContactList() {
+    document.getElementById("contacts-panel-outer").style.display = "flex";
+    // document.getElementById("contacts-panel-chooser").style.display = "block";
+    // document.getElementById("contacts-panel-messages").style.display = "none";
+    document.getElementById("topics-panel").style.width = "50%";
+}
+
+async function setCurrentTopic(topic, type, overrideLabel) {
+    currentTopic = topic;
+    var headerText = "Current Topic: ";
+    if (topic == "general") {
+        document.getElementById("messaging-header-right").innerHTML = `${headerText}<b>General</b>`;
+    }
+    else if (type == "groqChats") {
+        var companyEmail = await getMainCompanyEmail();
+        var currentProject = await getCurrentProject();
+        sendRuntimeMessage({
+            action: "getFirebaseData",
+            path: `Companies/${companyEmail}/projects/${currentProject}/${currentTopic.replace("-", "/")}/title`
+        }, response => {
+            if (response && response.success && response.data) {
+                document.getElementById("messaging-header-right").innerHTML = `${headerText}<b>${response.data}</b>`;
+            }
+        });
+    }
+    else if (type == "manualLogs") {
+        document.getElementById("messaging-header-right").innerHTML = `${headerText}<b>${overrideLabel}</b>`;
+    }
+}
+
+// Helper function to format time in iMessage style
+function formatTime(date) {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === now.toDateString()) {
+        // Today - show time only
+        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } else if (date.toDateString() === yesterday.toDateString()) {
+        // Yesterday
+        return 'Yesterday ' + date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } else {
+        // Other days - show date and time
+        return date.toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric'
+        }) + ' ' + date.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+}
+
+async function createMessageElement(message, email) {
+    const div = document.createElement('div');
+    div.className = 'comment-item';
+    
+    // Check if this comment is from the current user
+    const isMyMessage = message.email === email;
+    if (isMyMessage) {
+        div.classList.add('my-comment');
+    }
+
+    const text = message.text;
+    // Ensure we have a consistent messageId - prioritize messageId, then timestamp, then generate new
+    let messageId = message.messageId;
+    if (!messageId) {
+        if (message.timestamp) {
+            // Convert timestamp to string if it's a number
+            messageId = message.timestamp.toString();
+        } else {
+            messageId = Date.now().toString();
+        }
+    }
+    
+    console.log('Message ID resolved:', messageId, 'from message:', message);
+    
+    // Add data attribute for easy finding
+    div.setAttribute('data-message-id', messageId);
+
+    const editedText = message.editedAt ? ' (edited)' : '';
+    const editIcon = isMyMessage ? `<span class="edit-icon" data-message-id="${messageId}" title="Edit message">✎</span>` : '';
+    
+    div.innerHTML = `
+        <div class="comment-header">
+            <span class="comment-author">${isMyMessage ? 'You' : message.name}</span>
+            <span class="comment-time">${formatTime(new Date(message.timestamp))}${editedText}</span>
+        </div>
+        <div class="comment-text" data-message-id="${messageId}"></div>
+        <div class="edit-controls" data-message-id="${messageId}" style="display: none;">
+            <div class="edit-editor" data-message-id="${messageId}">
+                <div class="edit-content" data-message-id="${messageId}" contenteditable="true">${text}</div>
+                <div class="rich-text-toolbar edit-toolbar" data-message-id="${messageId}">
+                    <button class="icon-btn rich-text-btn" data-action="bold" title="Bold" aria-label="Bold"><span class="icon-bold">B</span></button>
+                    <button class="icon-btn rich-text-btn" data-action="italic" title="Italic" aria-label="Italic"><span class="icon-italic">I</span></button>
+                    <button class="icon-btn rich-text-btn" data-action="underline" title="Underline" aria-label="Underline"><span class="icon-underline">U</span></button>
+                    <div class="highlight-dropdown">
+                        <button class="icon-btn rich-text-btn highlight-toggle" title="Highlight" aria-label="Highlight">
+                            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="6" width="12" height="4" rx="1" fill="currentColor" opacity="0.3"/><rect x="4" y="4" width="8" height="2" rx="1" fill="currentColor"/></svg>
+                        </button>
+                        <div class="highlight-colors">
+                            <button class="color-option" data-action="highlight" data-color="yellow" title="Yellow highlight" style="background-color: #ffeb3b;"></button>
+                            <button class="color-option" data-action="highlight" data-color="green" title="Green highlight" style="background-color: #4caf50;"></button>
+                            <button class="color-option" data-action="highlight" data-color="blue" title="Blue highlight" style="background-color: #2196f3;"></button>
+                        </div>
+                    </div>
+                    <div class="font-size-dropdown">
+                        <button class="icon-btn rich-text-btn font-size-toggle" title="Font size" aria-label="Font size">A</button>
+                        <div class="font-size-options">
+                            <button class="size-option" data-action="fontSize" data-size="small" title="Small">S</button>
+                            <button class="size-option" data-action="fontSize" data-size="normal" title="Normal">M</button>
+                            <button class="size-option" data-action="fontSize" data-size="large" title="Large">L</button>
+                        </div>
+                    </div>
+                    <button class="icon-btn rich-text-btn" data-action="bulletList" title="Bulleted list" aria-label="Bulleted list">
+                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1.3" fill="currentColor"/><rect x="6" y="3.2" width="7" height="1.6" rx="0.8" fill="currentColor"/><circle cx="3" cy="8" r="1.3" fill="currentColor"/><rect x="6" y="7.2" width="7" height="1.6" rx="0.8" fill="currentColor"/><circle cx="3" cy="12" r="1.3" fill="currentColor"/><rect x="6" y="11.2" width="7" height="1.6" rx="0.8" fill="currentColor"/></svg>
+                    </button>
+                    <button class="icon-btn rich-text-btn" data-action="numberedList" title="Numbered list" aria-label="Numbered list">
+                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><text x="1" y="5" font-size="5" font-family="sans-serif">1</text><rect x="6" y="3.2" width="7" height="1.6" rx="0.8" fill="currentColor"/><text x="1" y="9" font-size="5" font-family="sans-serif">2</text><rect x="6" y="7.2" width="7" height="1.6" rx="0.8" fill="currentColor"/><text x="1" y="13" font-size="5" font-family="sans-serif">3</text><rect x="6" y="11.2" width="7" height="1.6" rx="0.8" fill="currentColor"/></svg>
+                    </button>
+                </div>
+                <div class="editor-toolbar-bottom">
+                    <div class="toolbar-right">
+                        <button class="icon-btn edit-rich-text-toggle" data-message-id="${messageId}" title="Formatting" aria-label="Formatting">A</button>
+                        <button class="icon-btn edit-cancel-btn" data-message-id="${messageId}" title="Cancel" aria-label="Cancel">×</button>
+                        <button class="icon-btn edit-save-btn" data-message-id="${messageId}" title="Save" aria-label="Save">✓</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="emoji-toolbar" data-message-id="${messageId}">
+            <span class="emoji-option" data-emoji="👍" data-message-id="${messageId}">👍</span>
+            <span class="emoji-option" data-emoji="❤️" data-message-id="${messageId}">❤️</span>
+            <span class="emoji-option" data-emoji="😂" data-message-id="${messageId}">😂</span>
+            <span class="emoji-option" data-emoji="😮" data-message-id="${messageId}">😮</span>
+            <span class="emoji-option" data-emoji="🙂" data-message-id="${messageId}">🙂</span>
+            ${editIcon}
+        </div>
+        <div class="reactions-display" data-message-id="${messageId}"></div>
+    `;
+
+    // Set the message text with HTML rendering
+    const commentTextElement = div.querySelector('.comment-text');
+    commentTextElement.innerHTML = text;
+    
+    // Set up emoji toolbar events immediately
+    console.log('Setting up emoji toolbar for message:', messageId, 'with reactions:', message.reactions);
+    setupEmojiToolbarEvents(div, messageId);
+    
+    // Set up edit functionality
+    setupEditFunctionality(div, messageId, isMyMessage, message);
+    
+    // Update reactions display
+    updateReactionsDisplay(div, message.reactions || {});
+
+    return div;
+}
+
+function setupEditFunctionality(messageElement, messageId, isMyMessage, message) {
+    if (!isMyMessage) return; // Only allow editing own messages
+    
+    const editIcon = messageElement.querySelector('.edit-icon');
+    const commentText = messageElement.querySelector('.comment-text');
+    const editControls = messageElement.querySelector('.edit-controls');
+    const editToolbar = messageElement.querySelector('.edit-toolbar');
+    const editContent = messageElement.querySelector('.edit-content');
+    const richTextToggle = messageElement.querySelector('.edit-rich-text-toggle');
+    const saveBtn = messageElement.querySelector('.edit-save-btn');
+    const cancelBtn = messageElement.querySelector('.edit-cancel-btn');
+    const richTextBtns = messageElement.querySelectorAll('.rich-text-btn');
+    const boldBtn = messageElement.querySelector('.rich-text-btn[data-action="bold"]');
+    const italicBtn = messageElement.querySelector('.rich-text-btn[data-action="italic"]');
+    const underlineBtn = messageElement.querySelector('.rich-text-btn[data-action="underline"]');
+    const bulletBtn = messageElement.querySelector('.rich-text-btn[data-action="bulletList"]');
+    const numberedBtn = messageElement.querySelector('.rich-text-btn[data-action="numberedList"]');
+    
+    if (!editIcon || !commentText || !editControls || !editContent || !saveBtn || !cancelBtn || !richTextToggle) {
+        console.error('Edit elements not found for message:', messageId);
+        return;
+    }
+    
+    let originalText = message.text;
+    let isEditing = false;
+    let isRichTextMode = false;
+    let savedSelectionRange = null;
+    const highlightToggleBtn = messageElement.querySelector('.highlight-toggle');
+    const fontSizeToggleBtn = messageElement.querySelector('.font-size-toggle');
+
+    const colorMap = { yellow: '#ffeb3b', green: '#4caf50', blue: '#2196f3' };
+
+    function toRgb(color) {
+        const probe = document.createElement('span');
+        probe.style.color = color;
+        document.body.appendChild(probe);
+        const rgb = getComputedStyle(probe).color;
+        document.body.removeChild(probe);
+        return rgb;
+    }
+
+    const colorMapRgb = Object.fromEntries(Object.entries(colorMap).map(([k,v]) => [k, toRgb(v)]));
+
+    function getSelectedHtml() {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return '';
+        const range = sel.getRangeAt(0).cloneContents();
+        const div = document.createElement('div');
+        div.appendChild(range);
+        return div.innerHTML;
+    }
+
+    function applyHighlightColor(hex) {
+        editContent.focus();
+        
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        
+        const range = selection.getRangeAt(0);
+        if (range.collapsed) return; // No text selected
+        
+        // Use hiliteColor for highlighting (background color)
+        try {
+            document.execCommand('styleWithCSS', false, true);
+            if (document.queryCommandSupported('hiliteColor')) {
+                document.execCommand('hiliteColor', false, hex);
+            } else {
+                document.execCommand('backColor', false, hex);
+            }
+        } catch (e) {
+            // Fallback: wrap selection in span with background color
+            const selectedHtml = range.toString();
+            if (selectedHtml) {
+                const span = document.createElement('span');
+                span.style.backgroundColor = hex;
+                span.textContent = selectedHtml;
+                range.deleteContents();
+                range.insertNode(span);
+                
+                // Clear selection and place cursor after span
+                selection.removeAllRanges();
+                const newRange = document.createRange();
+                newRange.setStartAfter(span);
+                newRange.collapse(true);
+                selection.addRange(newRange);
+            }
+        }
+        
+        editContent.focus();
+        updateToolbarState();
+    }
+
+    function applyListFormatting(listType) {
+        if (!editContent) {
+            console.error('editContent not available');
+            return;
+        }
+        
+        editContent.focus();
+        
+        const selection = window.getSelection();
+        let range;
+        
+        // Ensure we have a valid range within the edit content
+        if (selection.rangeCount > 0) {
+            range = selection.getRangeAt(0);
+            // Check if the range is within editContent
+            if (!editContent.contains(range.commonAncestorContainer)) {
+                range = document.createRange();
+                range.setStart(editContent, 0);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        } else {
+            range = document.createRange();
+            range.setStart(editContent, 0);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        // First try the standard execCommand
+        try {
+            const command = listType === 'ul' ? 'insertUnorderedList' : 'insertOrderedList';
+            document.execCommand('styleWithCSS', false, true);
+            const success = document.execCommand(command, false, null);
+            
+            if (success) {
+                editContent.focus();
+                updateToolbarState();
+                return;
+            }
+        } catch (e) {
+            console.log('execCommand failed, using fallback:', e);
+        }
+
+        // Fallback: Manual list creation
+        try {
+            const listElement = document.createElement(listType);
+            const listItem = document.createElement('li');
+            
+            if (range.collapsed) {
+                // No selection - create new list with empty item
+                listItem.textContent = 'List item'; // Add placeholder text that can be edited
+                listElement.appendChild(listItem);
+                
+                // Insert the list at cursor position
+                range.insertNode(listElement);
+                
+                // Place cursor inside the list item and select all text for easy editing
+                const newRange = document.createRange();
+                newRange.selectNodeContents(listItem);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            } else {
+                // Selected text - wrap in list item
+                const selectedContent = range.extractContents();
+                listItem.appendChild(selectedContent);
+                listElement.appendChild(listItem);
+                
+                range.insertNode(listElement);
+                
+                // Place cursor at end of list item
+                const newRange = document.createRange();
+                newRange.selectNodeContents(listItem);
+                newRange.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
+            
+            editContent.focus();
+            updateToolbarState();
+        } catch (e) {
+            console.error('Manual list creation failed:', e);
+        }
+    }
+
+    function updateToolbarState() {
+        // reflect current selection formatting
+        try {
+            const bold = document.queryCommandState('bold');
+            const italic = document.queryCommandState('italic');
+            const underline = document.queryCommandState('underline');
+            
+            // Check for lists by examining the DOM structure around cursor
+            const selection = window.getSelection();
+            let ulist = false, olist = false;
+            
+            if (selection.rangeCount > 0) {
+                let node = selection.getRangeAt(0).commonAncestorContainer;
+                // Walk up the DOM to find list elements
+                while (node && node !== editContent) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        if (node.tagName === 'UL') {
+                            ulist = true;
+                            break;
+                        } else if (node.tagName === 'OL') {
+                            olist = true;
+                            break;
+                        }
+                    }
+                    node = node.parentNode;
+                }
+            }
+            
+            const backCol = document.queryCommandValue('backColor') || document.queryCommandValue('hiliteColor');
+            const fSize = document.queryCommandValue('fontSize');
+
+            if (boldBtn) boldBtn.classList.toggle('active', !!bold);
+            if (italicBtn) italicBtn.classList.toggle('active', !!italic);
+            if (underlineBtn) underlineBtn.classList.toggle('active', !!underline);
+            if (bulletBtn) bulletBtn.classList.toggle('active', !!ulist);
+            if (numberedBtn) numberedBtn.classList.toggle('active', !!olist);
+
+            // highlight active if matches any of our palette colors
+            const isHighlight = backCol && Object.values(colorMapRgb).includes(backCol);
+            if (highlightToggleBtn) highlightToggleBtn.classList.toggle('active', !!isHighlight);
+
+            // font size active if not default (3 on legacy scale)
+            const isSized = fSize && fSize !== '3';
+            if (fontSizeToggleBtn) fontSizeToggleBtn.classList.toggle('active', !!isSized);
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    function saveSelection() {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            savedSelectionRange = selection.getRangeAt(0);
+        }
+    }
+
+    function restoreSelection() {
+        if (savedSelectionRange) {
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(savedSelectionRange);
+        }
+    }
+    
+    // Enter edit mode
+    function enterEditMode() {
+        if (isEditing) return;
+        isEditing = true;
+        
+        commentText.style.display = 'none';
+        editControls.style.display = 'block';
+        // keep toolbar reserved height but hidden until toggled
+        editToolbar.classList.remove('visible');
+        // mark message item as editing to hide emoji toolbar
+        messageElement.classList.add('is-editing');
+        editContent.innerHTML = originalText;
+        editContent.focus();
+        try { document.execCommand('styleWithCSS', false, true); } catch (e) { /* ignore */ }
+        // track selection while typing/selecting
+        editContent.addEventListener('keyup', saveSelection);
+        editContent.addEventListener('mouseup', saveSelection);
+        editContent.addEventListener('keyup', updateToolbarState);
+        editContent.addEventListener('mouseup', updateToolbarState);
+    }
+    
+    // Exit edit mode
+    function exitEditMode() {
+        if (!isEditing) return;
+        isEditing = false;
+        
+        commentText.style.display = 'block';
+        editControls.style.display = 'none';
+        editToolbar.classList.remove('visible');
+        // remove editing state
+        messageElement.classList.remove('is-editing');
+        const editorContainer = messageElement.querySelector('.edit-editor');
+        editorContainer.classList.remove('has-rich-toolbar');
+        editContent.innerHTML = originalText;
+        isRichTextMode = false;
+        richTextToggle.classList.remove('active');
+        // Reset all rich text button states
+        richTextBtns.forEach(btn => btn.classList.remove('active'));
+    }
+    
+    // Toggle rich text toolbar (without changing layout height)
+    function toggleRichTextToolbar() {
+        isRichTextMode = !isRichTextMode;
+        const editorContainer = messageElement.querySelector('.edit-editor');
+        if (isRichTextMode) {
+            editToolbar.classList.add('visible');
+            richTextToggle.classList.add('active');
+            editorContainer.classList.add('has-rich-toolbar');
+        } else {
+            editToolbar.classList.remove('visible');
+            richTextToggle.classList.remove('active');
+            editorContainer.classList.remove('has-rich-toolbar');
+        }
+    }
+    
+    // Apply rich text formatting
+    function applyRichTextFormatting(action, button) {
+        console.log('Applying rich text formatting:', action, button);
+        
+        if (!editContent) {
+            console.error('editContent not available for formatting');
+            return;
+        }
+        
+        // Use execCommand on contenteditable for WYSIWYG behavior
+        editContent.focus();
+        
+        // Ensure we have a selection or cursor position
+        const selection = window.getSelection();
+        if (!selection.rangeCount && editContent.contains(document.activeElement)) {
+            const range = document.createRange();
+            range.setStart(editContent, 0);
+            range.collapse(true);
+            selection.addRange(range);
+        }
+        
+        restoreSelection();
+        
+        // Handle button active state - but don't toggle for list buttons as they work differently
+        if (!button.classList.contains('color-option') && 
+            !button.classList.contains('size-option') &&
+            action !== 'bulletList' &&
+            action !== 'numberedList') {
+            button.classList.toggle('active');
+        }
+        
+        // Enable rich styling with CSS
+        document.execCommand('styleWithCSS', false, true);
+        
+        switch (action) {
+            case 'bold':
+                document.execCommand('bold', false, null);
+                break;
+            case 'italic':
+                document.execCommand('italic', false, null);
+                break;
+            case 'underline':
+                document.execCommand('underline', false, null);
+                break;
+            case 'bulletList':
+                console.log('Applying bullet list formatting');
+                applyListFormatting('ul');
+                break;
+            case 'numberedList':
+                console.log('Applying numbered list formatting');
+                applyListFormatting('ol');
+                break;
+            case 'highlight': {
+                const color = button.dataset.color;
+                const colors = { yellow: '#ffeb3b', green: '#4caf50', blue: '#2196f3' };
+                applyHighlightColor(colors[color] || color || '#fff59d');
+                break;
+            }
+            case 'fontSize': {
+                const size = button.dataset.size;
+                const sizeMap = { small: '2', normal: '3', large: '5' }; // 1-7 scale
+                document.execCommand('fontSize', false, sizeMap[size] || '3');
+                break;
+            }
+            default:
+                console.warn('Unknown formatting action:', action);
+        }
+        
+        // Maintain focus and update toolbar state
+        editContent.focus();
+        updateToolbarState();
+    }
+    
+    // Save edited message
+    async function saveEdit() {
+        const newText = editContent.innerHTML.trim();
+        if (!newText) {
+            alert('Message cannot be empty');
+            return;
+        }
+        
+        if (newText === originalText) {
+            exitEditMode();
+            return;
+        }
+        
+        try {
+            await updateMessageInFirebase(messageId, newText);
+            originalText = newText;
+            commentText.innerHTML = newText; // render HTML formatting
+            exitEditMode();
+        } catch (error) {
+            console.error('Error saving edit:', error);
+            alert('Failed to save edit. Please try again.');
+        }
+    }
+    
+    // Event listeners
+    editIcon.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        enterEditMode();
+    });
+    
+    richTextToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleRichTextToolbar();
+    });
+    
+    // Rich text button listeners
+    console.log('Setting up rich text button listeners, found buttons:', richTextBtns.length);
+    richTextBtns.forEach((btn, index) => {
+        console.log(`Setting up button ${index}:`, btn.dataset.action, btn);
+        btn.addEventListener('mousedown', (e) => { // mousedown to avoid losing selection
+            e.preventDefault();
+            e.stopPropagation();
+            const action = btn.dataset.action;
+            console.log('Rich text button clicked:', action);
+            applyRichTextFormatting(action, btn);
+        });
+    });
+    
+    // Highlight dropdown functionality
+    const highlightToggle = messageElement.querySelector('.highlight-toggle');
+    const highlightDropdown = messageElement.querySelector('.highlight-dropdown');
+    const colorOptions = messageElement.querySelectorAll('.color-option');
+    
+    if (highlightToggle && highlightDropdown) {
+        highlightToggle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            highlightDropdown.classList.toggle('open');
+        });
+        
+        colorOptions.forEach(option => {
+            option.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                applyRichTextFormatting('highlight', option);
+                highlightDropdown.classList.remove('open');
+            });
+        });
+    }
+    
+    // Font size dropdown functionality
+    const fontSizeToggle = messageElement.querySelector('.font-size-toggle');
+    const fontSizeDropdown = messageElement.querySelector('.font-size-dropdown');
+    const sizeOptions = messageElement.querySelectorAll('.size-option');
+    
+    if (fontSizeToggle && fontSizeDropdown) {
+        fontSizeToggle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fontSizeDropdown.classList.toggle('open');
+        });
+        
+        sizeOptions.forEach(option => {
+            option.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                applyRichTextFormatting('fontSize', option);
+                fontSizeDropdown.classList.remove('open');
+            });
+        });
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+        if (highlightDropdown) highlightDropdown.classList.remove('open');
+        if (fontSizeDropdown) fontSizeDropdown.classList.remove('open');
+    });
+    
+    saveBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        saveEdit();
+    });
+    
+    cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        exitEditMode();
+    });
+    
+    // Keyboard shortcuts
+    editContent.addEventListener('keydown', (e) => {
+        // Save: Ctrl/Cmd+Enter
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit();
+            return;
+        }
+        // Cancel: Escape
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            exitEditMode();
+            return;
+        }
+        // Toggle Ordered List: Ctrl/Cmd+Shift+7
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '7') {
+            e.preventDefault();
+            applyListFormatting('ol');
+            return;
+        }
+        // Toggle Unordered List: Ctrl/Cmd+Shift+8
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '8') {
+            e.preventDefault();
+            applyListFormatting('ul');
+            return;
+        }
+        // Markdown-style triggers at start of line: "- ", "* ", "1. "
+        if (e.key === ' ') {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+            const container = range.startContainer;
+            if (container && container.nodeType === Node.TEXT_NODE) {
+                const text = container.textContent || '';
+                const cursorIndex = range.startOffset;
+                const before = text.slice(0, cursorIndex);
+                if (before === '-' || before === '*') {
+                    e.preventDefault();
+                    const rest = text.slice(cursorIndex);
+                    container.textContent = rest;
+                    const newRange = document.createRange();
+                    newRange.setStart(container, 0);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                    applyListFormatting('ul');
+                    return;
+                }
+                if (/^\d+\.$/.test(before)) {
+                    e.preventDefault();
+                    const rest = text.slice(cursorIndex);
+                    container.textContent = rest;
+                    const newRange = document.createRange();
+                    newRange.setStart(container, 0);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                    applyListFormatting('ol');
+                    return;
+                }
+            }
+        }
+        // Default Enter: allow newline
+    });
+    
+    // Auto-resize textarea on input
+    // no textarea autosize needed for contenteditable
+}
+
+async function updateMessageInFirebase(messageId, newText) {
+    try {
+        const userEmail = await getUserEmail();
+        const companyEmail = await getMainCompanyEmail();
+        const currentProject = await getCurrentProject();
+        const emailPair = await getEmailPair(currentlyChattingWith);
+        
+        const messagesPath = `Companies/${companyEmail}/securedProjects/${currentProject}/messages/${currentTopic}/${emailPair}`;
+        
+        return new Promise((resolve, reject) => {
+            sendRuntimeMessage({
+                action: "getFirebaseData",
+                path: messagesPath
+            }, async response => {
+                if (response && response.success && response.data) {
+                    const messages = response.data;
+                    let targetMessage = null;
+                    let targetMessageKey = null;
+                    
+                    // Find the message with matching messageId
+                    for (const [key, message] of Object.entries(messages)) {
+                        if (message.messageId === messageId || 
+                            message.timestamp === messageId || 
+                            key === messageId ||
+                            (message.timestamp && message.timestamp.toString() === messageId) ||
+                            (message.messageId && message.messageId.toString() === messageId)) {
+                            targetMessage = message;
+                            targetMessageKey = key;
+                            break;
+                        }
+                    }
+                    
+                    if (targetMessage && targetMessageKey) {
+                        // Update message with new text and editedAt timestamp
+                        targetMessage.text = newText;
+                        targetMessage.editedAt = new Date().toISOString();
+                        
+                        const messagePath = `${messagesPath}/${targetMessageKey}`;
+                        
+                        sendRuntimeMessage({
+                            action: "saveFirebaseData",
+                            path: messagePath,
+                            data: targetMessage
+                        }, updateResponse => {
+                            if (updateResponse && updateResponse.success) {
+                                console.log('Message updated successfully in Firebase');
+                                resolve();
+                            } else {
+                                console.error('Failed to update message:', updateResponse?.error);
+                                reject(new Error('Failed to update message in Firebase'));
+                            }
+                        });
+                    } else {
+                        reject(new Error('Message not found for editing'));
+                    }
+                } else {
+                    reject(new Error('Failed to get messages from Firebase'));
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error updating message:', error);
+        throw error;
+    }
+}
+
+function setupEmojiToolbarEvents(messageElement, messageId) {
+    console.log('Setting up emoji toolbar events for message:', messageId);
+    const emojiOptions = messageElement.querySelectorAll('.emoji-option');
+    console.log('Found emoji options:', emojiOptions.length);
+    
+    emojiOptions.forEach((option, index) => {
+        console.log(`Setting up emoji option ${index}:`, option.dataset.emoji, 'for message:', messageId);
+        
+        // Clear any existing event listeners by removing and re-adding the element
+        const parent = option.parentNode;
+        const newOption = option.cloneNode(true);
+        parent.replaceChild(newOption, option);
+        
+        // Add click listener with proper error handling
+        newOption.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const emoji = newOption.dataset.emoji;
+            const currentMessageId = newOption.dataset.messageId;
+            console.log('Emoji clicked:', emoji, 'for message:', currentMessageId);
+            
+            // Visual feedback
+            newOption.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                newOption.style.transform = 'scale(1)';
+            }, 100);
+            
+            try {
+                await toggleReaction(currentMessageId, emoji);
+            } catch (error) {
+                console.error('Error toggling reaction:', error);
+                // Reset visual state on error
+                newOption.style.transform = 'scale(1)';
+            }
+        });
+        
+        // Hover effects
+        newOption.addEventListener('mouseenter', () => {
+            newOption.style.transform = 'scale(1.1)';
+        });
+        
+        newOption.addEventListener('mouseleave', () => {
+            newOption.style.transform = 'scale(1)';
+        });
+    });
+}
+
+async function toggleReaction(messageId, emoji) {
+    try {
+        console.log('Toggle reaction called for:', messageId, emoji);
+        
+        const userEmail = await getUserEmail();
+        const companyEmail = await getMainCompanyEmail();
+        const currentProject = await getCurrentProject();
+        const emailPair = await getEmailPair(currentlyChattingWith);
+        
+        console.log('User email:', userEmail, 'Company:', companyEmail, 'Project:', currentProject, 'Email pair:', emailPair);
+        
+        // Get all messages to find the one with matching messageId
+        const messagesPath = `Companies/${companyEmail}/securedProjects/${currentProject}/messages/${currentTopic}/${emailPair}`;
+        
+        console.log('Messages path:', messagesPath);
+        
+        sendRuntimeMessage({
+            action: "getFirebaseData",
+            path: messagesPath
+        }, async response => {
+            console.log('Firebase response:', response);
+            
+            if (response && response.success && response.data) {
+                const messages = response.data;
+                let targetMessage = null;
+                let targetMessageKey = null;
+                
+                console.log('All messages:', messages);
+                
+                // Find the message with matching messageId - improved matching logic
+                let found = false;
+                for (const [key, message] of Object.entries(messages)) {
+                    console.log('Checking message:', key, 'messageId:', message.messageId, 'timestamp:', message.timestamp, 'against:', messageId);
+                    
+                    // Try multiple ways to match the message
+                    if (message.messageId === messageId || 
+                        message.timestamp === messageId || 
+                        key === messageId ||
+                        (message.timestamp && message.timestamp.toString() === messageId) ||
+                        (message.messageId && message.messageId.toString() === messageId) ||
+                        (key && key.toString() === messageId) ||
+                        (message.messageId && message.messageId.toString() === messageId.toString()) ||
+                        (message.timestamp && message.timestamp.toString() === messageId.toString())) {
+                        targetMessage = message;
+                        targetMessageKey = key;
+                        console.log('Found target message:', targetMessage, 'with key:', targetMessageKey);
+                        found = true;
+                        break;
+                    }
+                }
+                
+                // If still not found, try a more flexible approach
+                if (!found) {
+                    console.log('Trying flexible message matching...');
+                    for (const [key, message] of Object.entries(messages)) {
+                        // Check if any part of the messageId matches
+                        if (message.messageId && message.messageId.includes(messageId) ||
+                            messageId.includes(message.messageId) ||
+                            (message.timestamp && message.timestamp.toString().includes(messageId)) ||
+                            messageId.includes(message.timestamp.toString())) {
+                            targetMessage = message;
+                            targetMessageKey = key;
+                            console.log('Found target message with flexible matching:', targetMessage, 'with key:', targetMessageKey);
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetMessage && targetMessageKey) {
+                    // Initialize reactions if they don't exist
+                    if (!targetMessage.reactions) {
+                        targetMessage.reactions = {};
+                    }
+                    if (!targetMessage.reactions[emoji]) {
+                        targetMessage.reactions[emoji] = {};
+                    }
+                    
+                    console.log('Current reactions:', targetMessage.reactions);
+                    
+                    // Toggle reaction
+                    if (targetMessage.reactions[emoji][userEmail]) {
+                        // Remove reaction
+                        delete targetMessage.reactions[emoji][userEmail];
+                        console.log('Removed reaction for user:', userEmail);
+                        // Remove emoji key if no reactions left
+                        if (Object.keys(targetMessage.reactions[emoji]).length === 0) {
+                            delete targetMessage.reactions[emoji];
+                            console.log('Removed empty emoji key:', emoji);
+                        }
+                    } else {
+                        // Add reaction
+                        targetMessage.reactions[emoji][userEmail] = true;
+                        console.log('Added reaction for user:', userEmail);
+                    }
+                    
+                    console.log('Updated reactions:', targetMessage.reactions);
+                    
+                    // Update message in Firebase
+                    const messagePath = `${messagesPath}/${targetMessageKey}`;
+                    console.log('Saving to path:', messagePath);
+                    
+                    sendRuntimeMessage({
+                        action: "saveFirebaseData",
+                        path: messagePath,
+                        data: targetMessage
+                    }, updateResponse => {
+                        console.log('Save response:', updateResponse);
+                        if (updateResponse && updateResponse.success) {
+                            console.log('Reaction updated successfully in Firebase');
+                            
+                            // Update the UI immediately
+                            updateReactionsDisplay(document.querySelector(`[data-message-id="${messageId}"]`), targetMessage.reactions);
+                            
+                            // Update emoji toolbar selection state
+                            updateEmojiToolbarSelection(document.querySelector(`[data-message-id="${messageId}"]`), emoji, userEmail, targetMessage.reactions);
+                            
+                        } else {
+                            console.error('Failed to update reaction:', updateResponse?.error);
+                        }
+                    });
+                } else {
+                    console.error('Target message not found for messageId:', messageId);
+                }
+            } else {
+                console.error('Failed to get messages from Firebase:', response);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error toggling reaction:', error);
+    }
+}
+
+function updateReactionsDisplay(messageElement, reactions) {
+    if (!messageElement) return;
+    
+    const reactionsDisplay = messageElement.querySelector('.reactions-display');
+    if (!reactionsDisplay) return;
+    
+    // Clear existing reactions
+    reactionsDisplay.innerHTML = '';
+    
+    // Add reactions that have users
+    const emojis = ['👍', '❤️', '😂', '😮', '🙂'];
+    emojis.forEach(emoji => {
+        if (reactions[emoji] && Object.keys(reactions[emoji]).length > 0) {
+            const count = Object.keys(reactions[emoji]).length;
+            const reactionSpan = document.createElement('span');
+            reactionSpan.className = 'reaction-item';
+            reactionSpan.dataset.emoji = emoji;
+            reactionSpan.dataset.messageId = messageElement.dataset.messageId;
+            reactionSpan.textContent = `${emoji} ${count}`;
+            reactionSpan.title = 'Click to see who reacted';
+            
+            // Add click event to show who reacted
+            reactionSpan.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showReactionDetails(messageElement.dataset.messageId, emoji, e);
+            });
+            
+            reactionsDisplay.appendChild(reactionSpan);
+        }
+    });
+}
+
+function updateEmojiToolbarSelection(messageElement, emoji, userEmail, reactions) {
+    if (!messageElement) return;
+    
+    const emojiOption = messageElement.querySelector(`[data-emoji="${emoji}"]`);
+    if (!emojiOption) return;
+    
+    // Update selection state
+    if (reactions[emoji] && reactions[emoji][userEmail]) {
+        emojiOption.classList.add('selected');
+    } else {
+        emojiOption.classList.remove('selected');
+    }
+}
+
+async function showReactionDetails(messageId, emoji, event) {
+    try {
+        const companyEmail = await getMainCompanyEmail();
+        const currentProject = await getCurrentProject();
+        const emailPair = await getEmailPair(currentlyChattingWith);
+        
+        const messagesPath = `Companies/${companyEmail}/securedProjects/${currentProject}/messages/${currentTopic}/${emailPair}`;
+        
+        sendRuntimeMessage({
+            action: "getFirebaseData",
+            path: messagesPath
+        }, async response => {
+            if (response && response.success && response.data) {
+                const messages = response.data;
+                let targetMessage = null;
+                
+                // Find the message with matching messageId
+                for (const [key, message] of Object.entries(messages)) {
+                    if (message.messageId === messageId || message.timestamp === messageId) {
+                        targetMessage = message;
+                        break;
+                    }
+                }
+                
+                if (targetMessage && targetMessage.reactions && targetMessage.reactions[emoji]) {
+                    const reactors = Object.keys(targetMessage.reactions[emoji]);
+                    const reactorNames = [];
+                    
+                    // Get names for each reactor
+                    for (const reactorEmail of reactors) {
+                        const userName = await getUserNameFromEmail(reactorEmail);
+                        reactorNames.push(userName || reactorEmail);
+                    }
+                    
+                    // Show tooltip with reactor names
+                    showReactionTooltip(emoji, reactorNames, event);
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error showing reaction details:', error);
+    }
+}
+
+async function getUserNameFromEmail(email) {
+    try {
+        const companyEmail = await getMainCompanyEmail();
+        const userPath = `Companies/${companyEmail}/users/${email}`;
+        
+        return new Promise((resolve) => {
+            sendRuntimeMessage({
+                action: "getFirebaseData",
+                path: userPath
+            }, response => {
+                if (response && response.success && response.data && response.data.name) {
+                    resolve(response.data.name);
+                } else {
+                    resolve(email);
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error getting user name:', error);
+        return email;
+    }
+}
+
+function showReactionTooltip(emoji, reactorNames, event) {
+    // Remove existing tooltip
+    const existingTooltip = document.querySelector('.reaction-tooltip');
+    if (existingTooltip) {
+        existingTooltip.remove();
+    }
+    
+    // Create tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'reaction-tooltip';
+    tooltip.innerHTML = `
+        <div class="tooltip-header">${emoji} Reacted by:</div>
+        <div class="tooltip-content">
+            ${reactorNames.join(', ')}
+        </div>
+    `;
+    
+    // Position tooltip near the cursor
+    tooltip.style.position = 'fixed';
+    tooltip.style.left = (event.clientX + 10) + 'px';
+    tooltip.style.top = (event.clientY - 60) + 'px';
+    tooltip.style.zIndex = '10000';
+    
+    document.body.appendChild(tooltip);
+    
+    // Auto-remove tooltip after 3 seconds
+    setTimeout(() => {
+        if (tooltip.parentNode) {
+            tooltip.remove();
+        }
+    }, 3000);
+    
+    // Remove tooltip on click outside
+    document.addEventListener('click', function removeTooltip() {
+        if (tooltip.parentNode) {
+            tooltip.remove();
+        }
+        document.removeEventListener('click', removeTooltip);
+    });
+}
+
+async function getEmailPair(otherEmail) {
+    otherEmail = otherEmail.replace(".", ",");
+    var userEmail = await getUserEmail();
+    var emailPair = "";
+    if (otherEmail == "everyone")
+        emailPair = "everyone";
+    else {
+        if (userEmail < otherEmail)
+            emailPair = userEmail + "-" + otherEmail;
+        else
+            emailPair = otherEmail + "-" + userEmail;
+    }
+    return emailPair;
+}
+
+async function postNewMessage(text) {
+    try {
+        if (currentlyChattingWith == "")
+            return;
+
+        var companyEmail = await getMainCompanyEmail();
+        var userEmail = await getUserEmail();
+        var userName = await getUserName();
+        
+        // Create a consistent timestamp for both messageId and Firebase key
+        const timestamp = Date.now();
+        const message = {
+            text: text,
+            email: userEmail,
+            name: userName,
+            timestamp: new Date(timestamp).toISOString(),
+            messageId: timestamp.toString(),
+            reactions: {},
+            editedAt: null
+        };
+
+        // Save to Firebase through background script
+        var companyEmail = await getMainCompanyEmail();
+        var currentProject = await getCurrentProject();
+        var emailPair = await getEmailPair(currentlyChattingWith);
+        
+        // Use the same timestamp for the Firebase path
+        const firebasePath = `Companies/${companyEmail}/securedProjects/${currentProject}/messages/${currentTopic}/${emailPair}/${timestamp}`;
+        
+        console.log('Saving message with ID:', timestamp, 'to path:', firebasePath);
+        
+        sendRuntimeMessage({
+            action: "saveFirebaseData",
+            path: firebasePath,
+            data: message
+        }, async response => {
+            if (!response || !response.success) {
+                console.error('Error saving message:', response?.error);
+                alert('Failed to post comment. Please try again.');
+                return;
+            }
+
+            console.log('Message saved successfully, reloading messages...');
+            // Reload and resort all comments
+            await loadMessages();
+        });
+
+    } catch (error) {
+        console.error('Error posting message:', error);
+        alert('Failed to post message. Please try again.');
+    }
+}
+
+var currentMessagesPath = "";
+async function loadMessages() {
+    if (currentlyChattingWith == "")
+        return;
+    if (currentTopic == "")
+        return;
+
+    var companyEmail = await getMainCompanyEmail();
+    var currentProject = await getCurrentProject();
+    var emailPair = await getEmailPair(currentlyChattingWith);
+    var newPath = `Companies/${companyEmail}/securedProjects/${currentProject}/messages/${currentTopic}/${emailPair}`;
+    let list = document.getElementById("messages-list");
+    if (newPath == currentMessagesPath) {
+        list.innerHTML = previousMessagesHTML; //Need to do this to get quick responsive messages, otherwise messages from another chat will appear for a half second in the newly opened chat
+    }
+    else {
+        if (currentMessagesPath != "")
+            removeFirebaseListener(currentMessagesPath);
+
+        currentMessagesPath = newPath;
+
+        listenerFirebaseData(currentMessagesPath, async (path, data) => {
+            if (path === currentMessagesPath) {
+                // loadMessages();
+                var list = document.getElementById("messages-list");
+                list.innerHTML = "";
+                var userEmail = await getUserEmail();
+                let messages = data ? Object.values(data) : [];
+                for (var message of messages) {
+                    console.log('Creating message element for:', message);
+                    const messageElement = await createMessageElement(message, userEmail);
+                    list.appendChild(messageElement);
+                }
+                
+                // Ensure all emoji and edit events are properly set up after loading
+                setTimeout(() => {
+                    console.log('Re-setting up emoji and edit events for all messages...');
+                    const allMessages = list.querySelectorAll('.comment-item');
+                    allMessages.forEach(messageElement => {
+                        const messageId = messageElement.dataset.messageId;
+                        if (messageId) {
+                            console.log('Re-setting up events for message:', messageId);
+                            setupEmojiToolbarEvents(messageElement, messageId);
+                            
+                            // Find the corresponding message data for edit functionality
+                            const messageData = messages.find(msg => 
+                                msg.messageId === messageId || 
+                                msg.timestamp.toString() === messageId ||
+                                (msg.timestamp && msg.timestamp.toString() === messageId)
+                            );
+                            if (messageData) {
+                                const isMyMessage = messageData.email === userEmail;
+                                setupEditFunctionality(messageElement, messageId, isMyMessage, messageData);
+                            }
+                        }
+                    });
+                }, 100);
+                // Find the new comment and scroll to it
+                if (list && list.lastChild) {
+                    list.lastChild.scrollIntoView({ behavior: 'smooth' });
+                }
+
+                if (messages.length == 0)
+                    list.innerHTML = "<div class='no-messages-container'><i class='fas fa-comments' style='font-size: 48px; color: #d1d5db; margin-bottom: 16px;'></i><span class='no-messages-text'>No messages found</span><span class='no-messages-subtitle'>Start a conversation by sending the first message</span></div>";
+
+                previousMessagesHTML = list.innerHTML;
+            }
+        });
+    }
+
+    document.getElementById("contact-img").src = currentImg;
+    document.getElementById("contact-img-name").innerHTML = currentName;
+}
+
+var currentlyChattingWith = "";
+var currentImg = "";
+var currentName = "";
+let previousMessagesHTML = "";
+async function openChatWith(email, img, name) {
+    let list = document.getElementById("messages-list");
+    list.innerHTML = "";
+    currentlyChattingWith = email.replace(".", ",");
+    currentImg = img;
+    currentName = name.replace(",", ".");
+    document.getElementById("contacts-panel-chooser").style.display = "none";
+    document.getElementById("contacts-panel-messages").style.display = "flex";
+    // Hide the search bar when opening a chat
+    document.getElementById("messaging-search").style.display = "none";
+    await loadMessages();
+}
+
+// Render a contact button
+function createContactButton(name, email, profileImage, message) {
+    const btn = document.createElement('button');
+    const tableStyle = "style='background-color: unset; border: unset;'";
+    const imgSrc = profileImage || 'img/default-profile.png';
+    btn.className = 'contact-btn';
+    
+    // Special handling for "Everyone" - use SVG instead of image
+    let avatarHtml;
+    if (email === "everyone") {
+        avatarHtml = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 48 48" class="contact-avatar">
+            <path fill="currentColor" d="M11.5 11a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM15 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12Zm14.5 6a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM33 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12ZM4 22.446A3.446 3.446 0 0 1 7.446 19h9.624a7.947 7.947 0 0 0-.93 2.5H7.446a.946.946 0 0 0-.946.946v.429c0 .27.003 1.933 1.019 3.505c.896 1.388 2.723 2.92 6.684 3.102a5.469 5.469 0 0 0-2.464 2.223c-3.222-.632-5.18-2.203-6.32-3.968C4 25.54 4 23.27 4 22.877v-.43Zm29.797 7.036a5.469 5.469 0 0 1 2.464 2.223c3.222-.632 5.18-2.203 6.32-3.968C44 25.54 44 23.27 44 22.877v-.43A3.446 3.446 0 0 0 40.554 19H30.93c.44.763.76 1.605.93 2.5h8.694c.522 0 .946.424.946.946v.429c0 .27-.003 1.933-1.019 3.505c-.896 1.388-2.723 2.92-6.684 3.102ZM24 19.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7ZM18 23a6 6 0 1 1 12 0a6 6 0 0 1-12 0Zm-5 11.446A3.446 3.446 0 0 1 16.446 31h15.108A3.446 3.446 0 0 1 35 34.446v.431c0 .394 0 2.663-1.419 4.86C32.098 42.033 29.233 44 24 44s-8.098-1.967-9.581-4.263C13 37.54 13 35.27 13 34.877v-.43Zm3.446-.946a.946.946 0 0 0-.946.946v.429c0 .27.003 1.933 1.019 3.505c.954 1.478 2.964 3.12 7.481 3.12c4.517 0 6.527-1.642 7.481-3.12c1.016-1.572 1.019-3.235 1.019-3.505v-.429a.946.946 0 0 0-.946-.946H16.446Z"/>
+        </svg>`;
+    } else {
+        avatarHtml = `<img src="${imgSrc}" class="contact-avatar" />`;
+    }
+    
+    btn.innerHTML = `
+        ${avatarHtml}
+        <table>
+            <tr ${tableStyle}>
+                <td ${tableStyle}><span class="contact-name">${name.replace(",", ".")}</span></td><td class='contact-footer' style='text-align: right;'>${formatTime(new Date(message.timestamp))}</td>
+            </tr>
+            <tr ${tableStyle}>
+            <td ${tableStyle} class='contact-footer'>
+            ${message.text}
+            </td>
+            </tr>
+        </table>
+    `;
+    btn.onclick = () => openChatWith(email, imgSrc, name); // Implement this function
+    return btn;
+}
+
+// Main function to load contacts
+async function loadContactsPanel() {
+    const contactsPanel = document.getElementById('contacts-panel');
+    contactsPanel.innerHTML = '';
+
+    // Add "Everyone" button
+
+    let companyEmail = await getMainCompanyEmail();
+    let currentProject = await getCurrentProject();
+    let everyoneMessages = Object.values(await callGetItem(`Companies/${companyEmail}/securedProjects/${currentProject}/messages/${currentTopic}/everyone`, false) || []);
+    if (everyoneMessages.length > 0)
+        everyoneMessages = everyoneMessages[0];
+    var message = { timestamp: Date.now(), text: "" };
+    if (everyoneMessages != null) {
+        var userMessages = Object.values(everyoneMessages);
+        var length = userMessages.length;
+        if (length > 0)
+            message = userMessages[length - 1];
+    }
+    contactsPanel.appendChild(createContactButton("Everyone", "everyone", "img/default-group.png", message));
+
+    // Get company email
+    const userEmail1 = await getUserEmail();
+
+    // Fetch all keys under Companies/companyEmail
+    sendRuntimeMessage({
+        action: "getFirebaseData",
+        path: `Companies/${companyEmail}/users`
+    }, response => {
+        if (!response || !response.success || !response.data) {
+            contactsPanel.innerHTML += '<div class="error">Failed to load contacts.</div>';
+            return;
+        }
+        // Loop through keys and find users
+        Object.entries(response.data).forEach(async ([key, value]) => {
+            // Get user info (name, email, profileImage)
+            let userEmail2 = value?.email || key;
+            userEmail2 = userEmail2.replace(".", ",");
+            const userName = value?.name || userEmail2;
+            const profileImage = value?.profileImage;
+            // Don't show yourself
+            if (userEmail1 === userEmail2)
+                return;
+            var message = { timestamp: Date.now(), text: "" };
+            var emailPair = await getEmailPair(userEmail2);
+            let messages = Object.values(await callGetItem(`Companies/${companyEmail}/securedProjects/${currentProject}/messages/${currentTopic}/${emailPair}`, false) || []);
+            if (messages.length > 0)
+                messages = messages[0];
+            if (messages != null) {
+                var userMessages = Object.values(messages);
+                var length = userMessages.length;
+                if (length > 0)
+                    message = userMessages[length - 1];
+            }
+            contactsPanel.appendChild(
+                createContactButton(userName, userEmail2, profileImage, message)
+            );
+        });
+    });
+}
+
+var currentChatId = null;
+var currentTopic = "";
+setCurrentTopic("general");
+document.addEventListener('DOMContentLoaded', async function () {
+    setTimeout(function () {
+        loadContactsPanel();
+    }, 3000);
+    const messagingButton = document.getElementById('Messaging');
+    const backButton = document.getElementById('Back-messaging');
+    const GroqChats_button = document.getElementById("topics-Groq Chats");
+    // const VideoAnnotations_button = document.getElementById("topics-Video Annotations");
+    // const VoiceAnnotations_button = document.getElementById("topics-Voice Annotations");
+    const ManualLogs_button = document.getElementById("topics-Manual Logs");
+    const ManualLogs_back_button = document.getElementById("topic-Manual Logs-back");
+
+    const GroqChats_back_button = document.getElementById("topic-Groq Chats-back");
+
+    messagingButton.addEventListener('click', async function () {
+        if (await isUserLoggedIn2()) {
+            hideAllSubFrames();
+            showFrame("messaging-sub-frame-label");
+            showFrame("messaging-sub-frame");
+        }
+        else {
+            showToast("You must be logged in to use messaging", 'error')
+        }
+    });
+
+    backButton?.addEventListener('click', function () {
+        console.log("Showing main menu from messaging back");
+        mainMenu();
+    });
+
+    function hideTopics() {
+        document.getElementById("choose-topic").style.display = "none";
+        document.getElementById("topic-Groq Chats-div").style.display = "none";
+        // document.getElementById("topic-Video Annotations-div").style.display = "none";
+        // document.getElementById("topic-Voice Annotations-div").style.display = "none";
+        document.getElementById("topic-Manual Logs-div").style.display = "none";
+        // hideContactList();
+    }
+
+    // function showTopics() {
+    //     document.getElementById("choose-topic").style.display = "none";
+    //     document.getElementById("topic-Groq Chats-div").style.display = "none";
+    //     document.getElementById("topic-Video Annotations-div").style.display = "none";
+    //     document.getElementById("topic-Voice Annotations-div").style.display = "none";
+    //     document.getElementById("topic-Manual Logs-div").style.display = "none";
+    // }
+
+    // var openContactsButton = document.getElementById("openContactsButton");
+    // var closeContactsButton = document.getElementById("closeContactsButton");
+    // // Hide both buttons by default
+    // openContactsButton.style.display = "none";
+    // closeContactsButton.style.display = "none";
+
+    // // Helper to hide both
+    // function hideContactsPanelButtons() {
+    //     openContactsButton.style.display = "none";
+    //     closeContactsButton.style.display = "none";
+    // }
+    // // Helper to show open button only
+    // function showOpenContactsButton() {
+    //     openContactsButton.style.display = "block";
+    //     closeContactsButton.style.display = "none";
+    // }
+
+    GroqChats_button.addEventListener('click', async function () {
+        hideTopics();
+        document.getElementById("topic-Groq Chats-div").style.display = "block";
+        var currentProject = await getCurrentProject();
+        setTimeout(function () {
+            var iframe = document.getElementById("groq-iframe");
+            iframe.contentWindow.postMessage({ action: "Inside Extension", currentProject: currentProject }, "*");
+        }, 0);
+        // Show open contacts button for Groq Chats
+        // showOpenContactsButton();
+        // loadGroqChatsList();
+    });
+
+    GroqChats_back_button.addEventListener('click', function () {
+        setCurrentTopic("general");
+        loadContactsPanel();
+        loadMessages();
+        var iframe = document.getElementById("groq-iframe");
+        iframe.contentWindow.postMessage({ action: "Show Sidebar" }, "*");
+        hideTopics();
+        document.getElementById("choose-topic").style.display = "block";
+        // Hide both contacts panel buttons when leaving Groq Chats
+        // hideContactsPanelButtons();
+    });
+
+    // VideoAnnotations_button.addEventListener('click', function () {
+    // hideTopics();
+    // });
+    // VoiceAnnotations_button.addEventListener('click', function () {
+    // hideTopics();
+    // });
+    ManualLogs_button.addEventListener('click', async function () {
+        hideTopics();
+        document.getElementById("topic-Manual Logs-div").style.display = "block";
+        var manualLogCategoriesDiv = document.getElementById("topic-Manual Logs-categories");
+        var manualLogsDiv = document.getElementById("topic-Manual Logs-logs");
+        manualLogCategoriesDiv.style.display = "block";
+        manualLogCategoriesDiv.innerHTML = "";
+        manualLogsDiv.style.display = "none";
+        var categories = Object.values(await callGetItem("categoriesImages") || []);
+        if (categories.length > 0)
+            categories = Object.keys(categories[0]);
+        else
+            manualLogCategoriesDiv.innerHTML = "<div>No categories found</div>";
+        for (let category of categories) {
+            let categoryButton = document.createElement('div');
+            categoryButton.className = "category-item";
+            categoryButton.style.cursor = 'pointer';
+            let categoryKey = category;
+            categoryButton.innerHTML = `<span class="category-name">${categoryKey}</span>`;
+            categoryButton.addEventListener('click', async function () {
+                manualLogCategoriesDiv.style.display = "none";
+                manualLogsDiv.style.display = "block";
+                manualLogsDiv.innerHTML = "";
+
+                var logs = Object.values(await callGetItem(`categoriesImages/${categoryKey}/images`) || []);
+                if (logs.length > 0)
+                    logs = Object.values(logs[0]);
+                for (let log of logs) {
+                    let logButton = document.createElement('div');
+                    logButton.style.borderRadius = "10px";
+                    let timestamp = formatTime(new Date(log.timestamp));
+                    logButton.innerHTML = `
+                    <div class="catalog-card"><img src="${log.data}" alt="contact.png" style="padding-bottom: 20px;">
+                    <div class="catalog-note-preview">Selected Text: ${log.selectedText}<br>${log.note}</div><div class="catalog-card-bottom"><div class="catalog-timestamp">${timestamp}</div>
+                    </div></div>
+                    `;
+                    logButton.addEventListener('click', async function () {
+                        var topicText = log.selectedText + " " + timestamp;
+                        // if (log.selectedText.trim() != "") {
+                        //     topicText = log.selectedText;
+                        // }
+                        // if (log.note.trim() != "") {
+                        //     if (topicText != "")
+                        //         topicText += "<br>";
+                        //     topicText += log.note;
+                        // }
+                        setCurrentTopic(`categoriesImages-images-${log.imageId}`, "manualLogs", topicText);
+                        loadContactsPanel();
+                        loadMessages();
+                        for (let otherButton of manualLogsDiv.childNodes) {
+                            otherButton.style.border = "";
+                        }
+                        logButton.style.border = "solid 4px gray";
+                    });
+
+                    manualLogsDiv.appendChild(logButton);
+                }
+                // setCurrentTopic(`categoriesImages/${categoryKey}`)
+            });
+            manualLogCategoriesDiv.appendChild(categoryButton);
+        }
+    });
+
+    ManualLogs_back_button.addEventListener('click', function () {
+        var manualLogCategoriesDiv = document.getElementById("topic-Manual Logs-categories");
+        setCurrentTopic("general");
+        loadContactsPanel();
+        loadMessages();
+        hideTopics();
+        document.getElementById("choose-topic").style.display = "block";
+        if (manualLogCategoriesDiv.style.display == "none") {
+            ManualLogs_button.click(); //Allows user to go back to the categories from the logs list, instead of skipping back to the main topics menu
+        }
+        // Hide both contacts panel buttons when leaving Manual Logs
+        // hideContactsPanelButtons();
+    });
+
+    const addMessageButton = document.getElementById('add-message');
+    const newMessageInput = document.getElementById('new-message');
+
+    // Inject styles for improved message UI
+    (function ensureMessageSpacingStyles() {
+        if (document.getElementById('message-spacing-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'message-spacing-styles';
+        style.textContent = `
+        .comment-item {
+            position: relative !important;
+            margin: 20px 0;
+        }
+        
+        .comment-header {
+            font-size: 11px;
+            color: #6b7280;
+            margin: 0 12px 4px 12px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: baseline;
+        }
+        
+        .comment-header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .comment-author {
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .comment-time {
+            color: #6b7280;
+            font-size: 11px;
+        }
+        
+        .comment-text {
+            padding: 10px 14px;
+            border-radius: 8px;
+            line-height: 1.5;
+            max-width: 90%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            margin: 0 12px;
+        }
+        
+        .comment-item:not(.my-comment) .comment-text {
+            background-color: #f3f4f6;
+            color: #111827;
+        }
+        
+        .comment-item.my-comment .comment-text {
+            background-color: #eff6ff;
+            color: #111827;
+        }
+        
+        .comment-input-container {
+            background: #ffffff;
+            border-top: 1px solid #e5e7eb;
+            padding: 16px;
+        }
+        
+        .comment-input {
+            padding: 12px 16px;
+            min-height: 44px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background-color: #ffffff;
+            transition: all 0.2s ease;
+        }
+        
+        .comment-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .comment-button.primary {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            height: 44px;
+            width: 44px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .comment-button.primary:hover {
+            background-color: #e2e8f0;
+            color: #374151;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Emoji Toolbar Styles */
+        .emoji-toolbar {
+            display: none;
+            position: absolute;
+            top: -2px;
+            left: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            white-space: nowrap;
+        }
+        
+        .comment-item:hover .emoji-toolbar {
+            display: flex;
+            opacity: 1;
+        }
+        /* Hide emoji toolbar entirely while editing */
+        .comment-item.is-editing .emoji-toolbar {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        
+        .emoji-option {
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 6px;
+            margin: 0 2px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            display: inline-block;
+            position: relative;
+            z-index: 1001;
+            background-color: transparent;
+        }
+        
+        .emoji-option:hover {
+            background-color: #f1f5f9;
+            transform: scale(1.1);
+        }
+        
+        .emoji-option.selected {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #d1d5db;
+        }
+        
+        /* Reactions Display */
+        .reactions-display {
+            margin: 8px 12px 0 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .reaction-item {
+            display: inline-block;
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .reaction-item:hover {
+            background-color: #e5e7eb;
+            transform: scale(1.05);
+        }
+        
+        /* Tooltip Styles */
+        .reaction-tooltip {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        .tooltip-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+        
+        .tooltip-content {
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        
+        /* Position toolbar for sender's messages */
+        .comment-item.my-comment .emoji-toolbar {
+            left: auto;
+            right: 0;
+        }
+        
+        /* Edit functionality styles */
+        .edit-icon {
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 6px;
+            margin: 0 2px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            display: inline-block;
+            position: relative;
+            z-index: 1001;
+            background-color: transparent;
+            color: #6b7280;
+        }
+        
+        .edit-icon:hover {
+            background-color: #f1f5f9;
+            transform: scale(1.1);
+            color: #374151;
+        }
+        
+        .edit-controls {
+            margin: 4px 12px 8px 12px;
+            width: calc(100% - 24px); /* make editor span nearly full row */
+            max-width: none;
+        }
+        .edit-editor { position: relative; }
+        .editor-toolbar-bottom {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rich-text-toolbar {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e1e5e9;
+            margin-bottom: 8px;
+        }
+        .rich-text-toolbar.visible { display: flex; }
+        .icon-bold { font-weight: 700; }
+        .icon-italic { font-style: italic; }
+        .icon-underline { text-decoration: underline; }
+        
+        /* Dropdown containers */
+        .highlight-dropdown, .font-size-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .highlight-colors, .font-size-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 4px;
+            padding: 4px;
+            display: none;
+            gap: 2px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .highlight-dropdown.open .highlight-colors,
+        .font-size-dropdown.open .font-size-options {
+            display: flex;
+        }
+        
+        .color-option, .size-option {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        
+        .color-option:hover, .size-option:hover {
+            transform: scale(1.1);
+            border-color: #999;
+        }
+        
+        .size-option {
+            background: white;
+            color: #000;
+            min-width: 20px;
+        }
+        
+        .edit-toolbar {
+            display: flex;
+            visibility: hidden; /* reserve space so layout doesn't jump */
+            height: 28px;
+            gap: 2px;
+            margin-bottom: 6px;
+            padding: 2px;
+            background-color: #fafafa;
+            border: 1px solid #e1e5e9;
+            border-radius: 3px;
+            align-items: center;
+        }
+        .edit-toolbar.visible { visibility: visible; }
+        
+        .icon-btn,
+        .rich-text-btn {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: none;
+            border-radius: 4px;
+            background-color: transparent;
+            color: #000000;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            transition: color 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .rich-text-btn:hover { color: #0078d4; }
+        
+        .rich-text-btn.active {
+            color: #0078d4;
+        }
+        
+        .edit-content {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            min-height: 120px;
+            padding: 12px 14px;
+            border: 1px solid #e1e5e9;
+            border-radius: 3px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            outline: none;
+            background-color: #ffffff;
+            transition: border-color 0.15s ease, padding-top 0.15s ease;
+        }
+        .edit-editor.has-rich-toolbar .edit-content {
+            padding-top: 48px;
+        }
+        .edit-content:focus { border-color: #8bb4de; }
+        
+        .edit-buttons {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        
+        .edit-rich-text-toggle, .edit-save-btn, .edit-cancel-btn { width: 24px; height: 24px; }
+        
+        .edit-rich-text-toggle {
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+        
+        .edit-rich-text-toggle:hover { color: #0078d4; }
+        
+        .edit-rich-text-toggle.active { color: #0078d4; }
+        
+        .edit-save-btn { font-size: 14px; color: #000000; }
+        
+        .edit-save-btn:hover { color: #107c10; }
+        
+        .edit-cancel-btn { font-size: 14px; color: #000000; }
+        
+        .edit-cancel-btn:hover { color: #d13438; }
+        
+        /* List styling for message content and editor */
+        .comment-text ul, .comment-text ol, .edit-content ul, .edit-content ol {
+            margin: 8px 0;
+            padding-left: 20px;
+            list-style-position: outside;
+        }
+        
+        .comment-text ul, .edit-content ul {
+            list-style-type: disc;
+        }
+        
+        .comment-text ol, .edit-content ol {
+            list-style-type: decimal;
+        }
+        
+        .comment-text li, .edit-content li {
+            margin: 4px 0;
+            line-height: 1.4;
+            list-style-position: outside;
+        }
+        
+        /* Ensure nested lists have proper indentation */
+        .comment-text ul ul, .comment-text ol ul, .edit-content ul ul, .edit-content ol ul {
+            list-style-type: circle;
+        }
+        
+        .comment-text ul ul ul, .comment-text ol ul ul, .edit-content ul ul ul, .edit-content ol ul ul {
+            list-style-type: square;
+        }
+        `;
+        document.head.appendChild(style);
+    })();
+
+    // Auto-resize functionality for textarea
+    if (newMessageInput) {
+        newMessageInput.addEventListener('input', function () {
+            // Reset height to auto to get the correct scrollHeight
+            this.style.height = 'auto';
+            // Set the height to match content (plus a little extra padding)
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Add keyboard event handling for Enter key
+        newMessageInput.addEventListener('keydown', function (e) {
+            // Send on Ctrl/Cmd+Enter
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                const text = this.value.trim();
+                if (text) {
+                    postNewMessage(text);
+                    this.value = ''; // Clear input after posting
+                    this.style.height = 'auto'; // Reset height
+                }
+                return;
+            }
+            // Allow Enter and Shift+Enter to create new lines
+        });
+    }
+
+    // Add event listener for posting new comments
+    addMessageButton?.addEventListener('click', function () {
+        const text = newMessageInput.value.trim();
+        if (text) {
+            postNewMessage(text);
+            newMessageInput.value = ''; // Clear input after posting
+            newMessageInput.style.height = 'auto'; // Reset height
+        }
+    });
+
+    document.getElementById("messages-back").addEventListener('click', function () {
+        loadContactsPanel();
+        document.getElementById("contacts-panel-chooser").style.display = "block";
+        document.getElementById("contacts-panel-messages").style.display = "none";
+        // Show the search bar again when going back to contacts list
+        document.getElementById("messaging-search").style.display = "block";
+        // showContactList();
+    });
+
+    // openContactsButton.addEventListener('click', function () {
+    //     showContactList();
+    //     openContactsButton.style.display = "none";
+    //     closeContactsButton.style.display = "block";
+    // });
+    // closeContactsButton.addEventListener('click', function () {
+    //     hideContactList();
+    //     closeContactsButton.style.display = "none";
+    //     openContactsButton.style.display = "block";
+    // });
+
+
+
+    window.addEventListener('message', async function (event) {
+        if (event.data.action === "activeChat") {
+            currentChatId = event.data.id;
+            setCurrentTopic("groqChats-" + currentChatId, "groqChats");
+            loadContactsPanel();
+            loadMessages();
+            var iframe = document.getElementById("groq-iframe");
+            var companyEmail = await getMainCompanyEmail();
+            iframe.contentWindow.postMessage({ action: "Show Highlights", companyEmail: companyEmail }, "*");
+        }
+        else if (event.data.action === "updateMessagingTopic") {
+            // Update the current topic when a Groq chat is selected from the chat sidebar
+            const chatId = event.data.chatId;
+            const chatTitle = event.data.chatTitle;
+            setCurrentTopic("groqChats-" + chatId, "groqChats");
+            loadContactsPanel();
+            loadMessages();
+            console.log("Updated messaging topic to:", "groqChats-" + chatId, "for chat:", chatTitle);
+        }
+    });
+
+    // Function to filter contacts based on search term
+    function filterContacts(searchTerm) {
+        const contactButtons = document.querySelectorAll('.contact-btn');
+        
+        contactButtons.forEach(button => {
+            const contactName = button.querySelector('.contact-name').textContent.toLowerCase();
+            const contactEmail = button.querySelector('.contact-footer').textContent.toLowerCase();
+            
+            if (searchTerm === '' || contactName.includes(searchTerm) || contactEmail.includes(searchTerm)) {
+                button.style.display = 'flex';
+            } else {
+                button.style.display = 'none';
+            }
+        });
+    }
+    
+    showContactList();
+    
+    // Add search functionality
+    const searchInput = document.getElementById('messaging-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            filterContacts(searchTerm);
+        });
+    }
+    
+    // Global emoji event listener as a fallback
+    document.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('emoji-option')) {
+            const emoji = e.target.dataset.emoji;
+            const messageId = e.target.dataset.messageId;
+            
+            if (emoji && messageId) {
+                console.log('Global emoji click caught:', emoji, 'for message:', messageId);
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    await toggleReaction(messageId, emoji);
+                } catch (error) {
+                    console.error('Error in global emoji handler:', error);
+                }
+            }
+        }
+    });
+    
+    const resizer = document.getElementById('messaging-resizer');
+    const topicsPanel = document.getElementById('topics-panel');
+    const contactsPanelOuter = document.getElementById('contacts-panel-outer');
+    const container = document.getElementById('messaging-sub-frame'); // The parent container
+    //Overlay is needed because resizing event does not fire when mouse is over the iframe
+    const overlay = document.getElementById('iframe-overlay');
+
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', function (e) {
+        isResizing = true;
+        // Add event listeners to the document to capture mouse movements globally
+        overlay.style.display = 'block';
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResizing);
+    });
+
+    function resize(e) {
+        console.log(isResizing);
+        if (!isResizing) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const newTopicsWidth = e.clientX - containerRect.left;
+        const totalWidth = containerRect.width;
+
+        // Calculate new widths, ensuring minimum width and not exceeding total width
+        // Adjust minWidth as needed
+        const minWidth = 238;
+
+        let topicsPanelWidth = Math.max(minWidth, newTopicsWidth);
+        topicsPanelWidth = Math.min(topicsPanelWidth, totalWidth - minWidth);
+        const contactsPanelWidth = totalWidth - topicsPanelWidth;
+
+        // Update the styles
+        topicsPanel.style.width = topicsPanelWidth + 'px';
+        contactsPanelOuter.style.width = contactsPanelWidth + 'px';
+    }
+
+    function stopResizing() {
+        isResizing = false;
+        // Remove the event listeners
+        overlay.style.display = 'none';
+        document.removeEventListener('mousemove', resize);
+        document.removeEventListener('mouseup', stopResizing);
+    }
+});
+
+//Manual logging images path:
+// categoriesImages
+// ABC
+// images
+// img_1748371264492_au3i9s1na
+// data
+// :
+// "data:image/png;base64,iVBORw0KGgoAAAA
+// imageId
+// :
+// "img_1748371264492_au3i9s1na"
+// name
+// :
+// "contactButtons.png"
+// note
+// :
+// "Note goes here"
+// selectedText
+// :
+// "help"
+// size
+// :
+// 274424
+// timestamp
+// :
+// "2025-05-27T18:41:04.482Z"
+// type
+// :
+// "image/png"
+
+//Manual logging categories path:
+// manualLoggingCategories
+// ABC
+// createdAt
+// :
+// "2025-05-27T18:40:55.603Z"
+// name
+// :
+// "ABC"

@@ -1,0 +1,1469 @@
+/* Imported styles to match extension label UI */
+.frame-button-1-holder {
+  background-color: #f8f9fa;
+  border: 1px solid #eaeeef;
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 10px;
+}
+.frame-button-1 {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.frame-button-1.selected {
+  border-color: #d1d5db;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+  background: #f3f4f6;
+}
+.frame-button-1:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+  background-color: #f9fafb;
+}
+.label-button-container { margin-bottom: 8px; }
+.label-content { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.label-main { display: flex; align-items: center; }
+.label-main i { width: 25px; text-align: center; display: inline-flex; justify-content: center; align-items: center; }
+.label-main .p-2 { padding-left: 0.5rem !important; }
+.label-dropdown-arrow { font-size: 0.8rem; transition: transform 0.3s ease; color: #626262; padding: 8px; cursor: pointer; margin-right: -8px; z-index: 2; position: relative; }
+.label-dropdown-arrow.active { transform: rotate(180deg); }
+.label-description { display: none; padding: 12px 16px; margin-top: 4px; background-color: #f8f9fa; border-radius: 8px; font-size: 0.9rem; color: #6c757d; line-height: 1.4; border-left: 3px solid var(--color-light-blue, #92c2d7); }
+.label-description.active { display: block; animation: slideDown 0.3s ease forwards; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: translateY(0);} }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.95);} to { opacity: 1; transform: scale(1);} }
+.app {
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #282c34;
+  color: white;
+}
+
+.app-header {
+  padding: 2rem;
+}
+
+h1 {
+  margin-bottom: 1rem;
+  color: #61dafb;
+}
+
+.demo-window {
+  min-height: 400px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.annotation-options {
+  padding: 1rem;
+}
+
+.annotation-option {
+  margin-bottom: 1.5rem;
+}
+
+/* Loading dots animation */
+.loading-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background-color: #666;
+  border-radius: 50%;
+  animation: loading-dots 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loading-dots {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+
+  40% {
+    transform: scale(1);
+  }
+}
+
+.PhrazeHighlight {
+  background-color: var(--highlight-color, #FFF176) !important;
+  color: black !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  /* display: inline-block !important; */
+  display: inline;
+  position: relative !important;
+  z-index: 1 !important;
+  opacity: 1;
+}
+
+/* Hide empty highlight elements */
+.PhrazeHighlight:empty {
+  display: none !important;
+}
+
+.HighlightPopup {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transition: none !important;
+}
+
+.PhrazeHighlight {
+  background-color: var(--highlight-color, #FFF176) !important;
+  color: black !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  display: inline !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.PhrazeHighlight:hover {
+  background-color: var(--highlight-color, #FFF176) !important;
+}
+
+/* Hide empty highlight elements */
+.PhrazeHighlight:empty {
+  display: none !important;
+}
+
+
+
+
+
+/* Container for the highlight mark and button */
+.phraze-highlight-container {
+  display: inline;
+  /* Changed from inline-flex to avoid layout shifts */
+  position: relative;
+  /* Align with surrounding text */
+}
+
+/* The highlight mark itself inside the container */
+.phraze-highlight-container mark[id="PhrazeHighlight"] {
+  /* Inherit styles, reset potential container side effects if needed */
+  vertical-align: baseline;
+  /* Reset vertical alignment if needed */
+}
+
+
+
+/* Annotation Popup Styles */
+.annotation-popup {
+  position: fixed;
+  z-index: 1000000001;
+  background-color: #fbfbfb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  width: 400px;
+  max-width: 400px;
+  position: relative;
+}
+
+.annotation-popup .annotation-header {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  letter-spacing: -0.01em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.annotation-popup .annotation-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.annotation-popup .annotation-close-btn:hover {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.annotation-popup textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+  color: #374151;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.annotation-popup textarea:focus {
+  outline: none;
+  border-color: #d1d5db;
+  background-color: white;
+}
+
+.annotation-popup textarea::placeholder {
+  color: #9ca3af;
+}
+
+.annotation-popup .button-container {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.annotation-popup .add-annotation-button {
+  flex: 1;
+  padding: 10px 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  line-height: 1;
+  background-color: #ffffff;
+  color: #374151;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.annotation-popup .add-annotation-button:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.annotation-popup .save-button {
+  background-color: white;
+  color: black;
+  border: 1px solid #d1d5db;
+  justify-content: flex-start;
+}
+
+.annotation-popup .save-button:hover {
+  background-color: #f8fafc;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.annotation-popup .add-full-button {
+  background-color: white;
+  color: black;
+  border: 1px solid #d1d5db;
+}
+
+.annotation-popup .add-full-button:hover {
+  background-color: #f8fafc;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+
+
+/* List for notes */
+.phraze-note-list {
+  list-style: disc;
+  margin: 5px 0 0 20px;
+  /* Add margin for list styling */
+  padding: 0;
+  max-height: 100px;
+  /* Limit height and allow scrolling */
+  overflow-y: auto;
+  font-size: 12px;
+  color: #333;
+  list-style-position: inside;
+  /* Keep bullets inside padding */
+  padding-left: 5px;
+  /* Add some padding */
+}
+
+.phraze-note-list li {
+  /* Use flexbox for layout */
+  display: flex;
+  justify-content: space-between;
+  /* Push text and button apart */
+  align-items: center;
+  margin-bottom: 4px;
+  /* Increased spacing */
+  padding: 2px 0;
+  /* Add vertical padding */
+}
+
+/* Span for the note text itself */
+.phraze-note-text {
+  flex-grow: 1;
+  /* Allow text to take available space */
+  margin-right: 5px;
+  /* Space between text and delete button */
+  word-break: break-word;
+  /* Prevent long words from overflowing */
+}
+
+/* Delete button style */
+.phraze-note-delete-btn {
+  flex-shrink: 0;
+  /* Prevent button from shrinking */
+  background: #eee;
+  border: 1px solid #ccc;
+  color: #777;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  line-height: 14px;
+  /* Center 'x' vertically */
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 5px;
+}
+
+.phraze-note-delete-btn:hover {
+  background: #ddd;
+  color: #333;
+}
+
+
+
+.unselectable {
+  user-select: none;
+}
+
+.selectable {
+  user-select: initial;
+}
+
+.center-under-img {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.back-button {
+  background-color: #00000000;
+  border: none;
+  width: 30px;
+  height: 41px;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: rgb(238, 241, 245);
+}
+
+.messaging-header {
+  font-size: 14px;
+  color: lightgray;
+  padding: 10px;
+}
+
+.messages-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+}
+
+#groq-chats-list {
+  margin-bottom: 16px;
+}
+
+.groq-message {
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 6px;
+  background: #f8f8f8;
+}
+
+.topics-button {
+  padding: 8px 12px;
+  border: none;
+  background: #f5f5f5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: unset;
+  display: block;
+  width: 95%;
+  margin: 10px;
+  margin-left: auto;
+  margin-right: auto;
+  height: 43px;
+}
+
+
+.topics-button:hover {
+  background: #e0e0e0;
+}
+
+.messaging-panel {
+  width: 50%;
+  border-right: 1px solid grey;
+  /* border: 1px solid grey;
+    border-radius: 12px; */
+  height: 800px;
+}
+
+#contacts-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  padding: 12px;
+}
+
+.contact-footer {
+  color: #bbb;
+  font-size: 13px;
+}
+
+.contact-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: white;
+  border-top: solid 1px #F7F7F8;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: unset;
+  height: 90px;
+}
+
+.contact-btn:hover {
+  background: #e0e0e0;
+}
+
+.contact-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.contact-name {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.contact-email {
+  color: #888;
+  font-size: 0.9em;
+}
+
+.contact-btn.everyone {
+  /* background: #d0eaff; */
+  font-weight: bold;
+}
+
+td {
+  padding: 8px;
+}
+
+
+* Add these iMessage-style comment styles */ .comments-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.comment-item {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  gap: 4px;
+  align-items: flex-start;
+  animation: slideInLeft 0.3s ease-out forwards;
+  /* Start invisible */
+  opacity: 0;
+  transform-origin: left center;
+}
+
+.comment-item.my-comment {
+  align-self: flex-end;
+  align-items: flex-end;
+  animation: slideInRight 0.3s ease-out forwards;
+  transform-origin: right center;
+}
+
+/* Stagger comment animations when loading multiple comments */
+.comments-list .comment-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.comments-list .comment-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.comments-list .comment-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.comments-list .comment-item:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.comments-list .comment-item:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.comments-list .comment-item:nth-child(n+6) {
+  animation-delay: 0.3s;
+}
+
+.comment-header {
+  font-size: 12px;
+  color: #8e8e93;
+  margin: 0 8px;
+}
+
+.comment-item.my-comment .comment-header {
+  text-align: right;
+}
+
+.comment-text {
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+  word-wrap: break-word;
+}
+
+/* Other user's comment style */
+.comment-item:not(.my-comment) .comment-text {
+  background-color: #e9e9eb;
+  color: #000000;
+  border-top-left-radius: 4px;
+  margin-right: 40px;
+}
+
+/* My comment style */
+.comment-item.my-comment .comment-text {
+  background-color: #007aff;
+  color: #ffffff;
+  border-top-right-radius: 4px;
+  margin-left: 40px;
+}
+
+/* Comment input styles */
+.comment-input-container {
+  background: #ffffff;
+  border-top: 1px solid #e9e9eb;
+  padding: 12px;
+  position: sticky;
+  bottom: 0;
+}
+
+.comment-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-input {
+  flex-grow: 1;
+  background: #e9e9eb;
+  border: none;
+  border-radius: 18px;
+  padding: 10px 16px 5px;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: none;
+  min-height: 43px;
+  max-height: 120px;
+  overflow-y: hidden;
+  /* Hide scrollbar during auto-resize */
+  transition: height 0.1s ease;
+}
+
+.comment-input:focus {
+  outline: none;
+}
+
+.comment-button.primary {
+  background-color: #007aff;
+  color: white;
+  border: none;
+  height: 43px;
+  width: 43px;
+  border-radius: 18px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+  /* Prevent button from shrinking */
+}
+
+.comment-button.primary:hover {
+  background-color: #0056b3;
+}
+
+/* Comment animation styles */
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.image-button {
+  border: 0px;
+  width: 43px;
+  height: 43px;
+  border-radius: 18px;
+}
+
+/* Comment image styles */
+.comment-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  margin: 8px 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.comment-image:hover {
+  transform: scale(1.02);
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f7;
+  border-radius: 8px;
+  height: 120px;
+  margin: 8px 0;
+  color: #666;
+}
+
+.image-placeholder i {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+/* Animation for the panel */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* Comment input wrapper - update to include AI button */
+.comment-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gsi-material-button {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-appearance: none;
+  background-color: WHITE;
+  background-image: none;
+  border: 1px solid #747775;
+  -webkit-border-radius: 20px;
+  border-radius: 20px;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  color: #1f1f1f;
+  cursor: pointer;
+  font-family: 'Roboto', arial, sans-serif;
+  font-size: 14px;
+  height: 40px;
+  letter-spacing: 0.25px;
+  outline: none;
+  overflow: hidden;
+  padding: 0 12px;
+  position: relative;
+  text-align: center;
+  -webkit-transition: background-color .218s, border-color .218s, box-shadow .218s;
+  transition: background-color .218s, border-color .218s, box-shadow .218s;
+  vertical-align: middle;
+  white-space: nowrap;
+  width: auto;
+  max-width: 400px;
+  min-width: min-content;
+}
+
+.gsi-material-button .gsi-material-button-icon {
+  height: 20px;
+  margin-right: 12px;
+  min-width: 20px;
+  width: 20px;
+}
+
+.gsi-material-button .gsi-material-button-content-wrapper {
+  -webkit-align-items: center;
+  align-items: center;
+  display: flex;
+  -webkit-flex-direction: row;
+  flex-direction: row;
+  -webkit-flex-wrap: nowrap;
+  flex-wrap: nowrap;
+  height: 100%;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.gsi-material-button .gsi-material-button-contents {
+  -webkit-flex-grow: 0;
+  flex-grow: 0;
+  font-family: 'Roboto', arial, sans-serif;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+.gsi-material-button .gsi-material-button-state {
+  -webkit-transition: opacity .218s;
+  transition: opacity .218s;
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.gsi-material-button:disabled {
+  cursor: default;
+  background-color: #ffffff61;
+  border-color: #1f1f1f1f;
+}
+
+.gsi-material-button:disabled .gsi-material-button-contents {
+  opacity: 38%;
+}
+
+.gsi-material-button:disabled .gsi-material-button-icon {
+  opacity: 38%;
+}
+
+.gsi-material-button:not(:disabled):active .gsi-material-button-state,
+.gsi-material-button:not(:disabled):focus .gsi-material-button-state {
+  background-color: #303030;
+  opacity: 12%;
+}
+
+.gsi-material-button:not(:disabled):hover {
+  -webkit-box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+}
+
+.gsi-material-button:not(:disabled):hover .gsi-material-button-state {
+  background-color: #303030;
+  opacity: 8%;
+}
+
+.HighlightPopup {
+  cursor: pointer;
+  opacity: 0.5;
+  transition: 0.5s;
+}
+
+.HighlightPopup:hover {
+  opacity: 1;
+  transition: 0.5s;
+}
+
+.sidebar-project-dropdown {
+  width: 100%;
+  padding: 10px 16px 10px 16px;
+  /* 16px left/right to match sidebar buttons */
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: #fff;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: box-shadow 0.18s, border-color 0.18s, background 0.18s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  outline: none;
+  min-height: 44px;
+  /* Match button height for alignment */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%2364748b" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 20px 20px;
+}
+
+.sidebar-project-dropdown:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-light);
+  background: #f8fafc;
+}
+
+.sidebar-project-dropdown:hover {
+  border-color: var(--accent-hover);
+  background: var(--color-light-gray-hover);
+}
+
+.sidebar-project-dropdown option {
+  border-radius: 8px;
+  background: #fff;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 10px 16px;
+  margin: 4px 0;
+  transition: background 0.18s, color 0.18s;
+}
+
+.sidebar-project-dropdown option:hover,
+.sidebar-project-dropdown option:focus {
+  background: #f0f4fa;
+  color: #1a2533;
+}
+
+.groqScreenshotButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 210px;
+}
+
+.img-overlay {
+  opacity: 0;
+  transition: 0.25s;
+}
+
+.img-overlay:hover {
+  opacity: 1;
+  transition: 0.25s;
+}
+
+/* Unified Annotation Card Styles */
+.phraze-unified-annotation-card {
+  position: fixed;
+  transform: translateX(-50%);
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  z-index: 1000000000;
+  opacity: 0;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  min-width: 260px;
+  max-width: 320px;
+}
+
+/* Show annotation card on hover of container or card itself */
+.phraze-highlight-container:hover .phraze-unified-annotation-card,
+.phraze-unified-annotation-card:hover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Labels Dropdown UI Styles - added without touching existing styles */
+.annotation-popup .labels-section {
+  margin-bottom: 16px;
+}
+
+.annotation-popup .labels-header {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.annotation-popup .labels-toggle-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.annotation-popup .labels-toggle-btn:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.annotation-popup .labels-toggle-btn span {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.annotation-popup .labels-dropdown {
+  position: relative;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+.annotation-popup .label-type-header {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.annotation-popup .label-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: background-color 0.2s ease;
+}
+
+.annotation-popup .label-option:hover {
+  background-color: #f3f4f6;
+}
+
+.annotation-popup .create-custom-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-top: 1px solid #e5e7eb;
+  color: #6b7280;
+  transition: background-color 0.2s ease;
+}
+
+.annotation-popup .create-custom-option:hover {
+  background-color: #f9fafb;
+}
+
+.annotation-popup .label-option:hover {
+  background-color: #f3f4f6;
+}
+
+.annotation-popup .selected-labels-container {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.annotation-popup .selected-label-tag {
+  background: #e5e7eb;
+  color: #374151;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.annotation-popup .selected-label-tag button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 14px;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.annotation-popup .selected-label-tag button:hover {
+  background-color: #d1d5db;
+  color: #374151;
+}
+
+/* Ensure annotation card stays visible when interacting with it */
+.phraze-unified-annotation-card.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Card Header */
+.annotation-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Profile Section */
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.profile-image {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+
+.username {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* Labels and Codes Section */
+.labels-codes-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  align-items: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.labels-section {
+  width: 100%;
+  margin-bottom: 4px;
+  min-height: 16px;
+  box-sizing: border-box;
+}
+
+.section-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  height: 20px;
+  line-height: 20px;
+}
+
+.labels-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 100%;
+  align-items: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  min-height: 16px;
+  box-sizing: border-box;
+}
+
+.label-pill {
+  padding: 3px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: lowercase;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  background-color: #f0f4ff;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+/* Dot removed from label pills for cleaner appearance */
+
+/* Notes Section */
+.notes-section {
+  margin-bottom: 4px;
+}
+
+/* Rich Text Editor */
+.annotation-richtext[data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.annotation-richtext:focus[data-placeholder]:empty:before {
+  display: none;
+}
+
+/* Add spacing between rich text editor and button */
+.annotation-richtext {
+  margin-bottom: 12px;
+}
+
+/* Fix annotation card width to prevent shifting */
+.phraze-unified-annotation-card {
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
+}
+
+/* Style images in notes */
+.phraze-note-text img {
+  max-width: 100%;
+  height: auto;
+  max-height: 200px;
+  border-radius: 4px;
+  margin: 4px 0;
+  display: block;
+}
+
+/* Style images in rich text editor */
+.annotation-richtext img {
+  max-width: 100%;
+  height: auto;
+  max-height: 200px;
+  border-radius: 4px;
+  margin: 4px 0;
+  display: block;
+  border: 1px solid #e5e7eb;
+}
+
+.notes-section .phraze-note-list {
+  margin: 0;
+  padding: 0;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.notes-section .phraze-note-list li {
+  background-color: #f9fafb;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border: 1px solid #f3f4f6;
+}
+
+.notes-section .phraze-note-text {
+  color: #374151;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.notes-section .phraze-note-delete-btn {
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #6b7280;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.notes-section .phraze-note-delete-btn:hover {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+/* Card Footer */
+.annotation-card-footer {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Action Buttons */
+.add-note-btn,
+.delete-highlight-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  background-color: white;
+}
+
+.add-note-btn {
+  color: #374151;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.add-note-btn:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+  transform: scale(1.02);
+}
+
+.delete-highlight-btn {
+  color: #374151;
+  font-weight: bold;
+}
+
+.delete-highlight-btn:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+  transform: scale(1.02);
+}
+
+
+
+/* Empty state for notes */
+.notes-section:empty::after {
+  content: 'No notes yet';
+  display: block;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+  font-style: italic;
+  padding: 16px 0;
+}
+
+/* Empty state for labels */
+.labels-codes-section:empty::after {
+  content: 'No labels';
+  display: block;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 10px;
+  font-style: italic;
+  padding: 6px 0;
+}
+
+.labels-container:empty::after {
+  content: 'No labels';
+  display: block;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 10px !important;
+  font-style: italic;
+  padding: 6px 0;
+  height: 12px;
+  line-height: 12px;
+  font-weight: normal;
+  max-height: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+/* Backup rule to ensure small text size always */
+.labels-container::after {
+  font-size: 10px !important;
+  color: #9ca3af !important;
+  font-style: italic !important;
+}
+
+/* Conditional headers - same style as empty state text */
+.conditional-header {
+  font-size: 10px;
+  color: #9ca3af;
+  font-style: italic;
+  padding: 2px 0;
+  height: 12px;
+  line-height: 12px;
+  font-weight: normal;
+  font-family: inherit;
+  display: block;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+/* Drawing canvas styles */
+.drawing-canvas {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.drawing-display {
+  pointer-events: none;
+}
+
+/* Pencil icon animation */
+button[title="Draw on message"]:hover svg {
+  transform: rotate(15deg);
+  transition: transform 0.2s ease;
+}
+
+/* Add CSS to make message actions visible on hover */
+.message-bubble:hover .message-actions {
+  opacity: 1 !important;
+}
+
+/* Share Chat Modal - prevent positioning issues, scoped to parent container */
+.share-chat-modal {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
+  transition: none !important;
+  z-index: 1000000000 !important;
+  isolation: isolate !important;
+  contain: layout style paint !important;
+  will-change: auto !important;
+}
+
+.share-chat-modal-content {
+  transform: none !important;
+  transition: none !important;
+  position: relative !important;
+  isolation: isolate !important;
+  contain: layout style paint !important;
+  will-change: auto !important;
+}
+
+/* Prevent any parent element transforms from affecting the modal */
+.share-chat-modal * {
+  transform: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+
+/* Attach highlight button styles */
+.attach-highlight-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  font-size: 12px;
+  background-color: white;
+  color: #374151;
+  font-weight: bold;
+}
+
+.attach-highlight-btn:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+  /* Removed transform: scale(1.02) to prevent flickering */
+}
+
+.attach-highlight-btn:active {
+  transform: scale(0.98);
+  background-color: #f3f4f6;
+}

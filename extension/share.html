@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <title>Label Adder v2.0</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <!-- meta -->
+    <meta name="description" content="extension app">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="msapplication-TileColor" content="#000000">
+    <meta name="theme-color" content="#000000">
+    <meta name="author" content="Yonderwire">
+    <meta property="og:image" content="img/mstile-150x150.png">
+
+    <!-- icon -->
+    <link rel="shortcut icon" type="image/x-icon" href="img/dashboard-favicon.ico">
+
+    <!-- apple icon -->
+    <link rel="apple-touch-icon" type="image/png" href="img/dashboard-apple-touch-icon.png">
+    <link rel="mask-icon" href="img/dashboard-safari-pinned-tab.svg">
+    <link rel="manifest" href="dashboard-site.webmanifest">
+
+    <!-- android Chrome icon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="img/dashboard-android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="img/dashboard-android-chrome-512x512.png">
+
+    <!-- bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- SSO links -->
+    <!-- <script src="https://apis.google.com/js/platform.js" async defer></script> -->
+    <!--    <script src="gsi-client.js" async defer></script>-->
+
+</head>
+
+<body>
+
+    <div id="main-content" style="display: none;">
+        <!-- Your existing content goes here -->
+    </div>
+
+    <style>
+        .dropdown-menu>li,
+        .dropdown-menu>li::before {
+            color: unset;
+            background-color: unset;
+            border: unset;
+        }
+
+        #container-panel .dropdown-item li::before {
+            color: unset;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-toggle {
+            /*background-color: #007bff;*/
+            /*color: white;*/
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            /*outline: red thin solid;*/
+        }
+
+        .dropdown-toggle:focus {
+            outline: none;
+        }
+
+        .nav-dropdown-menu {
+            display: none;
+            position: absolute;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            margin-top: 50px;
+            padding: 0;
+            list-style-type: none;
+            /*outline: blue thin solid;*/
+            width: 50%;
+            background-color: #FFF;
+            text-align: right;
+            padding: 5px;
+            /*border: 3px solid var(--color-light-blue);*/
+            color: var(--color-dark-gray);
+            /*background-color: var(--color-light-gray);*/
+        }
+
+        .dropdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            /*outline: blue thin solid;*/
+        }
+
+        div.dropdown-item {
+            margin: unset;
+        }
+
+        .dropdown-item>p {
+            margin: 0;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--color-light-gray-hover);
+            /*color: var(--color-light-blue);*/
+        }
+    </style>
+    <style>
+        .label-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+
+        .label-container .total-count {
+            margin-left: 10px;
+            /* Adjust the spacing between the label and the total count as needed */
+        }
+
+        #user-info {
+            display: none;
+            /* Hide user info initially */
+        }
+
+        .google-btn {
+            width: 220px;
+            height: 40px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .google-btn img {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+        }
+    </style>
+
+    <div id="container-panel">
+        <div class="frame">
+            <div id="annotation-history-sub-frame-label" class="label-container sub-frame">
+                <div class="frame-button-5 py-2">Annotation History</div>
+            </div>
+
+            <div id="annotation-history-sub-frame-table" class="sub-frame">
+                <div id="sub-frame-annotation-table" class="sub-frame-table">
+                    <!-- Table content will be dynamically populated -->
+                </div>
+            </div>
+
+            <div id="annotation-history-sub-frame-search" class="sub-frame">
+                <hr />
+                <form id="annotation-history-search-form" class="my-2">
+                    <section class="annotation-history-search-container mb-3">
+                        <!--                    <div style="width:100%;">-->
+                        <!--                        <p id="annotation-history-search-input-error" style="display:none;"></p>-->
+                        <!--                        <input id="annotation-history-search-input" class="annotation-history-search-input" type="text" placeholder="Search" />-->
+                        <!--                    </div>-->
+                        <input id="annotation-history-search-input" class="annotation-history-search-input" type="text"
+                            placeholder="Search" style="padding-left: 30px;" />
+                        <button type="submit" id="annotation-history-search-button" style="display: none;"
+                            class="annotation-history-search-button justify-content-center py-2">
+                            <i class="fas fa-search" style="color: #626262;"></i>
+                        </button>
+                    </section>
+
+
+                    <!-- Todo - types -->
+
+                    <section class="annotation-history-search-container mb-3">
+
+                        <div id="annotation-history-search-filter-by-type" class="w-100">
+
+                            <!-- Update here -->
+                            <label for="floatingSelect-type" class="fw-bold">Search By Type:</label>
+
+                            <select class="form-select" multiple size="4" id="floatingSelect-type"
+                                aria-label="label select" style="height: 100px;">
+                                <option class="p-1" value="" selected>-- Select Type --</option>
+                                <option class="p-1" value="1">Label</option>
+                                <option class="p-1" value="2">Code</option>
+                            </select>
+
+                        </div>
+
+                    </section>
+
+                    <!-- Todo - keys -->
+                    <section class="annotation-history-search-container mb-3">
+
+                        <div id="annotation-history-search-filter-by-keys" class="w-100">
+
+                            <!--                        <label for="floatingSelect-keys" class="fw-bold">Search By Label(s), Code(s):</label>-->
+
+                            <div class="label-container">
+                                <label for="floatingSelect-keys" class="fw-bold">Search By Type:</label>
+                                <span id="total-count" class="total-count">Total: 0</span>
+                            </div>
+                            <select class="form-select" multiple size="4" id="floatingSelect-keys"
+                                aria-label="label select example">
+                                <option class="p-1" value="" selected>-- Select Code(s) --</option>
+                            </select>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- Todo - options -->
+                    <section class="annotation-history-search-container mb-1">
+                        <div id="annotation-history-search-filter-by-options" class="w-100">
+
+
+                            <div class="label-container">
+                                <label for="floatingSelect-options" class="fw-bold">Search By Code Types(s):</label>
+                                <span id="total-count-options" class="total-count">Total: 0</span>
+                            </div>
+
+                            <select class="form-select" multiple size="4" id="floatingSelect-options"
+                                aria-label="label select example">
+                                <option class="p-1" value="" selected>-- Select Code Type(s) --</option>
+                            </select>
+                        </div>
+                    </section>
+                </form>
+                <hr />
+            </div>
+        </div>
+    </div>
+
+    <script src="jquery-3.6.1.min.js"></script>
+
+    <script src="firebase/firebase-app.js"></script>
+    <script src="firebase/firebase-database.js"></script>
+
+
+    <style>
+        .sub-frame-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .frame-button-1-holder {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-light-gray);
+            color: var(--color-dark-gray);
+            border: 1.5px solid #878787;
+            border-radius: 20px;
+
+
+            padding: 15px;
+            overflow: auto;
+            max-height: 70vh;
+            flex: 1;
+        }
+
+        .frame-button-1 {
+            background-color: transparent;
+            border: none;
+            text-align: left;
+            width: 100%;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .frame-button-1:hover {
+            background-color: var(--color-light-gray-hover);
+            border-radius: 10px;
+        }
+
+        .frame-button-1>i {
+            width: 25px;
+            margin-right: 10px;
+        }
+
+        #Predefined.Labels,
+        #Custom.Labels {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: var(--color-dark-gray);
+        }
+
+        /* Profile Action Buttons */
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .profile-action-btn {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .profile-action-btn:hover {
+            background: #f8fafc;
+            border-color: var(--color-light-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .profile-action-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--color-dark-grey);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .action-content i {
+            color: var(--color-grey);
+            font-size: 12px;
+        }
+    </style>
+
+
+    <style>
+        .settings-container {
+            padding: 24px;
+            background: #ffffff;
+        }
+
+        .settings-header {
+            margin-bottom: 35px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-icon i {
+            font-size: 24px;
+            color: #626262;
+        }
+
+        .header-text {
+            flex: 1;
+        }
+
+        .settings-header h2 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .settings-description {
+            color: #626262;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .settings-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e8e8e8;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .section-header i {
+            font-size: 20px;
+            color: #626262;
+        }
+
+        .section-header h3 {
+            font-size: 20px;
+            color: #333;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .section-description {
+            color: #626262;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .note-style-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-left: 3px solid #626262;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .note-style-button:hover {
+            background: #f5f5f5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .note-style-button i {
+            font-size: 20px;
+            color: #626262;
+        }
+    </style>
+
+    <script type="module" src="share.js"></script>
+</body>
+
+</html>

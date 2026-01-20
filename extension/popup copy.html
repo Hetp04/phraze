@@ -1,0 +1,3219 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <title>Label Adder v2.0</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <!-- meta -->
+    <meta name="description" content="extension app">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="msapplication-TileColor" content="#000000">
+    <meta name="theme-color" content="#000000">
+    <meta name="author" content="Yonderwire">
+    <meta property="og:image" content="img/mstile-150x150.png">
+
+    <!-- icon -->
+    <link rel="shortcut icon" type="image/x-icon" href="img/dashboard-favicon.ico">
+
+    <!-- apple icon -->
+    <link rel="apple-touch-icon" type="image/png" href="img/dashboard-apple-touch-icon.png">
+    <link rel="mask-icon" href="img/dashboard-safari-pinned-tab.svg">
+    <link rel="manifest" href="dashboard-site.webmanifest">
+
+    <!-- android Chrome icon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="img/dashboard-android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="img/dashboard-android-chrome-512x512.png">
+
+    <!-- bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- SSO links -->
+    <!-- <script src="https://apis.google.com/js/platform.js" async defer></script> -->
+    <!--    <script src="gsi-client.js" async defer></script>-->
+
+    <!-- Add this in the head section, after your other script imports -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script> -->
+
+    <!-- Add this before your module scripts -->
+    <script src="lib/chart.js"></script>
+
+    <!-- Add this before your other scripts -->
+    <!-- <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script> -->
+</head>
+
+<body>
+
+    <div id="splash-screen">
+        <div class="splash-background-circle"></div>
+        <div class="splash-content">
+            <img src="img/p.png" alt="Phraze Logo" class="splash-logo">
+            <p class="splash-slogan">Empowering insights through intelligent annotation</p>
+            <div class="typing-indicator">
+                <div class="typing-circle"></div>
+                <div class="typing-circle"></div>
+                <div class="typing-circle"></div>
+                <div class="typing-shadow"></div>
+                <div class="typing-shadow"></div>
+                <div class="typing-shadow"></div>
+            </div>
+            <div class="splash-buttons">
+                <button class="get-started-btn">Get Started</button>
+                <button class="continue-btn">Continue</button>
+            </div>
+        </div>
+        <div class="splash-footer">
+            <div class="splash-version">Version 2.0</div>
+            <div class="splash-copyright">© 2025 Phraze. All rights reserved. Affiliated with Human-Centered Computing Group (HCCG).</div>
+        </div>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <!-- Your existing content goes here -->
+    </div>
+
+    <style>
+        .dropdown-menu>li,
+        .dropdown-menu>li::before {
+            color: unset;
+            background-color: unset;
+            border: unset;
+        }
+
+        #container-panel .dropdown-item li::before {
+            color: unset;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-toggle {
+            /*background-color: #007bff;*/
+            /*color: white;*/
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            /*outline: red thin solid;*/
+        }
+
+        .dropdown-toggle:focus {
+            outline: none;
+        }
+
+        .nav-dropdown-menu {
+            display: none;
+            position: absolute;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            margin-top: 50px;
+            padding: 0;
+            list-style-type: none;
+            /*outline: blue thin solid;*/
+            width: 50%;
+            background-color: #FFF;
+            text-align: right;
+            padding: 5px;
+            /*border: 3px solid var(--color-light-blue);*/
+            color: var(--color-dark-gray);
+            /*background-color: var(--color-light-gray);*/
+        }
+
+        .dropdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            /*outline: blue thin solid;*/
+        }
+
+        div.dropdown-item {
+            margin: unset;
+        }
+
+        .dropdown-item>p {
+            margin: 0;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--color-light-gray-hover);
+            /*color: var(--color-light-blue);*/
+        }
+    </style>
+    <style>
+        .label-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+
+        .label-container .total-count {
+            margin-left: 10px;
+            /* Adjust the spacing between the label and the total count as needed */
+        }
+
+        #user-info {
+            display: none;
+            /* Hide user info initially */
+        }
+
+        .google-btn {
+            width: 220px;
+            height: 40px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .google-btn img {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+        }
+    </style>
+    <!-- Todo ↘ Container -->
+    <!-- start of container -->
+    <div id="container-panel">
+
+        <!-- hidden the whole div/frame in js not just each button -->
+        <!-- Todo ↘ Frame 1 - Main -->
+        <div class="frame">
+            <nav id="main-sub-frame-nav" class="sub-frame nav-container custom-dropdown">
+                <p id="main-user-email" class="dropdown-toggle"></p>
+                <section class="logged-in nav-dropdown-menu" style="display:none;">
+                    <div class="dropdown-item">
+                        <i class="fa-solid fa-right-from-bracket" style="color: #626262;"></i>
+                        <p>Logout</p>
+                    </div>
+                    <div class="dropdown-item" id="invite-account-dropdown-item" style="display: none;">
+                        <i class="fa-solid fa-user-plus" style="color: #626262;"></i>
+                        <p>Invite Account</p>
+                    </div>
+                </section>
+            </nav>
+            <div id="main-sub-frame" class="sub-frame">
+                <!-- Add this near the user profile section -->
+                <div class="project-selector">
+                    <label for="project-select">Current Project:</label>
+                    <select id="project-select" class="form-select">
+                    </select>
+                    <button id="new-project-btn" class="btn btn-sm">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+
+                <div class="logo-container">
+                    <img src="img/p.png" class="main-logo">
+                </div>
+
+                <!-- Add description -->
+                <div class="description-container">
+                    <div class="app-description">
+                        An intuitive tool for annotating, organizing, and managing your data. Try the extension
+                        today!
+                    </div>
+                    <div class="vertical-line"></div>
+                    <div class="powered-by-inline">Powered By HCCG</div>
+                </div>
+
+                <div class="statistics-section">
+                    <div class="stats-header">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Your Annotation Statistics</span>
+                    </div>
+                    <div class="statistics-container">
+                        <div class="stat-item">
+                            <div class="stat-label">Annotations</div>
+                            <div class="stat-value" id="today-annotations">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Total Labels</div>
+                            <div class="stat-value" id="total-labels">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Total Codes</div>
+                            <div class="stat-value" id="total-codes">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Last Annotation</div>
+                            <div class="stat-value" id="last-annotation">Never</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="projects-header" id="projects-header">
+                    <i class="fas fa-bars"></i>
+                    <span>Organize and access your conversations using separated projects</span>
+                </div>
+                <div id="project-flexbox"
+                    style="display: flex; flex-direction: row; align-items: center; justify-content: left;">
+                </div>
+
+                <div class="menu-header">
+                    <i class="fas fa-bars"></i>
+                    <span>Menu</span>
+                </div>
+
+                <!-- Before Annotation System button -->
+                <div class="button-description">
+                    <p>Create and manage annotations for your selected text. Add labels, codes, notes, voice
+                        recordings,
+                        or video annotations.</p>
+                </div>
+                <button id="Annotation System" class="frame-button">
+                    <i class="fa-regular fa-note-sticky" style="color: #626262;"></i>
+                    <span class="p-2">Annotation System</span>
+                </button>
+
+                <!-- Before Annotation History button -->
+                <div class="button-description">
+                    <p>View, search, and manage all your previously created annotations. Export or import your
+                        annotation data for backup or sharing.</p>
+                </div>
+                <button id="Annotation History" class="frame-button">
+                    <i class="fa-regular fa-clock" style="color: #626262;"></i>
+                    <span class="p-2">Annotation History</span>
+                </button>
+
+                <!-- Add new Comments button -->
+                <div class="button-description">
+                    <p>View and manage messages with fellow company members about AI Chats, Manual Logs, and more. Add
+                        replies, track discussions, and collaborate
+                        with others.</p>
+                </div>
+                <button id="Messaging" class="frame-button">
+                    <i class="fa-regular fa-comments" style="color: #626262;"></i>
+                    <span class="p-2">Messaging</span>
+                </button>
+                <!-- <button id="Comments" class="frame-button">
+                    <i class="fa-regular fa-comments" style="color: #626262;"></i>
+                    <span class="p-2">Comments</span>
+                </button> -->
+
+                <!-- Before Clear Data button -->
+                <div class="button-description">
+                    <p>Remove all stored annotations and reset the extension to its default state. Use with caution
+                        as
+                        this action cannot be undone.</p>
+                </div>
+                <button id="Clear Data" class="frame-button">
+                    <i class="fa-regular fa-trash-can" style="color: #626262;"></i>
+                    <span class="p-2">Clear Data</span>
+                </button>
+
+                <!--            <button id="h-button" class="frame-button">-->
+                <!--                <i class="fa-regular fa-trash-can" style="color: #626262;"></i>-->
+                <!--                <span class="p-2">Highlight Button</span>-->
+                <!--            </button>-->
+            </div>
+
+            <div id="main-login-icon-sub-frame" class="sub-frame">
+                <button id="userSettings" class="frame-button" style="display: none;">
+                    <i class="fa-solid fa-code"></i>
+                </button>
+
+                <div class="footer-content">
+                    <div class="footer-links">
+                        <a href="#" class="footer-link">Terms</a>
+                        <span class="footer-separator">•</span>
+                        <a href="#" class="footer-link">Instructions</a>
+                        <span class="footer-separator">•</span>
+                        <a href="#" class="footer-link">Contact</a>
+                    </div>
+                </div>
+
+                <button id="userIcon" class="frame-button">
+                    <i class="fa-regular fa-user"></i>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Todo ↘ Frame 2 Annotation System-->
+        <div class="frame">
+            <!-- Todo ↘ Sub Frame > Add Labels & Codes -->
+            <div id="annotation-system-sub-frame" class="sub-frame">
+
+                <!-- Before Add Label button -->
+                <div class="button-description">
+                    <p>Create and assign custom labels to categorize your selected text. Choose from predefined labels
+                        or create your own.</p>
+                </div>
+                <button class="frame-button" id="Label">
+                    <i class="fa-solid fa-ruble-sign" style="color: #626262;"></i>
+                    <span class="p-2">Add Label</span>
+                </button>
+
+                <!-- Before Add Code button -->
+                <div class="button-description">
+                    <p>Add structured codes to analyze and organize your text selections. Use predefined code categories
+                        or customize your own.</p>
+                </div>
+                <button class="frame-button" id="Code">
+                    <i class="fa-solid fa-terminal" style="color: #626262;"></i>
+                    <span class="p-2">Add Code</span>
+                </button>
+
+                <!-- Before Note Board button -->
+                <div class="button-description">
+                    <p>Create detailed notes with rich text formatting. Add context, observations, or additional
+                        information to your annotations.</p>
+                </div>
+                <button class="frame-button" id="Note">
+                    <i class="fa-regular fa-note-sticky" style="color: #626262;"></i>
+                    <span class="p-2">Manual Logging</span>
+                </button>
+
+                <!-- Before Conversation Logging button -->
+                <div class="button-description" style="display: none;">
+                    <p>Create images of long conversations via full screen image capture.</p>
+                </div>
+                <button class="frame-button" id="ConversationLogging" style="display: none;">
+                    <i class="fa-regular fa-comment-dots" style="color: #626262;"></i>
+                    <span class="p-2">Conversation Logging</span>
+                </button>
+
+                <!-- Before Voice Annotation button -->
+                <div class="button-description">
+                    <p>Record and attach voice notes to your annotations. Perfect for capturing detailed verbal
+                        explanations or quick thoughts.</p>
+                </div>
+                <button class="frame-button" id="VoiceAnnotation">
+                    <i class="fa-regular fa-file-audio" style="color: #626262;"></i>
+                    <span class="p-2">Voice Annotation</span>
+                </button>
+
+                <!-- Before Video Annotation button -->
+                <div class="button-description" style="display: none;">
+                    <p>Add video annotations to your selected text. Capture and link visual explanations or
+                        demonstrations to your annotations.</p>
+                </div>
+                <button class="frame-button" id="VideoAnnotation" style="display: none;">
+                    <i class="fa-solid fa-chalkboard" style="color: #626262;"></i>
+                    <span class="p-2">Video Annotation</span>
+                </button>
+
+                <!-- Add this after the Video Annotation button but before the Back button in the annotation-system-sub-frame -->
+
+                <div class="frequently-used-section">
+                    <div class="frequently-used-header">
+                        <i class="fas fa-star"></i>
+                        <span>Frequently Used</span>
+                    </div>
+
+                    <div class="frequently-used-container">
+                        <!-- Labels Section -->
+                        <div class="frequently-used-labels">
+                            <h3 class="frequently-used-subheader">Labels</h3>
+                            <div class="frequently-used-items">
+                                <!-- Labels will be dynamically populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Codes Section -->
+                        <div class="frequently-used-codes">
+                            <h3 class="frequently-used-subheader">Codes</h3>
+                            <div class="frequently-used-items">
+                                <!-- Codes will be dynamically populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Before Back button -->
+                <button id="Back2" class="back-icon-button">
+                    <i class="fa-solid fa-angle-left"></i>
+                </button>
+
+                <!-- Add the logo container -->
+                <div class="annotation-system-logo">
+                    <img src="img/p.png" alt="Phraze" class="phraze-logo">
+                </div>
+            </div>
+        </div>
+
+        <!-- Todo ↘ Frame 2 Annotation History -->
+        <div class="frame">
+            <div id="annotation-history-sub-frame-label" class="label-container sub-frame">
+                <div class="annotation-history-header" style="display: flex; align-items: center; justify-content: center; position: relative; width: 100%; padding: 12px 20px; background-color: #f7f7f8; border: 1px solid #e5e5e5; border-radius: 12px; font-size: 16px; font-weight: 500; color: #202123; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <i class="fa-solid fa-angle-left" style="position: absolute; left: 16px; cursor: pointer; color: #202123; padding: 6px; border-radius: 6px; transition: background-color 0.2s ease;" onmouseover="this.style.backgroundColor='#e5e5e5'" onmouseout="this.style.backgroundColor='transparent'" onclick="document.getElementById('annotation-history-header-back').click()"></i>
+                    Annotation History
+                </div>
+                <button id="annotation-history-header-back" class="back-icon-button-5" style="display: none;">
+                    <i class="fa-solid fa-angle-left"></i>
+                </button>
+            </div>
+
+            <div id="annotation-history-sub-frame-table" class="sub-frame">
+                <div id="sub-frame-annotation-table" class="sub-frame-table">
+                    <!-- Table content will be dynamically populated -->
+                </div>
+            </div>
+
+            <div id="annotation-history-sub-frame-search" class="sub-frame">
+                <hr />
+                <form id="annotation-history-search-form" class="my-2">
+                    <section class="annotation-history-search-container mb-3">
+                        <!--                    <div style="width:100%;">-->
+                        <!--                        <p id="annotation-history-search-input-error" style="display:none;"></p>-->
+                        <!--                        <input id="annotation-history-search-input" class="annotation-history-search-input" type="text" placeholder="Search" />-->
+                        <!--                    </div>-->
+                        <input id="annotation-history-search-input" class="annotation-history-search-input" type="text"
+                            placeholder="Search" style="padding-left: 30px;" />
+                        <button type="submit" id="annotation-history-search-button"
+                            class="annotation-history-search-button justify-content-center py-2">
+                            <i class="fas fa-search" style="color: #626262;"></i>
+                        </button>
+                    </section>
+                    <div style="margin-top: -20px; margin-bottom: 20px;" id="annotation-history-filter-path"></div>
+
+                    <!-- Todo - types -->
+
+                    <section class="annotation-history-search-container mb-3">
+
+                        <div id="annotation-history-search-filter-by-type" class="w-100">
+
+                            <!-- Update here -->
+                            <label for="floatingSelect-type" class="fw-bold">Search By Type:</label>
+
+                            <select class="form-select" multiple size="4" id="floatingSelect-type"
+                                aria-label="label select" style="height: 100px; padding-right: 25px;">
+                                <option class="p-1" value="" selected>-- Select Type --</option>
+                                <option class="p-1" value="1">Label</option>
+                                <option class="p-1" value="2">Code</option>
+                            </select>
+
+                        </div>
+
+                    </section>
+
+                    <!-- Todo - keys -->
+                    <section class="annotation-history-search-container mb-3">
+
+                        <div id="annotation-history-search-filter-by-keys" class="w-100">
+
+                            <!--                        <label for="floatingSelect-keys" class="fw-bold">Search By Label(s), Code(s):</label>-->
+
+                            <div class="label-container">
+                                <label for="floatingSelect-keys" class="fw-bold">Search By Type:</label>
+                                <span id="total-count" class="total-count">Total: 0</span>
+                            </div>
+                            <select class="form-select" multiple size="4" id="floatingSelect-keys"
+                                aria-label="label select example">
+                                <option class="p-1" value="" selected>-- Select Code(s) --</option>
+                            </select>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- Todo - options -->
+                    <section class="annotation-history-search-container mb-1">
+                        <div id="annotation-history-search-filter-by-options" class="w-100">
+
+
+                            <div class="label-container">
+                                <label for="floatingSelect-options" class="fw-bold">Search By Code Types(s):</label>
+                                <span id="total-count-options" class="total-count">Total: 0</span>
+                            </div>
+
+                            <select class="form-select" multiple size="4" id="floatingSelect-options"
+                                aria-label="label select example">
+                                <option class="p-1" value="" selected>-- Select Code Type(s) --</option>
+                            </select>
+                        </div>
+                    </section>
+                </form>
+                <hr />
+            </div>
+
+            <div id="annotation-history-sub-frame-import-export" class="sub-frame">
+                <!-- Data Management Section -->
+                <div class="history-section">
+                    <h3 class="section-title">Data Management</h3>
+                    <div class="button-description">
+                        <p>Export your annotations to a file for backup or sharing, or import previously exported
+                            annotation data.</p>
+                    </div>
+                    <div class="import-export-buttons">
+                        <button id="annotation-history-export">
+                            <i class="fas fa-file-export"></i>
+                            Export Data
+                        </button>
+                        <button id="annotation-history-import">
+                            <i class="fas fa-file-import"></i>
+                            Import Data
+                        </button>
+                        <input type="file" id="file-input" accept=".json" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Analytics Section -->
+                <div class="history-section">
+                    <h3 class="section-title">Analytics</h3>
+                    <div class="button-description">
+                        <p>View detailed statistics and distribution of your labels and codes.</p>
+                    </div>
+                    <div class="statistics-buttons">
+                        <button id="view-label-statistics" class="view-statistics-button">
+                            <i class="fas fa-chart-pie"></i>
+                            View Label Statistics
+                        </button>
+                        <button id="view-code-statistics" class="view-statistics-button">
+                            <i class="fas fa-code"></i>
+                            View Code Statistics
+                        </button>
+                    </div>
+
+                    <!-- Inside the Analytics Section, after the statistics-buttons div -->
+                    <div class="button-description" style="margin-top: 16px;">
+                        <p>Share your annotations with others using a unique link.</p>
+                    </div>
+                    <button id="share-annotations" class="view-statistics-button">
+                        <i class="fas fa-share-alt"></i>
+                        Share and View
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- Todo ↘ Login -->
+        <div class="frame">
+            <!--        <div id="login-sub-frame" class="login-container sub-frame"></div>-->
+            <div id="login-controller" class="login-container sub-frame">
+
+                <div class="login-panel">
+
+                    <section id="profile-sub-frame" class="sub-frame">
+                        <!-- Username Creation Form - Show this when username needs to be created -->
+                        <form id="flag-username" style="display: none;">
+                            <div class="input-group">
+                                <div class="input-group">
+                                    <label>Please create a username</label>
+                                </div>
+                                <div class="input-group">
+                                    <span id="username-error" class="frame-error"></span>
+                                </div>
+                                <div class="input-group">
+                                    <input type="text" placeholder="Username" />
+                                </div>
+                                <div class="input-group">
+                                    <input type="button" class="submit-btn" value="Create" />
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Profile Settings View - Show this after username is created -->
+                        <div id="flag-profile" style="display: none;">
+                            <div class="container">
+                                <div class="profile-header">
+                                    <div class="profile-picture">
+                                        <div class="profile-picture-placeholder" id="profile-image-container">
+                                            <img id="profile-image"
+                                                style="display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                            <svg id="default-profile-icon" width="32" height="32" viewBox="0 0 24 24"
+                                                fill="none" stroke="#94a3b8" stroke-width="2">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="12" cy="7" r="4"></circle>
+                                            </svg>
+                                        </div>
+                                        <input type="file" id="profile-picture-input" accept="image/*"
+                                            style="display: none;">
+                                        <label for="profile-picture-input" class="camera-button">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <path
+                                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                                                </path>
+                                                <circle cx="12" cy="13" r="4"></circle>
+                                            </svg>
+                                        </label>
+                                    </div>
+                                    <div class="header-text">
+                                        <h1>Account Settings</h1>
+                                        <p>Manage your account preferences and settings</p>
+                                    </div>
+                                    <div class="header-user-info">
+                                        <p>Username: <span class="username-value"></span></p>
+                                        <p>Email: <span class="email-value"></span></p>
+                                    </div>
+                                </div>
+
+                                <div class="tabs">
+                                    <button class="tab active" data-tab="profile">Profile</button>
+                                    <button class="tab" data-tab="notifications">Notifications</button>
+                                </div>
+
+                                <div class="tab-content active" id="profile">
+                                    <div class="profile-actions">
+                                        <button class="profile-action-btn" id="change-username">
+                                            <div class="action-content">
+                                                <div class="action-left">
+                                                    <i class="fa-solid fa-user-pen"></i>
+                                                    <span>Change Username</span>
+                                                </div>
+                                                <i class="fa-solid fa-pencil"></i>
+                                            </div>
+                                        </button>
+                                        <div class="edit-panel" id="username-edit-panel">
+                                            <input type="text" placeholder="Enter new username" id="username-input">
+                                            <div class="panel-buttons">
+                                                <button class="cancel-btn">Cancel</button>
+                                                <button class="ok-btn">OK</button>
+                                            </div>
+                                        </div>
+
+                                        <button class="profile-action-btn" id="change-password">
+                                            <div class="action-content">
+                                                <div class="action-left">
+                                                    <i class="fa-solid fa-key"></i>
+                                                    <span>Change Password</span>
+                                                </div>
+                                                <i class="fa-solid fa-pencil"></i>
+                                            </div>
+                                        </button>
+                                        <div class="edit-panel" id="password-edit-panel">
+                                            <div class="password-fields">
+                                                <!-- Initial verification step -->
+                                                <div class="verification-step">
+                                                    <div class="input-group">
+                                                        <input type="password" placeholder="Current password"
+                                                            id="current-password">
+                                                    </div>
+                                                    <button class="verify-btn">Verify</button>
+                                                </div>
+
+                                                <!-- New password fields (initially hidden) -->
+                                                <div class="new-password-fields" style="display: none;">
+                                                    <div class="input-group">
+                                                        <input type="password" placeholder="New password"
+                                                            id="new-password">
+                                                    </div>
+                                                    <div class="input-group">
+                                                        <input type="password" placeholder="Repeat new password"
+                                                            id="repeat-password">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="panel-buttons">
+                                                <button class="cancel-btn">Cancel</button>
+                                                <button class="ok-btn" style="display: none;">Change Password</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tab-content" id="notifications">
+                                    <div class="switch-container">
+                                        <div class="switch-text">
+                                            <h4>Email Notifications</h4>
+                                            <p>Receive email updates about your account</p>
+                                        </div>
+                                        <div class="switch"></div>
+                                    </div>
+
+                                    <div class="switch-container">
+                                        <div class="switch-text">
+                                            <h4>Marketing Updates</h4>
+                                            <p>Receive news and special offers</p>
+                                        </div>
+                                        <div class="switch"></div>
+                                    </div>
+
+                                    <div class="switch-container">
+                                        <div class="switch-text">
+                                            <h4>Account Activity</h4>
+                                            <p>Get notified about account login activities</p>
+                                        </div>
+                                        <div class="switch"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="auth-sub-frame" class="sub-frame">
+                        <div class="logged-out">
+                            <div class="toggle-buttons">
+                                <button id="loginBtn" class="toggle-btn active">Login</button>
+                                <button id="signupBtn" class="toggle-btn">Signup</button>
+                            </div>
+
+                            <section id="loginForm" class="form-content active-form">
+                                <section class="setup-info">
+                                    <div class="login-area">
+                                        <div class="input-group">
+                                            <span id="login-error" class="frame-error"></span>
+                                        </div>
+                                        <div class="input-group">
+                                            <input id="email" type="text" placeholder="Email Address" />
+                                        </div>
+                                        <div class="input-group">
+                                            <input id="password" type="password" placeholder="Password" />
+                                        </div>
+                                        <div id="forgot-password"
+                                            style="cursor: pointer; color: #72A1FA; margin-top: -21px; font-size: 15pt;">
+                                            Forgot password?</div>
+                                        <div class="input-group">
+                                            <input type="button" class="submit-btn" value="Login" />
+                                        </div>
+                                        <div id="create-an-account"
+                                            style=" cursor: pointer; margin-top: -8px; font-size: 15pt; color: #242A38; border-bottom: solid 2px; width: 278px; margin-left: auto; margin-right: auto;">
+                                            Create an account <span style="color: #72A1FA;">Signup now</span></div>
+                                    </div>
+                                </section>
+                            </section>
+
+                            <section id="forgotPasswordForm" class="form-content">
+                                <div class="input-group">
+                                    <input id="forgotPasswordEmail" type="text" placeholder="Email Address" />
+                                </div>
+                                <div class="input-group">
+                                    <input type="button" id="sendForgotPassword" class="submit-btn"
+                                        value="Send forgot password email" />
+                                </div>
+                            </section>
+
+                            <section id="signupForm" class="form-content">
+                                <section class="setup-info">
+                                    <div class="signup-area">
+                                        <div class="input-group">
+                                            <span id="signup-error" class="frame-error"></span>
+                                        </div>
+                                        <div class="input-group">
+                                            <input type="text" id="invite-code" placeholder="Invite Code (Optional)" />
+                                        </div>
+                                        <div class="input-group">
+                                            <input type="text" id="signup-username"
+                                                placeholder="Publicly visible username" />
+                                        </div>
+                                        <div class="input-group">
+                                            <input type="text" id="signup-email" placeholder="Email Address" />
+                                        </div>
+                                        <div class="input-group">
+                                            <input type="password" placeholder="Password" id="signup-password" />
+                                            <div class="password-strength-meter">
+                                                <div class="strength-meter-label">Password strength: <span
+                                                        class="strength-text">weak</span></div>
+                                                <div class="strength-meter-bar">
+                                                    <div class="strength-meter-fill"></div>
+                                                </div>
+                                                <div class="strength-meter-suggestions">
+                                                    <div class="suggestion-item" data-requirement="length">
+                                                        <i class="fas fa-circle"></i>
+                                                        <span>Use 8 or more characters</span>
+                                                    </div>
+                                                    <div class="suggestion-item" data-requirement="uppercase">
+                                                        <i class="fas fa-circle"></i>
+                                                        <span>Add uppercase letters</span>
+                                                    </div>
+                                                    <div class="suggestion-item" data-requirement="number">
+                                                        <i class="fas fa-circle"></i>
+                                                        <span>Add numbers</span>
+                                                    </div>
+                                                    <div class="suggestion-item" data-requirement="special">
+                                                        <i class="fas fa-circle"></i>
+                                                        <span>Add special characters</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="input-group">
+                                            <input type="button" class="submit-btn" value="Signup" />
+                                        </div>
+                                    </div>
+                                </section>
+                            </section>
+                        </div>
+                    </section>
+
+                </div>
+
+            </div>
+
+            <!-- Back -->
+            <div id="login-icon-back-sub-frame" class="sub-frame">
+                <button id="backIcon" class="frame-button">
+                    <i class="fa-solid fa-backward" style="color:#FFF;"></i>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Todo ↘ Frame 3 - Labels-->
+        <div class="frame">
+            <!-- Main labels screen header (keep as Add Label(s)) -->
+            <div id="predefined-label-sub-frame-label" class="label-container sub-frame">
+                <div class="frame-button-5 py-2">Add Label(s)</div>
+                <button id="Back-5" class="back-icon-button-5">
+                    <i class="fa-solid fa-angle-left"></i>
+                </button>
+            </div>
+
+
+            <div id="predefined-labels-description" class="sub-frame">
+                <h6>Predefined Labels</h6>
+                <p>Choose from our curated set of commonly used labels to quickly categorize your content. These labels
+                    are designed to cover your most general annotation needs.</p>
+            </div>
+
+
+            <div id="custom-labels-description" class="sub-frame">
+                <h6>Custom Labels</h6>
+                <p>Create your own labels with custom names and colors to match your specific annotation requirements.
+                </p>
+            </div>
+
+            <!-- Then the existing section container continues -->
+            <section class="sub-frame-container">
+                <div id="predefined-label-sub-frame" class="sub-frame frame-button-1-holder">
+                    <h6 id="Predefined Labels" class="ps-2">Predefined Labels</h6>
+
+                    <!-- Update each button to include description and arrow -->
+                    <div class="label-button-container">
+                        <button id="Sentiment" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-thumbs-up" style="color: #626262;"></i>
+                                    <span class="p-2">Sentiment</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Sentiment">
+                            <p>Categorize text based on the emotional tone - whether it expresses positive, negative, or
+                                neutral feelings.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Tone" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-music" style="color: #626262;"></i>
+                                    <span class="p-2">Tone</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Tone">
+                            <p>Identify the writing style and mood of the text, such as formal, informal, friendly, or
+                                hostile.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Intent" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-bullseye" style="color: #626262;"></i>
+                                    <span class="p-2">Intent</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Intent">
+                            <p>Classify the purpose or goal behind the text, such as making a request, providing
+                                information, or expressing a complaint.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Emotion" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="far fa-smile" style="color: #626262;"></i>
+                                    <span class="p-2">Emotion</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Emotion">
+                            <p>Tag text with specific emotional states like happiness, sadness, anger, or surprise.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Priority" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-exclamation"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">Priority</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Priority">
+                            <p>Mark the importance level of the content as high, medium, or low priority.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Politeness" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-hand-peace" style="color: #626262;"></i>
+                                    <span class="p-2">Politeness</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Politeness">
+                            <p>Evaluate the courtesy level in communications, from polite to rude.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Agreement" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-handshake" style="color: #626262;"></i>
+                                    <span class="p-2">Agreement</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Agreement">
+                            <p>Indicate whether the text expresses agreement or disagreement with a topic or statement.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Relevance" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-tags" style="color: #626262;"></i>
+                                    <span class="p-2">Relevance</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Relevance">
+                            <p>Mark content as relevant or irrelevant to your specific needs or criteria.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Toggle Custom Labels" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-plus" style="color: #626262;"></i>
+                                    <span class="p-2">Add Custom Label</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Toggle Custom Labels">
+                            <p>Create and manage your own custom labels to suit your specific annotation needs.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="custom-label-sub-frame" class="sub-frame frame-button-1-holder">
+                    <h6 id="Custom Labels" class="ps-2">Custom Labels</h6>
+                    <!-- Todo - here are where the custom labels are being populated-->
+                    <div id="custom-labels-container">
+                        <!-- All custom label buttons will appear here -->
+                    </div>
+
+                    <button id="Add Custom Label" class="frame-button-1 delete-key-container">
+                        <div>
+                            <i class="fas fa-plus" style="color: #626262;"></i>
+                            <span class="p-2">Add Custom Label</span>
+                        </div>
+                        <span>&nbsp;</span>
+                    </button>
+
+                </div>
+
+            </section>
+
+            <!-- Todo ↘ Sub Frame > Predefined Labels > Options-->
+            <div id="predefined-label-sub-frame-1-label" class="sub-frame frame-button mb-4 py-2"></div>
+
+            <div id="predefined-label-sub-frame-1" class="sub-frame frame-button-1-holder">
+
+                <div id="sentiment-display" class="display">
+                    <button class="frame-button-1" id="Positive" class="customLabel">Positive</button>
+                    <button class="frame-button-1" id="Neutral" class="customLabel">Neutral</button>
+                    <button class="frame-button-1" id="Negative" class="customLabel">Negative</button>
+                </div>
+                <div id="tone-display" class="display">
+                    <button class="frame-button-1" id="Formal" class="customLabel">Formal</button>
+                    <button class="frame-button-1" id="Informal" class="customLabel">Informal</button>
+                    <button class="frame-button-1" id="Friendly" class="customLabel">Friendly</button>
+                    <button class="frame-button-1" id="Hostile" class="customLabel">Hostile</button>
+                </div>
+                <div id="intent-display" class="display">
+                    <!-- Intent -->
+                    <button class="frame-button-1" id="Request" class="customLabel">Request</button>
+                    <button class="frame-button-1" id="Inform" class="customLabel">Inform</button>
+                    <button class="frame-button-1" id="Suggestion" class="customLabel">Suggestion</button>
+                    <button class="frame-button-1" id="Complaint" class="customLabel">Complaint</button>
+                </div>
+
+                <div id="emotion-display" class="display">
+                    <button class="frame-button-1" id="Happy" class="customLabel">Happy</button>
+                    <button class="frame-button-1" id="Sad" class="customLabel">Sad</button>
+                    <button class="frame-button-1" id="Angry" class="customLabel">Angry</button>
+                    <button class="frame-button-1" id="Surprised" class="customLabel">Surprised</button>
+                </div>
+
+                <div id="priority-display" class="display">
+                    <!-- Priority -->
+                    <button class="frame-button-1" id="High" class="customLabel">High</button>
+                    <button class="frame-button-1" id="Medium" class="customLabel">Medium</button>
+                    <button class="frame-button-1" id="Low" class="customLabel">Low</button>
+                </div>
+                <div id="politeness-display" class="display">
+                    <!-- Politeness -->
+                    <button class="frame-button-1" id="Polite" class="customLabel">Polite</button>
+                    <button class="frame-button-1" id="Neutral2" class="customLabel">Neutral</button>
+                    <button class="frame-button-1" id="Rude" class="customLabel">Rude</button>
+                </div>
+                <div id="agreement-display" class="display">
+                    <!-- Agreement -->
+                    <button class="frame-button-1" id="Agree" class="customLabel">Agree</button>
+                    <button class="frame-button-1" id="Disagree" class="customLabel">Disagree</button>
+                </div>
+                <div id="relevance-display" class="display">
+                    <!-- Relevance -->
+                    <button class="frame-button-1" id="Relevant" class="customLabel">Relevant</button>
+                    <button class="frame-button-1" id="Irrelevant" class="customLabel">Irrelevant</button>
+                </div>
+            </div>
+
+            <!-- Custom label input screen header (change to Custom Labels) -->
+            <div id="custom-label-sub-frame-1-custom" class="sub-frame custom-label-sub-frame-1-button">
+                <div class="label-container">
+                    <div class="frame-button-5 py-2">Custom Labels</div>
+                    <button id="custom-label-1-button" class="back-icon-button-5">
+                        <i class="fa-solid fa-angle-left"></i>
+                    </button>
+                </div>
+
+                <div id="add-default-label-display" class="display">
+                    <p class="input-description">Enter a name for your custom label (e.g., "Research Topics", "Key
+                        Concepts"). You'll be able to add specific options for this label in the next step.</p>
+
+                    <div class="input-with-button">
+                        <input type="text" id="custom-label-input" placeholder="Add New Label Here">
+                        <button id="custom-label-ok" class="square-ok-button">OK</button>
+                    </div>
+                    <span id="custom-label-error" class="frame-error"></span>
+                </div>
+            </div>
+
+            <div id="predefined-label-sub-frame-1-button" class="sub-frame predefined-label-sub-frame-1-button">
+                <button id="predefined-label-1-button" class="frame-button mt-4 py-2">
+                    <i class="fa-solid fa-backward" style="color: #626262;"></i>
+                    <span>Back</span>
+
+            </div>
+
+            <!-- <div id="custom-label-sub-frame-1-button" class="sub-frame predefined-label-sub-frame-1-button">
+            <button id="custom-label-1-button" class="frame-button py-2">
+                <i class="fa-solid fa-backward" style="color: #626262;"></i>
+                <span>Back 2</span>
+            </button>
+        </div> -->
+
+
+        </div>
+
+        <!-- Todo ↘ Frame 3 - Codes-->
+        <div class="frame">
+            <div id="predefined-code-sub-frame-label" class="label-container sub-frame">
+                <div class="frame-button-5 py-2">Add Code(s)</div>
+                <button id="Back-code" class="back-icon-button-5">
+                    <i class="fa-solid fa-angle-left"></i>
+                </button>
+            </div>
+
+            <!-- Todo ↘ Sub Frame > Predefined Codes -->
+
+            <div id="predefined-codes-description" class="sub-frame">
+                <h6>Predefined Codes</h6>
+                <p>Choose from our curated set of commonly used codes to quickly categorize your content. These codes
+                    are designed to cover your most general annotation needs.</p>
+            </div>
+
+            <div id="custom-codes-description" class="sub-frame">
+                <h6>Custom Codes</h6>
+                <p>Create your own codes with custom names and formats to match your specific annotation requirements.
+                </p>
+            </div>
+
+            <section class="sub-frame-container">
+                <div id="predefined-code-sub-frame" class="sub-frame frame-button-1-holder">
+                    <h6 id="Predefined Codes" class="ps-2">Predefined Codes</h6>
+
+                    <div class="label-button-container">
+                        <button id="Interaction Quality" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-star" style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">Interaction Quality</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Interaction Quality">
+                            <p>Evaluate the effectiveness and smoothness of interactions between users and the system or
+                                service.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="User Experience" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-user-check"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">User Experience</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="User Experience">
+                            <p>Assess the overall user experience, including satisfaction, ease of use, and interface
+                                design effectiveness.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="AI Understanding" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-brain"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">AI Understanding</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="AI Understanding">
+                            <p>Evaluate how well the AI system comprehends and responds to user inputs and context.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Technical Performance" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-tachometer-alt"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">Technical Performance</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Technical Performance">
+                            <p>Assess system performance metrics such as response time, accuracy, and reliability.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Ethical and Safety Concerns" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-shield-alt"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">Ethical and Safety Concerns</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Ethical and Safety Concerns">
+                            <p>Identify potential ethical issues, safety risks, or concerns regarding privacy and
+                                security.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="User Engagement" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-users"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">User Engagement</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="User Engagement">
+                            <p>Measure user participation, interaction levels, and overall engagement with the system.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Technical Support" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-headset"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">Technical Support</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Technical Support">
+                            <p>Evaluate the quality and effectiveness of technical support and troubleshooting
+                                assistance.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Customer Relations" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-handshake"
+                                        style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">Customer Relations</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Customer Relations">
+                            <p>Assess the quality of customer service, relationship management, and user satisfaction
+                                levels.</p>
+                        </div>
+                    </div>
+
+                    <div class="label-button-container">
+                        <button id="Toggle Custom Codes" class="frame-button-1">
+                            <div class="label-content">
+                                <div class="label-main">
+                                    <i class="fas fa-plus" style="color: #626262; width: 25px; text-align: center;"></i>
+                                    <span class="p-2">Add Custom Code</span>
+                                </div>
+                                <i class="fas fa-chevron-down label-dropdown-arrow"></i>
+                            </div>
+                        </button>
+                        <div class="label-description" data-label="Toggle Custom Codes">
+                            <p>Create and manage your own custom codes to suit your specific analysis needs.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="custom-code-sub-frame" class="sub-frame frame-button-1-holder">
+                    <h6 id="Custom Codes" class="ps-2">Custom Codes</h6>
+                    <!-- Todo - here are where the custom codes are being populated-->
+                    <div id="custom-codes-container">
+                        <!-- All custom label buttons will appear here -->
+                    </div>
+
+                    <button id="Add Custom Code Name" class="frame-button-1 delete-key-container">
+                        <div>
+                            <i class="fas fa-plus" style="color: #626262;"></i>
+                            <span class="p-2">Add Custom Code</span>
+                        </div>
+                        <span>&nbsp;</span>
+                    </button>
+                </div>
+
+            </section>
+
+            <!-- Todo ↘ Todo ↘ Sub Frame > Predefined Codes > Options-->
+            <div id="predefined-code-sub-frame-1-label" class="sub-frame frame-button mb-4 py-2"></div>
+
+            <div id="predefined-code-sub-frame-1" class="sub-frame frame-button-1-holder">
+
+                <!-- Interaction quality -->
+                <div id="interaction-quality-display" class="display">
+                    <button class="frame-button-1" id="Clarity of Response" class="customLabel">Clarity of Response (ID:
+                        Clarity of Response)</button>
+                    <button class="frame-button-1" id="Relevance of Information" class="customLabel">Relevance of
+                        Information (ID: Relevance of Information)</button>
+                    <button class="frame-button-1" id="Completeness of Answer" class="customLabel">Completeness of
+                        Answer (ID: Completeness of Answer)</button>
+                    <button class="frame-button-1" id="Promptness of Response" class="customLabel">Promptness of
+                        Response (ID: Promptness of Response)</button>
+                </div>
+
+                <!-- User Experience -->
+                <div id="user-experience-display" class="display">
+                    <button class="frame-button-1" id="Ease of Use" class="customLabel">Ease of Use (ID: Ease of
+                        Use)</button>
+                    <button class="frame-button-1" id="Interface Navigation" class="customLabel">Interface Navigation
+                        (ID: Interface Navigation)</button>
+                    <button class="frame-button-1" id="Feedback Mechanism" class="customLabel">Feedback Mechanism (ID:
+                        Feedback Mechanism)</button>
+                    <button class="frame-button-1" id="Error Handling" class="customLabel">Error Handling (ID: Error
+                        Handling)</button>
+                </div>
+
+                <!-- AI Understanding -->
+                <div id="ai-understanding-display" class="display">
+                    <button class="frame-button-1" id="Context Grasping" class="customLabel">Context Grasping (ID:
+                        Context Grasping)</button>
+                    <button class="frame-button-1" id="Misinterpretations" class="customLabel">Misinterpretations (ID:
+                        Misinterpretations)</button>
+                    <button class="frame-button-1" id="Follow-up Accuracy" class="customLabel">Follow-up Accuracy (ID:
+                        Follow-up Accuracy)</button>
+                    <button class="frame-button-1" id="Personalization Effectiveness"
+                        class="customLabel">Personalization Effectiveness (ID: Personalization Effectiveness)</button>
+                </div>
+
+                <!-- Technical Performance -->
+                <div id="technical-performance-display" class="display">
+                    <button class="frame-button-1" id="Response Time" class="customLabel">Response Time (ID: Response
+                        Time)</button>
+                    <button class="frame-button-1" id="System Reliability" class="customLabel">System Reliability (ID:
+                        System Reliability)</button>
+                    <button class="frame-button-1" id="Integration with Other Tools" class="customLabel">Integration
+                        with Other Tools (ID: Integration with Other Tools)</button>
+                    <button class="frame-button-1" id="Scalability Issues" class="customLabel">Scalability Issues (ID:
+                        Scalability Issues)</button>
+                </div>
+
+                <!-- Ethical and Safety Concerns -->
+                <div id="ethical-safety-display" class="display">
+                    <button class="frame-button-1" id="Bias Detection" class="customLabel">Bias Detection (ID: Bias
+                        Detection)</button>
+                    <button class="frame-button-1" id="Data Privacy" class="customLabel">Data Privacy (ID: Data
+                        Privacy)</button>
+                    <button class="frame-button-1" id="Ethical Use" class="customLabel">Ethical Use (ID: Ethical
+                        Use)</button>
+                    <button class="frame-button-1" id="Content Appropriateness" class="customLabel">Content
+                        Appropriateness (ID: Content Appropriateness)</button>
+                </div>
+
+                <!-- User Engagement -->
+                <div id="user-engagement-display" class="display">
+                    <button class="frame-button-1" id="User Retention" class="customLabel">User Retention (ID: User
+                        Retention)</button>
+                    <button class="frame-button-1" id="Interaction Depth" class="customLabel">Interaction Depth (ID:
+                        Interaction Depth)</button>
+                    <button class="frame-button-1" id="User Satisfaction" class="customLabel">User Satisfaction (ID:
+                        User Satisfaction)</button>
+                    <button class="frame-button-1" id="Longitevity" class="customLabel">Longitevity (ID:
+                        Longitevity)</button>
+                </div>
+
+                <!-- Technical Support -->
+                <div id="technical-support-display" class="display">
+                    <button class="frame-button-1" id="Installation Problems" class="customLabel">Installation Problems
+                        (ID: Installation Problems)</button>
+                    <button class="frame-button-1" id="Software Bugs" class="customLabel">Software Bugs (ID: Software
+                        Bugs)</button>
+                    <button class="frame-button-1" id="Upgrade Issues" class="customLabel">Upgrade Issues (ID: Upgrade
+                        Issues)</button>
+                    <button class="frame-button-1" id="Compatibility Issues" class="customLabel">Compatibility Issues
+                        (ID: Compatibility Issues)</button>
+                </div>
+
+                <!-- Customer Relations -->
+                <div id="customer-relations-display" class="display">
+                    <button class="frame-button-1" id="Compliment" class="customLabel">Compliment (ID:
+                        Compliment)</button>
+                    <button class="frame-button-1" id="Code-Complaint" class="customLabel">Complaint (ID:
+                        Code-Complaint)</button>
+                    <button class="frame-button-1" id="Code-Suggestion" class="customLabel">Suggestion (ID:
+                        Code-Suggestion)</button>
+                    <button class="frame-button-1" id="Feedback" class="customLabel">Feedback (ID: Feedback)</button>
+                </div>
+            </div>
+
+            <div id="custom-code-sub-frame-1-custom" class="sub-frame custom-label-sub-frame-1-button">
+                <div id="add-default-code-display" class="display">
+                    <span id="custom-code-error" class="frame-error"></span>
+                    <input id="custom-code-input" class="my-1" type="text" placeholder="Add New Code Here" />
+                    <button id="custom-code-ok" class="frame-button justify-content-center py-2">
+                        <span class="labelBtn" id="Add Custom Code OK">OK</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="predefined-code-sub-frame-1-button" class="sub-frame predefined-label-sub-frame-1-button">
+                <button id="predefined-code-1-button" class="frame-button mt-4 py-2">
+                    <i class="fa-solid fa-backward" style="color: #626262;"></i>
+                    <span>Back</span>
+                </button>
+            </div>
+
+            <div id="custom-code-sub-frame-1-button" class="sub-frame predefined-label-sub-frame-1-button">
+                <button id="custom-code-1-button" class="frame-button py-2">
+                    <i class="fa-solid fa-backward" style="color: #626262;"></i>
+                    <span>Back</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Todo ↘ Frame 4 - Label Customs  -->
+        <div clas="frame">
+
+            <!-- options -->
+            <div id="custom-label-sub-frame-2-custom-label" class="sub-frame frame-button mb-4">
+            </div>
+
+            <div id="custom-label-sub-frame-2-custom" class="sub-frame custom-label-sub-frame-1-button">
+                <!-- inputs -->
+                <div id="add-custom-label-display" class="display">
+                    <span id="custom-label-error-2" class="frame-error"></span>
+                    <input id="custom-label-input-2" class="my-1" type="text"
+                        placeholder="Add New Label Options Here" />
+                    <button id="custom-label-ok-2" class="frame-button justify-content-center py-2">
+                        <span class="labelBtn" id="Add Custom Label OK 2">OK</span>
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- options -->
+            <div id="custom-label-sub-frame-2-custom-options" class="sub-frame custom-label-sub-frame-1-button">
+            </div>
+
+            <!-- delete key -->
+            <div id="custom-label-sub-frame-2-custom-delete" class="sub-frame custom-label-sub-frame-1-button mt-5">
+            </div>
+
+            <!-- back -->
+            <div id="custom-label-sub-frame-2-custom-button" class="sub-frame predefined-label-sub-frame-1-button">
+                <button id="custom-label-2-button" class="frame-button">
+                    <i class="fa-solid fa-backward" style="color: #626262;"></i>
+                    <span>Back</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Todo ↘ Frame 4 - Code Customs  -->
+        <div clas="frame">
+
+            <!-- options -->
+            <div id="custom-code-sub-frame-2-custom-label" class="sub-frame frame-button mb-4">
+            </div>
+
+            <div id="custom-code-sub-frame-2-custom" class="sub-frame custom-label-sub-frame-1-button">
+                <!-- inputs -->
+                <div id="add-custom-code-display" class="display">
+                    <span id="custom-code-error-2" class="frame-error"></span>
+                    <input id="custom-code-input-2" class="my-1" type="text" placeholder="Add New Label Options Here" />
+                    <button id="custom-code-ok-2" class="frame-button justify-content-center py-2">
+                        <span class="codeBtn" id="Add Custom Code OK 2">OK</span>
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- options -->
+            <div id="custom-code-sub-frame-2-custom-options" class="sub-frame custom-label-sub-frame-1-button">
+            </div>
+
+            <!-- delete key -->
+            <div id="custom-code-sub-frame-2-custom-delete" class="sub-frame custom-label-sub-frame-1-button mt-5">
+            </div>
+
+            <!-- back -->
+            <div id="custom-code-sub-frame-2-custom-button" class="sub-frame predefined-label-sub-frame-1-button">
+                <button id="custom-code-2-button" class="frame-button">
+                    <i class="fa-solid fa-backward" style="color: #626262;"></i>
+                    <span>Back</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- END of container -->
+    </div>
+
+
+
+    <!-- Todo ↘ Frame - Note Editor-->
+    <div class="frame">
+
+        <div id="note-sub-frame-label" class="label-container sub-frame">
+            <div class="frame-button-5 py-2">Note Board</div>
+            <button id="Back-note" class="back-icon-button-5">
+                <i class="fa-solid fa-angle-left"></i>
+            </button>
+        </div>
+
+        <div id="note-sub-frame" class="sub-frame mb-4">
+            <!--        <div class="textEditorContainer mb-4">-->
+
+            <div class="textEditorToolbar">
+                <ul class="textEditortool-list">
+                    <li class="textEditortool">
+                        <button type="button" id="colorPickerButton" class="textEditortool--btn">
+                            <i class="fa fa-palette" style="color: black"></i>
+                            <!-- Initial icon color set to black -->
+                        </button>
+                        <input type="color" id="textColor" style="display: none" />
+                    </li>
+                    <li class="textEditortool">
+                        <button type="button" id="highlighterButton" class="textEditortool--btn">
+                            <i class="fa-solid fa-highlighter" style="color: black"></i>
+                            <!-- Initial icon color set to black -->
+                        </button>
+                        <input type="color" id="highlightColor" style="display: none" />
+                    </li>
+
+                    <li class="textEditortool">
+                        <button type="button" data-command="justifyLeft" class="textEditortool--btn">
+                            <i class="fas fa-align-left"></i>
+                        </button>
+                    </li>
+                    <li class="textEditortool">
+                        <button type="button" data-command="justifyCenter" class="textEditortool--btn">
+                            <i class="fas fa-align-center"></i>
+                        </button>
+                    </li>
+                    <li class="textEditortool">
+                        <button type="button" data-command="bold" class="textEditortool--btn">
+                            <i class="fas fa-bold"></i>
+                        </button>
+                    </li>
+                    <li class="textEditortool">
+                        <button type="button" data-command="italic" class="textEditortool--btn">
+                            <i class="fas fa-italic"></i>
+                        </button>
+                    </li>
+                    <li class="tool">
+                        <button type="button" data-command="underline" class="textEditortool--btn">
+                            <i class="fas fa-underline"></i>
+                        </button>
+                    </li>
+                    <li class="tool">
+                        <button type="button" data-command="insertOrderedList" class="textEditortool--btn">
+                            <i class="fas fa-list-ol"></i>
+                        </button>
+                    </li>
+                    <li class="textEditortool">
+                        <button type="button" data-command="insertUnorderedList" class="textEditortool--btn">
+                            <i class="fas fa-list-ul"></i>
+                        </button>
+                    </li>
+                    <li class="textEditortool">
+                        <button type="button" data-command="createlink" class="textEditortool--btn">
+                            <i class="fas fa-link"></i>
+                        </button>
+                    </li>
+
+                    <li class="textEditortool">
+                        <select id="fontSizeSelector" class="textEditortool--btn">
+                            <option value="1">10 pt</option>
+                            <option value="2">12 pt</option>
+                            <option value="3">14 pt</option>
+                            <option value="4">16 pt</option>
+                            <option value="5">18 pt</option>
+                        </select>
+                    </li>
+
+                    <li class="textEditortool">
+                        <select id="fontFamilySelector" class="textEditortool--btn">
+                            <option value="Arial">Arial</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Courier New">Courier New</option>
+                        </select>
+                    </li>
+                </ul>
+            </div>
+
+            <div id="textEditorOutput" contenteditable="true"></div>
+
+            <!--        </div>-->
+        </div>
+
+
+        <div class="note-button-container">
+            <div id="note-sub-frame-save-note" class="sub-frame">
+                <button id="saveNote" class="note-button">Save Note</button>
+            </div>
+            <div id="note-sub-frame-update-note" class="sub-frame">
+                <button id="updateNote" class="note-button">Update Note</button>
+            </div>
+            <div id="note-sub-frame-voice-note" class="sub-frame">
+                <button id="voiceRecordBtn" class="note-button">Voice To Text</button>
+            </div>
+            <div id="note-sub-frame-cancel-note" class="sub-frame">
+                <button id="note-board-cancel" class="note-button">Cancel</button>
+            </div>
+        </div>
+
+        <div id="noteboard" class="sub-frame mt-3">
+            <!-- Notes will be appended here -->
+        </div>
+
+    </div>
+
+
+    <!-- Todo ↘ Frame - Voice Annotation Page -->
+    <div class="frame">
+
+        <!-- Replace the existing voice annotation header -->
+        <div id="voice-sub-frame-label" class="label-container sub-frame">
+            <div class="frame-button-5 py-2">Voice Annotation</div>
+            <button id="voice-back-btn" class="back-icon-button-5">
+                <i class="fa-solid fa-angle-left"></i>
+            </button>
+        </div>
+
+        <div id="voiceAudioFileList" class="sub-frame" style="display: none;">
+            <!-- Info message shown when no audio is uploaded -->
+            <div id="voiceAnnotationInfo" class="info-card">
+                <h6>Voice Annotations</h6>
+                <p>
+                    Upload an audio file to enable voice annotation features. You can add notes linked to specific
+                    timestamps, play back audio, and manage your voice notes here.
+                </p>
+            </div>
+            <h6>Select an Audio File</h6>
+            <div id="voiceAudioFileListContainer">
+                <i class="fas fa-"></i>
+                <!-- JS will populate audio file list here -->
+            </div>
+            <input type="file" id="audioInput" style="display: none;" />
+            <button id="btnAudioUpload" class="voiceBtns" style="margin-top: 10px;">Upload</button>
+        </div>
+
+        <div id="voiceAnnotationSection">
+
+
+            <!-- Large Rectangle -->
+            <div id="voiceAnnotationRectangle" class="sub-frame" style="display: none;">
+                <div id="voiceRect" class="mb-2">
+                    <div id="audiowave"></div>
+                    <div id="timeDisplay">00:00/00:00</div>
+                </div>
+            </div>
+
+            <!-- Container for Smaller Rectangles -->
+            <div id="small-rectangles" class="small-rectangles sub-frame">
+
+                <!-- Todo ↘ Voice Audio Controls -->
+                <div class="audio-control" id="audio-control">
+                    <button id="btnBack" class="small-rectangle">
+                        <i class="btn-backward fas fa-backward"></i>
+                    </button>
+                    <button id="btnVolume" class="small-rectangle">
+                        <i class="btn-toggle-mute fas fa-volume-up"></i>
+                    </button>
+                    <button id="btnPlay" class="small-rectangle">
+                        <i class="btn-toggle-play fas fa-play"></i>
+                    </button>
+                    <button id="btnPause" class="small-rectangle">
+                        <i class="btn-toggle-pause fas fa-pause"></i>
+                    </button>
+                    <button id="btnForward" class="small-rectangle">
+                        <i class="btn-forward fas fa-forward"></i>
+                    </button>
+                </div>
+
+                <!-- Todo ↘ Voice Buttons -->
+                <div class="voice-buttons">
+                    <button id="btnAddNote" class="voiceBtns">Add Note</button>
+                </div>
+
+                <!-- Todo ↘ Voice Noteboard -->
+                <div id="voiceNoteboard" class="sub-frame">
+                    <!-- Notes will be appended here -->
+                </div>
+            </div>
+
+            <!-- Todo ↘ Voice Editor -->
+            <div id="voice__richTextEditor" class="sub-frame voice__textEditorbody">
+                <div class="voice__textEditorContainer">
+                    <div class="voice__textEditorToolbar">
+                        <ul class="voice__textEditortool-list">
+                            <li class="textEditortool">
+                                <button type="button" id="voice__colorPickerButton" class="voice__textEditortool--btn">
+                                    <i class="fa fa-palette" style="color: black"></i>
+                                    <!-- Initial icon color set to black -->
+                                </button>
+                                <input type="color" id="voice__textColor" style="display: none" />
+                            </li>
+                            <li class="textEditortool">
+                                <button type="button" id="voice__highlighterButton" class="voice__textEditortool--btn">
+                                    <i class="fa-solid fa-highlighter" style="color: black"></i>
+                                    <!-- Initial icon color set to black -->
+                                </button>
+                                <input type="color" id="voice__highlightColor" style="display: none" />
+                            </li>
+
+                            <li class="textEditortool">
+                                <button type="button" data-command="justifyLeft" class="voice__textEditortool--btn">
+                                    <i class="fas fa-align-left"></i>
+                                </button>
+                            </li>
+                            <li class="textEditortool">
+                                <button type="button" data-command="justifyCenter" class="voice__textEditortool--btn">
+                                    <i class="fas fa-align-center"></i>
+                                </button>
+                            </li>
+                            <li class="textEditortool">
+                                <button type="button" data-command="bold" class="voice__textEditortool--btn">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                            </li>
+                            <li class="textEditortool">
+                                <button type="button" data-command="italic" class="voice__textEditortool--btn">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                            </li>
+                            <li class="tool">
+                                <button type="button" data-command="underline" class="voice__textEditortool--btn">
+                                    <i class="fas fa-underline"></i>
+                                </button>
+                            </li>
+                            <li class="tool">
+                                <button type="button" data-command="insertOrderedList"
+                                    class="voice__textEditortool--btn">
+                                    <i class="fas fa-list-ol"></i>
+                                </button>
+                            </li>
+                            <li class="textEditortool">
+                                <button type="button" data-command="insertUnorderedList"
+                                    class="voice__textEditortool--btn">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                            </li>
+                            <li class="textEditortool">
+                                <button type="button" data-command="createlink" class="voice__textEditortool--btn">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                            </li>
+
+                            <li class="textEditortool">
+                                <select id="voice__fontSizeSelector" class="textEditortool--btn">
+                                    <option value="1">10 pt</option>
+                                    <option value="2">12 pt</option>
+                                    <option value="3">14 pt</option>
+                                    <option value="4">16 pt</option>
+                                    <option value="5">18 pt</option>
+                                </select>
+                            </li>
+
+                            <li class="textEditortool">
+                                <select id="voice__fontFamilySelector" class="voice__textEditortool--btn"
+                                    style="width: 100%;">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Verdana">Verdana</option>
+                                    <option value="Courier New">Courier New</option>
+                                </select>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div id="voice__textEditorOutput" contenteditable="true"></div>
+
+                    <!-- 2 buttons for text editor-->
+
+                    <div style="display: flex; align-items: center; margin-top: 30px; gap: 10px;">
+                        <button id="voice-board-cancel" class="back-icon-button-5" title="Cancel"><i
+                                class="fas fa-angle-left"></i></button>
+                        <button id="voice__voiceRecordBtn" class="back-icon-button-5" title="Voice To Text"><i
+                                class="fas fa-microphone"></i></button>
+                        <button id="voice__saveNote" class="back-icon-button-5" title="Save Note"><i
+                                class="fas fa-save"></i></button>
+                        <button id="voice__updateNote" class="back-icon-button-5" title="Update Note"><i
+                                class="fas fa-save"></i></button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Todo ↘ Frame - Video Annotation Page -->
+    <div class="frame">
+
+        <div id="video-sub-frame-label" class="label-container sub-frame">
+            <div class="frame-button-5 py-2">Video Annotation</div>
+            <button id="video-annotation-back" class="back-icon-button-5">
+                <i class="fa-solid fa-angle-left"></i>
+            </button>
+        </div>
+
+        <div id="video-sub-frame-2" class="sub-frame">
+            <div id="videoPopup" class="popup">
+                <video id="video" class="mb-4" style="border-radius: 10px;
+                   background-color: red;
+                   margin: auto" width="100%" height="auto" controls>
+                </video>
+            </div>
+        </div>
+
+        <div id="video-sub-frame-3" class="sub-frame">
+            <!-- Todo ↘ Video Buttons -->
+            <div id="video-buttons" class="voice-buttons">
+                <input id="videoUploader" style="display: none" type="file" accept="video/*" />
+                <button id="btnVideoUpload" class="note-button">Choose File</button>
+                <button id="btnVideoAddNote" class="note-button">Add Note</button>
+            </div>
+
+            <!-- Todo ↘ Video Noteboard -->
+            <div id="videoNoteboard">
+                <!-- Notes will be appended here -->
+            </div>
+        </div>
+
+        <!-- Todo ↘ Video Editor -->
+        <div id="video__richTextEditor" class="sub-frame video__textEditorbody" style="display: none">
+
+            <div class="video__textEditorContainer">
+                <div class="video__textEditorToolbar">
+                    <ul class="video__textEditortool-list">
+                        <li class="textEditortool">
+                            <button type="button" id="video__colorPickerButton" class="video__textEditortool--btn">
+                                <i class="fa fa-palette" style="color: black"></i>
+                                <!-- Initial icon color set to black -->
+                            </button>
+                            <input type="color" id="video__textColor" style="display: none" />
+                        </li>
+                        <li class="textEditortool">
+                            <button type="button" id="video__highlighterButton" class="video__textEditortool--btn">
+                                <i class="fa-solid fa-highlighter" style="color: black"></i>
+                                <!-- Initial icon color set to black -->
+                            </button>
+                            <input type="color" id="video__highlightColor" style="display: none" />
+                        </li>
+                        <li class="textEditortool">
+                            <button type="button" data-command="justifyLeft" class="video__textEditortool--btn">
+                                <i class="fas fa-align-left"></i>
+                            </button>
+                        </li>
+                        <li class="textEditortool">
+                            <button type="button" data-command="justifyCenter" class="video__textEditortool--btn">
+                                <i class="fas fa-align-center"></i>
+                            </button>
+                        </li>
+                        <li class="textEditortool">
+                            <button type="button" data-command="bold" class="video__textEditortool--btn">
+                                <i class="fas fa-bold"></i>
+                            </button>
+                        </li>
+                        <li class="textEditortool">
+                            <button type="button" data-command="italic" class="video__textEditortool--btn">
+                                <i class="fas fa-italic"></i>
+                            </button>
+                        </li>
+                        <li class="tool">
+                            <button type="button" data-command="underline" class="video__textEditortool--btn">
+                                <i class="fas fa-underline"></i>
+                            </button>
+                        </li>
+                        <li class="tool">
+                            <button type="button" data-command="insertOrderedList" class="video__textEditortool--btn">
+                                <i class="fas fa-list-ol"></i>
+                            </button>
+                        </li>
+                        <li class="textEditortool">
+                            <button type="button" data-command="insertUnorderedList" class="video__textEditortool--btn">
+                                <i class="fas fa-list-ul"></i>
+                            </button>
+                        </li>
+                        <li class="textEditortool">
+                            <button type="button" data-command="createlink" class="video__textEditortool--btn">
+                                <i class="fas fa-link"></i>
+                            </button>
+                        </li>
+                        <li class="textEditortool">
+                            <select id="video__fontSizeSelector" class="textEditortool--btn">
+                                <option value="1">10 pt</option>
+                                <option value="2">12 pt</option>
+                                <option value="3">14 pt</option>
+                                <option value="4">16 pt</option>
+                                <option value="5">18 pt</option>
+                            </select>
+                        </li>
+                        <li class="textEditortool">
+                            <select id="video__fontFamilySelector" class="video__textEditortool--btn">
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Verdana">Verdana</option>
+                                <option value="Courier New">Courier New</option>
+                            </select>
+                        </li>
+                    </ul>
+                </div>
+
+                <div id="video__textEditorOutput" contenteditable="true"></div>
+
+                <!-- 2 buttons for text editor-->
+
+                <div class="controlBtns">
+                    <button id="video__voiceRecordBtn" class="videoBtns">Voice To Text</button>
+                    <button id="video__saveNote" class="voiceBtns">Save Note</button>
+                    <button id="video__updateNote" class="voiceBtns">Update Note</button>
+                    <button id="video-board-cancel" class="voiceBtns">Cancel</button>
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- Todo ↘ JS -->
+
+
+
+    <!-- Add this right after the Chart.js script -->
+
+    <!-- Your existing scripts -->
+    <script type="module" src="partials/auth.js"></script>
+    <script type="module" src="frames.js"></script>
+    <script type="module" src="modals.js"></script>
+
+    <!-- Add this BEFORE your annotation-history.js script -->
+    <script src="lib/qrcode.min.js"></script>
+
+    <!-- Your existing annotation-history.js script should be after -->
+
+    <!-- Replaced by more general messaging system -->
+    <!-- <script type="module" src="comments.js"></script> -->
+    <script type="module" src="messaging.js"></script>
+    <script type="module" src="partials/annotation-history.js"></script>
+    <script type="module" src="partials/voice-annotation.js"></script>
+    <script type="module" src="partials/video-annotation.js"></script>
+    <script type="module" src="partials/note.js"></script>
+    <script type="module" src="partials/login.js"></script>
+    <script type="module" src="partials/local-storage.js"></script>
+    <script type="module" src="partials/highlight.js"></script>
+    <!--    <script src="highlights.js"></script>-->
+
+    <script src="wavesurfer.js"></script>
+    <script src="jquery-3.6.1.min.js"></script>
+
+    <script src="firebase/firebase-app.js"></script>
+    <script src="firebase/firebase-database.js"></script>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+            crossorigin="anonymous">
+    </script> -->
+
+    <div id="termsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Terms of Use</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>By using Phraze, you agree to these Terms of Use, which outline the guidelines for using our app and
+                    the protections we offer. Phraze is designed to help you organize, annotate, and manage your data
+                    efficiently, and we ask that you use it responsibly and in compliance with applicable laws.</p>
+
+                <p>We are committed to respecting your privacy and protecting your data, which is handled in line with
+                    our Privacy Policy. All content, features, and intellectual property associated with Phraze are
+                    owned by us or our licensors and are meant for your personal use—any unauthorized copying or
+                    redistribution is not allowed.</p>
+
+                <p>While we aim to provide a seamless experience, Phraze is offered "as is," and we cannot be held
+                    responsible for any indirect damages that may occur while using the app. We may update these terms
+                    or adjust features from time to time, and continued use of the app signifies your acceptance of any
+                    changes.</p>
+
+                <p>If you have questions or need support, please don't hesitate to reach out to us at <a
+                        href="mailto:hetpate384@uwo.ca">hetpate384@uwo.ca</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="instructionsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Instructions</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="instruction-step">
+                    <h3>Step 1: Sign Up or Log In</h3>
+                    <p>Create an account or log in to your existing account to get started.</p>
+                </div>
+
+                <div class="instruction-step">
+                    <h3>Step 2: Highlight Words or Phrases</h3>
+                    <p>Select the text you want to annotate by clicking and dragging your cursor over the desired word,
+                        phrase, or section. Once highlighted, the selected text will be ready for annotation.</p>
+                </div>
+
+                <div class="instruction-step">
+                    <h3>Step 3: Right-Click to Open the Menu</h3>
+                    <p>After highlighting, right-click to open the context menu and select "Add Label" to activate the
+                        annotation extension. This will enable you to start adding detailed annotations or labels.</p>
+                </div>
+
+                <div class="instruction-step">
+                    <h3>Step 4: Add Annotations</h3>
+                    <p>Add relevant labels, codes, or annotations in the format of your choice—text, voice, or video—for
+                        maximum flexibility and context.</p>
+                </div>
+
+                <div class="instruction-step">
+                    <h3>Step 5: View Your Annotations</h3>
+                    <p>Easily review and manage all your saved annotations in the "Annotation History" section.</p>
+                </div>
+
+                <div class="instruction-step">
+                    <h3>Step 6: Access Anywhere, Anytime</h3>
+                    <p>Enjoy seamless access to your annotations across devices by downloading the browser extension and
+                        logging in to your account.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="contactModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Contact Us</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body contact-modal-body">
+                <img src="img/contact.png" alt="Contact" class="contact-image">
+                <p>Please don't hesitate to reach out at this email: <a
+                        href="mailto:hetpate384@uwo.ca">hetpate384@uwo.ca</a>. We're here to help!</p>
+
+                <div class="contact-form-section">
+                    <h3>Let Us Know How We Can Help</h3>
+                    <form class="contact-form" action="https://api.web3forms.com/submit" method="POST">
+                        <!-- Web3Forms access key -->
+                        <input type="hidden" name="access_key" value="ac24d5fc-6369-4deb-8aed-d950aabe1bdd">
+
+                        <!-- Add success redirect URL -->
+                        <input type="hidden" name="redirect" value="https://web3forms.com/success">
+
+                        <!-- Honeypot spam protection -->
+                        <input type="checkbox" name="botcheck" class="hidden" style="display: none;">
+
+                        <div class="form-group">
+                            <input type="text" id="firstName" name="firstName" placeholder="First Name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="text" id="lastName" name="lastName" placeholder="Last Name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" placeholder="Email Address (Optional)">
+                        </div>
+
+                        <div class="form-group">
+                            <textarea id="message" name="message" placeholder="Your Message" required></textarea>
+                        </div>
+
+                        <button type="submit" class="submit-button">Submit Feedback</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .sub-frame-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .frame-button-1-holder {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-light-gray);
+            color: var(--color-dark-gray);
+            border: 1.5px solid #878787;
+            border-radius: 20px;
+
+
+            padding: 15px;
+            overflow: auto;
+            max-height: 70vh;
+            flex: 1;
+        }
+
+        .frame-button-1 {
+            background-color: transparent;
+            border: none;
+            text-align: left;
+            width: 100%;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .frame-button-1:hover {
+            background-color: var(--color-light-gray-hover);
+            border-radius: 10px;
+        }
+
+        .frame-button-1>i {
+            width: 25px;
+            margin-right: 10px;
+        }
+
+        #Predefined.Labels,
+        #Custom.Labels {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: var(--color-dark-gray);
+        }
+
+        /* Profile Action Buttons */
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .profile-action-btn {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .profile-action-btn:hover {
+            background: #f8fafc;
+            border-color: var(--color-light-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .profile-action-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--color-dark-grey);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .action-content i {
+            color: var(--color-grey);
+            font-size: 12px;
+        }
+    </style>
+
+    <!-- Note Board section -->
+    <div id="note-board-sub-frame" class="sub-frame">
+        <!-- Header -->
+        <div class="note-board-header">Note Board</div>
+
+        <!-- Toolbar -->
+        <div class="textEditortool-list">
+            <button type="button" id="colorPickerButton" class="textEditortool--btn">
+                <i class="fa fa-palette"></i>
+            </button>
+            <button type="button" data-command="justifyLeft" class="textEditortool--btn">
+                <i class="fas fa-align-left"></i>
+            </button>
+            <button type="button" data-command="justifyCenter" class="textEditortool--btn">
+                <i class="fas fa-align-center"></i>
+            </button>
+            <button type="button" data-command="bold" class="textEditortool--btn">
+                <i class="fas fa-bold"></i>
+            </button>
+            <button type="button" data-command="italic" class="textEditortool--btn">
+                <i class="fas fa-italic"></i>
+            </button>
+            <button type="button" data-command="underline" class="textEditortool--btn">
+                <i class="fas fa-underline"></i>
+            </button>
+            <button type="button" data-command="insertOrderedList" class="textEditortool--btn">
+                <i class="fas fa-list-ol"></i>
+            </button>
+            <button type="button" data-command="insertUnorderedList" class="textEditortool--btn">
+                <i class="fas fa-list-ul"></i>
+            </button>
+            <select id="fontSizeSelector" class="textEditortool--btn">
+                <option value="1">10 pt</option>
+                <option value="2">12 pt</option>
+                <option value="3">14 pt</option>
+                <option value="4">16 pt</option>
+                <option value="5">18 pt</option>
+            </select>
+            <select id="fontFamilySelector" class="textEditortool--btn">
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Courier New">Courier New</option>
+            </select>
+        </div>
+
+        <!-- Editor Area -->
+        <div id="textEditorOutput" contenteditable="true"></div>
+
+        <!-- Control Buttons -->
+        <div class="note-board-buttons">
+            <button id="saveNote" class="note-board-btn">Save Note</button>
+            <button id="voiceToText" class="note-board-btn">Voice To Text</button>
+            <button id="Back" class="note-board-btn">Back</button>
+        </div>
+    </div>
+
+    <!-- Add this right after the annotation-history-sub-frame-import-export div -->
+    <div id="statistics-chart-container" class="statistics-chart-container" style="display: none;">
+        <div class="chart-header">
+            <h3>Label Distribution Statistics</h3>
+            <button id="close-statistics" class="close-statistics-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="labelStatisticsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Add this right after the statistics-chart-container div -->
+    <div id="code-statistics-chart-container" class="statistics-chart-container" style="display: none;">
+        <div class="chart-header">
+            <h3>Code Distribution Statistics</h3>
+            <button id="close-code-statistics" class="close-statistics-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="codeStatisticsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Add this before the closing body tag -->
+    <div class="export-modal-overlay">
+        <div class="export-modal">
+            <div class="export-modal-header">
+                <h2 class="export-modal-title">Export Annotations</h2>
+                <button class="export-modal-close">&times;</button>
+            </div>
+
+            <div class="export-modal-buttons">
+                <button id="continue-download" class="export-modal-button primary">
+                    <i class="fas fa-download"></i>
+                    Continue Download
+                </button>
+                <button id="share-file" class="export-modal-button">
+                    <i class="fas fa-share-alt"></i>
+                    Share File
+                </button>
+                <button id="show-qr" class="export-modal-button">
+                    <i class="fas fa-qrcode"></i>
+                    Download via QR Code
+                </button>
+                <button id="copy-json" class="export-modal-button">
+                    <i class="fas fa-copy"></i>
+                    Copy JSON
+                </button>
+            </div>
+
+            <!-- Move the QR code container here, inside the modal -->
+            <div id="qr-code-container" class="qr-code-container" style="display: none;">
+                <div class="qr-code-wrapper">
+                    <div id="qr-code"></div>
+                    <p class="qr-instructions">Scan this QR code with your phone to download the annotation data</p>
+                </div>
+            </div>
+
+            <form id="export-share-form" class="export-share-form">
+                <div class="form-group">
+                    <label for="share-first-name">First Name</label>
+                    <input type="text" id="share-first-name" name="firstName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="share-last-name">Last Name</label>
+                    <input type="text" id="share-last-name" name="lastName" required>
+                </div>
+
+                <!-- Add the new email field -->
+                <div class="form-group">
+                    <label for="share-email">Recipient Email</label>
+                    <input type="email" id="share-email" name="email" required
+                        placeholder="Enter recipient's email address">
+                </div>
+
+                <div class="form-group">
+                    <label for="share-description">Description</label>
+                    <textarea id="share-description" name="description" required></textarea>
+                </div>
+
+                <button type="submit" class="export-modal-button primary">
+                    <i class="fas fa-paper-plane"></i>
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="frame">
+        <div id="settings-sub-frame" class="settings-container sub-frame">
+            <div class="settings-header">
+                <div class="header-content">
+                    <div class="header-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="header-text">
+                        <h2>Settings</h2>
+                        <p class="settings-description">Configure your annotation preferences and logging options.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-header">
+                    <i class="fas fa-sliders-h"></i>
+                    <h3>Logging Options</h3>
+                </div>
+                <p class="section-description">Control how your annotations are logged and managed.</p>
+                <div class="manual-logging-buttons">
+                    <div class="logging-button-container">
+                        <button id="manual-logging" class="note-style-button">
+                            <i class="fa-regular fa-comment-dots"></i>
+                            Manual Logging
+                        </button>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="manual-logging-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="logging-button-container">
+                        <button id="conversation-logging" class="note-style-button">
+                            <i class="fa-regular fa-comments"></i>
+                            Conversation Logging
+                        </button>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back -->
+        <div id="settings-icon-back-sub-frame" class="sub-frame">
+            <button id="backSettings" class="frame-button">
+                <i class="fa-solid fa-backward" style="color:#FFF;"></i>
+            </button>
+        </div>
+    </div>
+
+    <style>
+        .settings-container {
+            padding: 24px;
+            background: #ffffff;
+        }
+
+        .settings-header {
+            margin-bottom: 35px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-icon i {
+            font-size: 24px;
+            color: #626262;
+        }
+
+        .header-text {
+            flex: 1;
+        }
+
+        .settings-header h2 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .settings-description {
+            color: #626262;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .settings-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e8e8e8;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .section-header i {
+            font-size: 20px;
+            color: #626262;
+        }
+
+        .section-header h3 {
+            font-size: 20px;
+            color: #333;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .section-description {
+            color: #626262;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .note-style-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-left: 3px solid #626262;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .note-style-button:hover {
+            background: #f5f5f5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .note-style-button i {
+            font-size: 20px;
+            color: #626262;
+        }
+    </style>
+
+    <!-- Add this after the settings-sub-frame div -->
+    <div id="manual-logging-sub-frame" class="sub-frame">
+        <div class="manual-logging-container">
+            <div class="section-header">
+                <i class="fas fa-pencil-alt"></i>
+                <h3>Manual Logging</h3>
+            </div>
+            <p class="section-description">This feature allows you to manually log and track your conversations. Coming
+                soon!</p>
+        </div>
+    </div>
+
+    <!-- Add these containers for temporary text -->
+    <div id="manual-logging-message" class="temp-message" style="display: none;">
+        <div class="temp-message-header">
+            <button class="back-to-settings">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>Manual Logging</h2>
+        </div>
+
+        <div class="manual-logging-content">
+            <!-- Description Section -->
+            <div class="feature-description">
+                <i class="fas fa-info-circle"></i>
+                <p>Manually log conversations by taking screenshots and annotating them. Organize your saved
+                    conversations using custom categories.</p>
+            </div>
+
+            <!-- Add Category Section -->
+            <div class="category-section">
+                <h3>Add Category</h3>
+                <div class="input-with-button">
+                    <input type="text" id="category-input" placeholder="Enter category name" maxlength="50">
+                    <button class="square-ok-button" id="add-category-btn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category History Section -->
+            <div class="category-history">
+                <h3>Category History</h3>
+                <div id="category-list" class="category-list">
+                    <!-- Categories will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="conversation-logging-message" class="temp-message" style="display: none;">
+        <div class="temp-message-header">
+            <button class="back-to-settings">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>Conversation Logging</h2>
+        </div>
+        <div class="temp-message-content">
+            <i class="fas fa-comments"></i>
+            <h3>Conversation Logging Coming Soon!</h3>
+            <p>We're developing an intelligent conversation logging system to help you track and analyze your
+                discussions.</p>
+        </div>
+    </div>
+
+    <!-- Add this after the manual-logging-message div -->
+    <div id="screenshot-options-message" class="temp-message" style="display: none;">
+        <div class="temp-message-header">
+            <button class="back-to-manual-logging">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>Screenshot Options</h2>
+        </div>
+
+        <div class="screenshot-options-content">
+            <!-- Description Section -->
+            <div class="feature-description">
+                <i class="fas fa-camera"></i>
+                <p>Choose how you want to capture your screen. You can either capture the visible part or select a
+                    specific area.</p>
+            </div>
+
+            <div class="screenshot-buttons">
+                <button class="screenshot-option-btn" id="capture-visible">
+                    <i class="fas fa-desktop"></i>
+                    <div class="button-text">
+                        <h4>Capture Visible Part</h4>
+                        <p>Take a screenshot of the currently visible area</p>
+                    </div>
+                </button>
+
+                <button class="screenshot-option-btn" id="capture-area">
+                    <i class="fas fa-crop-alt"></i>
+                    <div class="button-text">
+                        <h4>Capture Selected Area</h4>
+                        <p>Select and capture a specific area of the screen</p>
+                    </div>
+                </button>
+
+                
+                <button class="screenshot-option-btn" id="capture-fullpage">
+                    <i class="fas fa-window-maximize"></i>
+                    <div class="button-text">
+                        <h4>Capture Full Page</h4>
+                        <p>Take a screenshot of the entire web page</p>
+                    </div>
+                </button>
+
+                <!-- Move the upload button inside the screenshot-buttons div -->
+                <button class="screenshot-option-btn upload-btn" id="upload-image">
+                    <i class="fas fa-upload"></i>
+                    <div class="button-text">
+                        <h4>Upload Image</h4>
+                        <p>Upload an existing screenshot from your device</p>
+                    </div>
+                </button>
+
+                <button class="screenshot-option-btn" id="add-manual-log-plain">
+                    <i class="fas fa-edit"></i>
+                    <div class="button-text">
+                        <h4>Add Note</h4>
+                        <p>Add a plain note without an image</p>
+                    </div>
+                </button>
+
+            </div>
+
+            <!-- Keep the file input outside -->
+            <input type="file" id="screenshot-file-input" accept="image/*" style="display: none;">
+        </div>
+    </div>
+
+    <!-- Add this after the screenshot-options-message div -->
+    <div id="screenshot-capture-options" class="temp-message" style="display: none;">
+        <div class="temp-message-header">
+            <button class="back-to-screenshot-options">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>Capture Options</h2>
+        </div>
+
+        <div class="screenshot-capture-content">
+            <div class="feature-description">
+                <i class="fas fa-camera"></i>
+                <p>Choose which part of your screen you want to capture.</p>
+            </div>
+
+            <div class="capture-buttons">
+                <button class="capture-option-btn" id="capture-tab">
+                    <i class="fas fa-tab"></i>
+                    <div class="button-text">
+                        <h4>Capture Current Tab</h4>
+                        <p>Take a screenshot of just this browser tab</p>
+                    </div>
+                </button>
+
+                <button class="capture-option-btn" id="capture-window">
+                    <i class="fas fa-window-maximize"></i>
+                    <div class="button-text">
+                        <h4>Capture Window</h4>
+                        <p>Capture the entire browser window</p>
+                    </div>
+                </button>
+
+                <button class="capture-option-btn" id="capture-screen">
+                    <i class="fas fa-desktop"></i>
+                    <div class="button-text">
+                        <h4>Capture Screen</h4>
+                        <p>Capture your entire screen</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="frame">
+        <div id="messaging-sub-frame-label" class="label-container sub-frame">
+            <div class="frame-button-5 py-2">Messaging</div>
+            <button id="Back-messaging" class="back-icon-button-5">
+                <i class="fa-solid fa-angle-left"></i>
+            </button>
+        </div>
+
+        <div id="messaging-sub-frame" class="sub-frame">
+            <!-- <button style="position: absolute; right: 0%; bottom: 20px;" class="back-icon-button-5"
+                id="openContactsButton"><i class="fa-solid fa-angle-left"></i></button>
+            <button style="display: none; position: absolute; left: 50%; bottom: 20px;" class="back-icon-button-5"
+                id="closeContactsButton"><i class="fa-solid fa-angle-right"></i></button> -->
+            <!-- In your messaging panel (right side) -->
+            <div style="display: flex;">
+                <div id="topics-panel" class="messaging-panel" style="width: 100%;">
+                    <div id="choose-topic">
+                        <span class="messaging-header"><b>Choose Topic</b></span>
+
+                        <div class="topic-description" style="margin: 0 10px 5px 10px; color: #888; font-size: 13px;">
+                            Groq Chats lets you interact with AI-powered chat conversations. You can ask questions, get
+                            instant responses, and explore various topics. This is useful for brainstorming, research,
+                            or getting quick answers.
+                        </div>
+                        <button class="topics-button" id="topics-Groq Chats">Groq Chats</button>
+
+                        <!-- <button class="topics-button" id="topics-Video Annotations">Video Annotations</button> -->
+                        <!-- <button class="topics-button" id="topics-Voice Annotations">Voice Annotations</button> -->
+
+                        <div class="topic-description" style="margin: 0 10px 5px 10px; color: #888; font-size: 13px;">
+                            Manual Logs allows you to keep track of important conversations or notes manually. You can
+                            organize, review, and manage your logs for future reference. This feature is helpful for
+                            documentation, tracking progress, or saving key information.
+                        </div>
+                        <button class="topics-button" id="topics-Manual Logs">Manual Logs</button>
+                    </div>
+                    <div id="topic-Groq Chats-div" style="display:none;">
+                        <button id="topic-Groq Chats-back" class="back-button">
+                            <i class="fa-solid fa-angle-left"></i>
+                        </button>
+                        <div id="iframe-overlay"
+                            style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; cursor:ew-resize;">
+                        </div>
+                        <iframe id="groq-iframe" src="http://localhost:5500/demonstration"
+                            style="width: 100%; height: 800px;"></iframe>
+                        <!-- <div id="groq-chats-list"></div> -->
+                        <!-- <div id="groq-chat-messages"></div> -->
+                    </div>
+                    <div id="topic-Video Annotations-div" style="display: none;">
+
+                    </div>
+                    <div id="topic-Voice Annotations-div" style="display: none;">
+
+                    </div>
+                    <div id="topic-Manual Logs-div" style="display: none;">
+                        <button id="topic-Manual Logs-back" class="back-button">
+                            <i class="fa-solid fa-angle-left"></i>
+                        </button>
+                        <div id="topic-Manual Logs-categories" style="display: none;">
+                            <!-- Gets dynamically populated -->
+                        </div>
+                        <div id="topic-Manual Logs-logs" style="display: none; max-height: 800px; overflow-y: auto;">
+                            <!-- Gets dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Resizer Handle -->
+                <div id="messaging-resizer" style="width: 20px; cursor: ew-resize; background-color: #ccc;"></div>
+                <div id="contacts-panel-outer" class="messaging-panel" style="display: none; border-right: 0px;">
+                    <div style="display: block; width: 100%;">
+                        <span class="messaging-header" id="messaging-header-right"><b>Choose Contact</b></span>
+                        <div id="contacts-panel-chooser" style="display: block; width: 100%;">
+                            <div id="contacts-panel">
+                                <!-- Contacts will be dynamically inserted here -->
+                            </div>
+                        </div>
+                        <div id="contacts-panel-messages" class="messages-list"
+                            style="display: none; position: relative; height: 800px; padding-bottom: 75px;">
+                            <div>
+                                <button id="messages-back" class="back-button" style="margin-top: 0px;">
+                                    <i class="fa-solid fa-angle-left"></i>
+                                </button>
+                                <div style="position: absolute; right: 40%; top: 13px;" class="center-under-img">
+                                    <img id="contact-img"
+                                        src="data:image/png;base64,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"
+                                        class="contact-avatar">
+                                    <span class="comment-header" style="color: black; font-weight: 600;"
+                                        id="contact-img-name">Name goes here</span>
+                                </div>
+                            </div>
+                            <div id="messages-list" style="overflow: scroll; overflow-x: hidden; height: 100%;"></div>
+                            <!-- Chat input area -->
+                            <div class="add-comment-section" style="position: absolute; bottom: 0; left: 0; right: 0;">
+                                <div class="comment-input-container">
+                                    <div class="comment-input-wrapper">
+                                        <textarea id="new-message" placeholder="Write a comment..."
+                                            class="comment-input" rows="1"></textarea>
+                                        <button id="add-message" class="comment-button primary"
+                                            style="margin-right: 13px;">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .center-under-img {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .back-button {
+            background-color: #00000000;
+            border: none;
+            width: 30px;
+        }
+
+        .messaging-header {
+            font-size: 14px;
+            color: lightgray;
+            padding: 10px;
+        }
+
+        .messages-list {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            padding: 10px;
+        }
+
+        #groq-chats-list {
+            margin-bottom: 16px;
+        }
+
+        .groq-message {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: #f8f8f8;
+        }
+
+        .topics-button {
+            padding: 8px 12px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: unset;
+            display: block;
+            width: 95%;
+            margin: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 43px;
+        }
+
+
+        .topics-button:hover {
+            background: #e0e0e0;
+        }
+
+        .messaging-panel {
+            width: 50%;
+            border-right: 1px solid grey;
+            /* border: 1px solid grey;
+            border-radius: 12px; */
+            height: 800px;
+        }
+
+        #contacts-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0px;
+            padding: 12px;
+        }
+
+        .contact-footer {
+            color: #bbb;
+            font-size: 13px;
+        }
+
+        .contact-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border: none;
+            background: white;
+            border-top: solid 1px #F7F7F8;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: unset;
+            height: 90px;
+        }
+
+        .contact-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .contact-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .contact-name {
+            font-weight: 500;
+        }
+
+        .contact-email {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .contact-btn.everyone {
+            /* background: #d0eaff; */
+            font-weight: bold;
+        }
+    </style>
+
+    <style>
+        .annotations-list-container {
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .search-bar {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--color-light-blue);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .annotations-filter {
+            margin-bottom: 16px;
+        }
+
+        .annotations-filter select {
+            width: 150px;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            font-size: 14px;
+        }
+
+        .annotations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            /* Reduced from 12px */
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .annotation-item {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            /* Reduced from 24px */
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .annotation-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-color: var(--color-light-blue);
+        }
+
+        .annotation-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            /* Reduced from 16px */
+        }
+
+        .annotation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0;
+            /* Removed margin */
+        }
+
+        .annotation-metadata {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .annotation-tag {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .annotation-tag-separator {
+            color: #999;
+            font-size: 8px;
+        }
+
+        .annotation-tag-value {
+            color: #666;
+            font-size: 15px;
+        }
+
+        .annotation-date {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .selected-text {
+            font-size: 15px;
+            /* Slightly reduced */
+            color: #1d1d1f;
+            line-height: 1.4;
+            /* Reduced from 1.6 */
+            margin: 8px 0;
+            /* Reduced from 12px */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            position: relative;
+            padding-left: 12px;
+            border-left: 3px solid #e0e0e0;
+        }
+
+        .annotation-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+            /* Reduced from 8px */
+        }
+
+        .annotation-type {
+            font-size: 13px;
+            color: #666;
+            background: #f5f5f7;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .annotation-url {
+            font-size: 13px;
+            color: rgb(153, 153, 163);
+            text-decoration: none;
+        }
+
+        .comment-count {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .no-annotations-message {
+            text-align: center;
+            padding: 32px;
+            color: #666;
+        }
+
+        .no-annotations-message i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #999;
+        }
+
+        .primary-button {
+            background: lightskyblue;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .primary-button:hover {
+            background: var(--color-dark-blue);
+        }
+    </style>
+
+    <style>
+        .annotation-details {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #e0e0e0;
+            width: 100%;
+        }
+
+        .annotation-details-text {
+            font-size: 15px;
+            color: #1d1d1f;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            padding-left: 12px;
+            border-left: 3px solid #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .annotation-details-metadata {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .details-left,
+        .details-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .details-tag {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .details-value {
+            color: #666;
+        }
+
+        .details-type {
+            color: #666;
+            background: #f5f5f7;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .details-url {
+            color: rgb(153, 153, 163);
+        }
+
+        .details-date {
+            color: #999;
+        }
+
+        .details-separator {
+            color: #999;
+            font-size: 8px;
+        }
+
+        .comments-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0;
+        }
+
+        .comments-controls h3 {
+            margin: 0;
+            color: #1d1d1f;
+        }
+    </style>
+</body>
+<script type="module" src="popup.js"></script>
+
+</html>

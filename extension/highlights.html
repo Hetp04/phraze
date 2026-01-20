@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Highlighter</title>
+    <style>
+        body {
+            width: 300px;
+            padding: 15px;
+            font-family: Arial, sans-serif;
+        }
+        .color-option {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            margin: 5px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .color-option.selected {
+            border-color: #000;
+        }
+        .buttons-container {
+            margin-top: 15px;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 16px;
+        }
+        .color-option:hover{
+            opacity: .2;
+        }
+    </style>
+</head>
+<body>
+<h3>Choose Highlight Color:</h3>
+
+<div id="colorPicker">
+    <div class="color-option" data-color="yellow" style="background-color: yellow;"></div>
+    <div class="color-option" data-color="cyan" style="background-color: cyan;"></div>
+    <div class="color-option" data-color="lime" style="background-color: lime;"></div>
+    <div class="color-option" data-color="orange" style="background-color: orange;"></div>
+</div>
+
+<ol>
+    <li>Open a browser and goto website</li>
+    <li>Highlight a word right click and select extension icon</li>
+</ol>
+
+
+<script src="highlights.js"></script>
+</body>
+</html>

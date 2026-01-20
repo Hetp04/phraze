@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "Label Adder",
+  "description": "A brief description of your extension",
+  "version": "1.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7eHbdWgVmq3od8IeMMJ+2fs/Qy4AiJcGYMU1MywDB6GOWwTEWVsq5bYMFpP2Z9vywVKxuamtlN+Pa4CP+pqnffbyIPvGwBZjh9RENA09uH1KcB9LvIXTtE8v0BU3esRi+abzoyBbcWi6Gw9VPknnCID01V+NnXEkD9tmHmlFOtqewHwUbBi5PQYu7xkpzptpzG8Sb240SXhJZBzGYJgH+IUa6sxcDd+svVxLAc0PsrxSvDjya57Nuv7xE+0dbGEX0Mw23mhSMcYKtAsCs2PFl4cAeISmYFle5xmsXGuyfSfsXH6AvpF4n7dZugXX3P+Wxxif6g3EafikZBH0hu/5EwIDAQAB",
+  "width": 300,
+  "height": 600,
+  "permissions": [
+    "identity",
+    "contextMenus",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "storage",
+    "declarativeContent",
+    "desktopCapture",
+    "downloads",
+    "https://*.firebaseio.com/*",
+    "https://*.firebaseapp.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js", "popper.min.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "highlights.html",
+    "default_icon": "img/favicon-32x32.png",
+    "default_title": "Note App"
+  },
+  "icons": {
+    "192": "img/dashboard-android-chrome-192x192.png"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup.html",
+        "lib/*",
+        "lib/chart.js",
+        "img/data-preview-arrow.png"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://api.groq.com/ https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://people.googleapis.com"
+  }
+}

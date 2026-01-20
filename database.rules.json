@@ -1,0 +1,344 @@
+
+{
+  "rules": {
+    "WhitelistedUsers": {
+      ".read": "auth.uid != null"
+    },
+    "UserRequests": {
+      "$requestId": {
+        ".read": "auth.uid != null",
+        ".write": "auth.uid != null && (!data.exists() || (newData.child('email').exists() && ((auth.token.email != null && auth.token.email.replace('.', ',') == newData.child('email').val().replace('.', ',')) || (auth.token.phone_number != null && auth.token.phone_number == newData.child('email').val()))))"
+      }
+    },
+    "Notifications": {
+      "$userEmail": {
+        ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+        ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))"
+      }
+    },
+    "SharedContacts": {
+      ".read": "auth.uid != null",
+      ".write": "auth.uid != null"
+    },
+    "groq_api_key": {
+      ".read": "auth.uid != null"
+    },
+    "Companies": {
+      "$companyId": {
+        "topicGroupChats": {
+          "$topic": {
+            "$groupId": {
+              ".read": "auth.uid != null && auth.token.email != null && data.child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()",
+              ".write": "auth.uid != null && auth.token.email != null && (!data.exists() && newData.child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists())",
+              "lastMessage": {
+                ".read": "auth.uid != null && auth.token.email != null && data.parent().child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()",
+                ".write": "auth.uid != null && auth.token.email != null && data.parent().child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()"
+              },
+              "updatedAt": {
+                ".read": "auth.uid != null && auth.token.email != null && data.parent().child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()",
+                ".write": "auth.uid != null && auth.token.email != null && data.parent().child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()"
+              },
+              "$other": {
+                ".validate": "true"
+              }
+            }
+          }
+        },
+        "topicGroupChatMembership": {
+          "$topic": {
+            "$userKey": {
+              ".read": "auth.uid != null && auth.token.email != null && auth.token.email.replace('.', ',').toLowerCase() == $userKey",
+              ".write": "false"
+            }
+          }
+        },
+        "topicGroupChatMessages": {
+          "$topic": {
+            "$groupId": {
+              ".read": "auth.uid != null && auth.token.email != null && root.child('Companies').child($companyId).child('topicGroupChats').child($topic).child($groupId).child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()",
+              ".write": "auth.uid != null && auth.token.email != null && root.child('Companies').child($companyId).child('topicGroupChats').child($topic).child($groupId).child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()",
+              "$messageId": {
+                ".validate": "!newData.exists() || (newData.hasChildren(['text','email','name','timestamp']) && newData.child('email').val() != null && newData.child('text').val() != null)"
+              }
+            }
+          }
+        },
+        "topicGroupChatThreads": {
+          "$topic": {
+            "$groupId": {
+              ".read": "auth.uid != null && auth.token.email != null && root.child('Companies').child($companyId).child('topicGroupChats').child($topic).child($groupId).child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()",
+              ".write": "auth.uid != null && auth.token.email != null && root.child('Companies').child($companyId).child('topicGroupChats').child($topic).child($groupId).child('members').child(auth.token.email.replace('.', ',').toLowerCase()).exists()"
+            }
+          }
+        },
+        "securedProjects": {
+          "$projectId": {
+            "messages": {
+              "$messageTopic": {
+                "$messageType": {
+                  ".read": "auth.uid != null && ($messageType == 'everyone' || (auth.token.email != null && ($messageType.contains(auth.token.email.replace('.', ',') + '-') || $messageType.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($messageType.contains(auth.token.phone_number + '-') || $messageType.contains('-' + auth.token.phone_number)))) && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email != null ? auth.token.email.replace('.', ',') : auth.token.phone_number).exists()",
+                  ".write": "auth.uid != null && ((auth.token.email != null && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+                  "$messageId": {
+                    ".validate": "!newData.exists() || (newData.hasChildren(['text', 'email', 'name', 'timestamp']) && newData.child('email').val() != null && newData.child('text').val() != null)"
+                  }
+                }
+              }
+            },
+            "messageThreads": {
+              "$messageTopic": {
+                "$messageType": {
+                  ".read": "auth.uid != null && ($messageType == 'everyone' || (auth.token.email != null && ($messageType.contains(auth.token.email.replace('.', ',') + '-') || $messageType.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($messageType.contains(auth.token.phone_number + '-') || $messageType.contains('-' + auth.token.phone_number)))) && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email != null ? auth.token.email.replace('.', ',') : auth.token.phone_number).exists()",
+                  ".write": "auth.uid != null && ((auth.token.email != null && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+                  "$threadId": {
+                    ".validate": "!newData.exists() || (newData.hasChildren(['parentMessageId', 'createdAt']) && newData.child('parentMessageId').val() != null)"
+                  }
+                }
+              }
+            },
+            "documents": {
+              "$documentTopic": {
+                "$emailPair": {
+                  ".read": "auth.uid != null && ($emailPair.contains((auth.token.email != null ? auth.token.email.replace('.', ',') : '')) || (auth.token.phone_number != null && $emailPair.contains(auth.token.phone_number)) || $emailPair == 'everyone')",
+                  ".write": "auth.uid != null && ($emailPair.contains((auth.token.email != null ? auth.token.email.replace('.', ',') : '')) || (auth.token.phone_number != null && $emailPair.contains(auth.token.phone_number)) || $emailPair == 'everyone')"
+                }
+              }
+            },
+            "drafts": {
+              "$draftTopic": {
+                "$emailPair": {
+                  "main": {
+                    "$userEmail": {
+                      ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail)) && ($emailPair.contains((auth.token.email != null ? auth.token.email.replace('.', ',') : '')) || (auth.token.phone_number != null && $emailPair.contains(auth.token.phone_number)) || $emailPair == 'everyone')",
+                      ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail)) && ($emailPair.contains((auth.token.email != null ? auth.token.email.replace('.', ',') : '')) || (auth.token.phone_number != null && $emailPair.contains(auth.token.phone_number)) || $emailPair == 'everyone')"
+                    }
+                  },
+                  "thread": {
+                    "$threadId": {
+                      "$userEmail": {
+                        ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail)) && ($emailPair.contains((auth.token.email != null ? auth.token.email.replace('.', ',') : '')) || (auth.token.phone_number != null && $emailPair.contains(auth.token.phone_number)) || $emailPair == 'everyone')",
+                        ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail)) && ($emailPair.contains((auth.token.email != null ? auth.token.email.replace('.', ',') : '')) || (auth.token.phone_number != null && $emailPair.contains(auth.token.phone_number)) || $emailPair == 'everyone')"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "hiddencontacts": {
+          ".read": "true",
+          ".write": "auth.uid != null"
+        },
+        "projects": {
+          ".read": "auth.uid != null && ((auth.token.email != null && root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId) || (auth.token.phone_number != null && root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId))",
+          ".write": "auth.uid != null && ((auth.token.email != null && root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId) || (auth.token.phone_number != null && root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId))",
+          "$projectId": {
+            "members": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "false",
+              "$userEmail": {
+                ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+                ".write": "auth.uid != null && ((auth.token.email != null && (auth.token.email.replace('.', ',') == $userEmail || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('share').val() == true))) || (auth.token.phone_number != null && (auth.token.phone_number == $userEmail || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('permissions').child('share').val() == true))))"
+              }
+            },
+            "defaultHighlightColor": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('role').val() != 'viewer'))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('role').val() != 'viewer'))))"
+            },
+            "defaultPriority": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('role').val() != 'viewer'))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('role').val() != 'viewer'))))"
+            },
+            "groqChats": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('role').val() != 'viewer'))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('role').val() != 'viewer'))))"
+            },
+            "privateChats": {
+              "$userEmail": {
+                ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+                ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+                "$chatId": {
+                  ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+                  ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))"
+                }
+              }
+            },
+            "highlights": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('createHighlights').val() == true || root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('createAnnotations').val() == true || root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('deleteAnnotations').val() == true || !root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('permissions').exists())))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('permissions').child('createHighlights').val() == true || root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('permissions').child('createAnnotations').val() == true || root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('permissions').child('deleteAnnotations').val() == true || !root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('permissions').exists())))))"
+            },
+            "annotationHistory": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('createAnnotations').val() == true))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('permissions').child('createAnnotations').val() == true))))"
+            },
+            "categoriesImages": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))"
+            },
+            "customLabelsAndCodes": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).child('role').val() != 'viewer'))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId || (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).child('role').val() != 'viewer'))))"
+            },
+            "manualLoggingCategories": {
+              ".read": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))",
+              ".write": "auth.uid != null && ((auth.token.email != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists() || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $companyId)) || (auth.token.phone_number != null && (root.child('Companies').child($companyId).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists() || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $companyId)))"
+            }
+          }
+        },
+        "users": {
+          ".read": "auth.uid != null",
+          ".write": "auth.uid != null"
+        }
+      }
+    },
+    "emailToCompanyDirectory": {
+      ".read": "auth.uid != null",
+      "$email": {
+        ".read": "auth.uid != null",
+        ".write": "auth.uid != null && auth.token.email != null && auth.token.email.replace('.', ',') == $email"
+      }
+    },
+    "phoneToCompanyDirectory": {
+      ".read": "auth.uid != null",
+      "$phone": {
+        ".read": "auth.uid != null",
+        ".write": "auth.uid != null && auth.token.phone_number != null && auth.token.phone_number == $phone"
+      }
+    },
+    "inviteCodes": {
+      "$code": {
+      ".read": "auth.uid != null",
+        ".write": "auth.uid != null && (!data.exists() ? (newData.child('createdBy').val() == auth.token.email || (auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == newData.child('companyEmail').val() || (root.child('Companies').child(newData.child('companyEmail').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child(newData.child('companyEmail').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('share').val() == true))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == newData.child('companyEmail').val() || (root.child('Companies').child(newData.child('companyEmail').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child(newData.child('companyEmail').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.phone_number).child('permissions').child('share').val() == true)))) : (!newData.exists() ? true : (data.child('createdBy').val() == auth.token.email || (auth.token.email != null && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == data.child('companyEmail').val() || (root.child('Companies').child(data.child('companyEmail').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child(data.child('companyEmail').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('share').val() == true))) || (auth.token.phone_number != null && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == data.child('companyEmail').val() || (root.child('Companies').child(data.child('companyEmail').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child(data.child('companyEmail').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.phone_number).child('permissions').child('share').val() == true))))))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['type', 'projectId', 'companyEmail', 'createdBy', 'createdAt']) && newData.child('type').val() == 'project' && (!newData.child('expiresAt').exists() || (newData.child('expiresAt').isString() && newData.child('expiresAt').val().length > 0) || newData.child('expiresAt').isNumber()))"
+      }
+    },
+    "emailToSharedProjects": {
+      "$userEmail": {
+        ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+        "$company": {
+          "$project": {
+            ".write": "auth.uid != null && ((auth.token.email != null && (auth.token.email.replace('.', ',') == $userEmail || root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == $company || (root.child('Companies').child($company).child('projects').child($project).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child($company).child('projects').child($project).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('share').val() == true))) || (auth.token.phone_number != null && (auth.token.phone_number == $userEmail || root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == $company || (root.child('Companies').child($company).child('projects').child($project).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child($company).child('projects').child($project).child('members').child(auth.token.phone_number).child('permissions').child('share').val() == true))))"
+          }
+        }
+      }
+    },
+    "sharedChats": {
+      "$firstLevel": {
+      ".read": "auth.uid != null",
+        ".write": "auth.uid != null",
+        "$secondLevel": {
+          ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $firstLevel) || (auth.token.phone_number != null && auth.token.phone_number == $firstLevel))",
+          ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $firstLevel) || (auth.token.phone_number != null && auth.token.phone_number == $firstLevel))"
+        }
+      }
+    },
+    "Users": {
+      "$userEmail": {
+        "uiState": {
+          ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+          ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))"
+        }
+      }
+    },
+     "pendingInvites": {
+       "$invitedEmailPath": {
+         ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $invitedEmailPath) || (auth.token.phone_number != null && auth.token.phone_number == $invitedEmailPath))",
+         "$inviteToken": {
+           ".write": "auth.uid != null && ((auth.token.email != null && (auth.token.email.replace('.', ',') == $invitedEmailPath || (!data.exists() && newData.child('ownerCompany').exists() && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == newData.child('ownerCompany').val() || (root.child('Companies').child(newData.child('ownerCompany').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child(newData.child('ownerCompany').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('share').val() == true))) || (data.exists() && data.child('ownerCompany').exists() && (root.child('emailToCompanyDirectory').child(auth.token.email.replace('.', ',')).val() == data.child('ownerCompany').val() || (root.child('Companies').child(data.child('ownerCompany').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).exists() && root.child('Companies').child(data.child('ownerCompany').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.email.replace('.', ',')).child('permissions').child('share').val() == true))))) || (auth.token.phone_number != null && (auth.token.phone_number == $invitedEmailPath || (!data.exists() && newData.child('ownerCompany').exists() && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == newData.child('ownerCompany').val() || (root.child('Companies').child(newData.child('ownerCompany').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child(newData.child('ownerCompany').val()).child('projects').child(newData.child('projectId').val()).child('members').child(auth.token.phone_number).child('permissions').child('share').val() == true))) || (data.exists() && data.child('ownerCompany').exists() && (root.child('phoneToCompanyDirectory').child(auth.token.phone_number).val() == data.child('ownerCompany').val() || (root.child('Companies').child(data.child('ownerCompany').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.phone_number).exists() && root.child('Companies').child(data.child('ownerCompany').val()).child('projects').child(data.child('projectId').val()).child('members').child(auth.token.phone_number).child('permissions').child('share').val() == true))))))",
+           ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $invitedEmailPath) || (auth.token.phone_number != null && auth.token.phone_number == $invitedEmailPath))"
+         }
+       }
+     },
+    "presence": {
+      "$userEmail": {
+        ".read": "auth.uid != null",
+        "sessions": {
+          ".read": "auth.uid != null",
+          "$sessionId": {
+            ".read": "auth.uid != null",
+            ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+            ".validate": "newData.hasChildren(['sessionId', 'userId', 'userEmail', 'connectedAt', 'lastHeartbeatAt', 'lastActiveAt']) && ((auth.token.email != null && newData.child('userEmail').val() == auth.token.email) || (auth.token.phone_number != null && newData.child('userEmail').val() == auth.token.phone_number))"
+          }
+        },
+        "canonical": {
+          ".read": "auth.uid != null",
+          ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+          ".validate": "newData.hasChildren(['status', 'lastSeenAt', 'updatedAt']) && (newData.child('status').val() == 'active' || newData.child('status').val() == 'idle' || newData.child('status').val() == 'offline')"
+        }
+      }
+    },
+    "typing": {
+      "$conversationId": {
+        ".read": "auth.uid != null",
+        "$userId": {
+          ".read": "auth.uid != null",
+          ".write": "auth.uid != null && auth.uid == $userId",
+          ".validate": "!newData.exists() || (newData.hasChildren(['t']) && newData.child('t').exists() && newData.child('t').val() >= 0 && (!newData.child('email').exists() || newData.child('email').val().length > 0))"
+        }
+      }
+    },
+    "privateMessages": {
+      "$emailPair": {
+        ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number))))",
+        "$ownerCompany": {
+          ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number))))",
+          "$projectId": {
+            ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+            "$topic": {
+              ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+              "$messageId": {
+                ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+                ".write": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists())) && (!newData.exists() ? (data.exists() && data.child('email').val() != null && ((auth.token.email != null && data.child('email').val() == auth.token.email) || (auth.token.phone_number != null && data.child('email').val() == auth.token.phone_number))) : (newData.hasChildren(['text', 'email', 'name', 'timestamp']) && newData.child('email').val() != null && newData.child('text').val() != null && ((auth.token.email != null && newData.child('email').val() == auth.token.email) || (auth.token.phone_number != null && newData.child('email').val() == auth.token.phone_number)) && (!data.exists() || (data.exists() && data.child('email').val() != null && ((auth.token.email != null && data.child('email').val() == auth.token.email) || (auth.token.phone_number != null && data.child('email').val() == auth.token.phone_number))))))"
+              }
+            }
+          }
+        }
+      }
+    },
+    "privateMessageThreads": {
+      "$emailPair": {
+        ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number))))",
+        "$ownerCompany": {
+          ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number))))",
+          "$projectId": {
+            ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+            "$topic": {
+              ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+              "$threadId": {
+                ".read": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+                ".write": "auth.uid != null && ((auth.token.email != null && ($emailPair.contains(auth.token.email.replace('.', ',') + '-') || $emailPair.contains('-' + auth.token.email.replace('.', ',')))) || (auth.token.phone_number != null && ($emailPair.contains(auth.token.phone_number + '-') || $emailPair.contains('-' + auth.token.phone_number)))) && ((auth.token.email != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.email.replace('.', ',')).exists()) || (auth.token.phone_number != null && root.child('Companies').child($ownerCompany).child('projects').child($projectId).child('members').child(auth.token.phone_number).exists()))",
+                ".validate": "!newData.exists() || (newData.hasChildren(['parentMessageId', 'createdAt']) && newData.child('parentMessageId').val() != null)"
+              }
+            }
+          }
+        }
+      }
+    },
+    "activeMessagingContext": {
+      "$userEmail": {
+        ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+        ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))"
+      }
+    },
+    "userChatState": {
+      "$userEmail": {
+        ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+        ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+        "$chatId": {
+          ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+          ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+          ".validate": true
+        }
+      }
+    },
+    "scheduledMessages": {
+      ".read": "auth.uid != null && auth.token.email != null && query.orderByChild == 'createdByEmail' && query.equalTo == auth.token.email",
+      "$scheduledId": {
+        ".read": "auth.uid != null && (data.child('createdByEmail').val() == auth.token.email || auth.token.email == 'phraze.dev@gmail.com')",
+        ".write": "auth.uid != null && auth.token.email != null && ((!data.exists() && newData.exists() && newData.child('createdByEmail').val() == auth.token.email) || (data.exists() && data.child('createdByEmail').val() == auth.token.email) || auth.token.email == 'phraze.dev@gmail.com')",
+        ".validate": "!newData.exists() || (newData.hasChildren(['text', 'email', 'name', 'scheduledAt', 'createdByEmail', 'projectId', 'topic', 'emailPair']) && newData.child('scheduledAt').isNumber() && newData.child('createdByEmail').val() == auth.token.email)"
+      },
+      ".indexOn": ["scheduledAt", "createdByEmail"]
+    }
+  }
+}

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Debug Test</h1>
+        <p>This page will help diagnose why the chat functionality is not working.</p>
+        
+        <h2>Test Results</h2>
+        <div id="authStatus" class="status">Checking authentication status...</div>
+        <div id="firebaseStatus" class="status">Checking Firebase connection...</div>
+        <div id="messagingStatus" class="status">Checking messaging functionality...</div>
+        
+        <h2>Actions</h2>
+        <button onclick="testAuth()">Test Authentication</button>
+        <button onclick="testFirebase()">Test Firebase</button>
+        <button onclick="testMessaging()">Test Messaging</button>
+        <button onclick="clearLog()">Clear Log</button>
+        
+        <h2>Debug Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script type="module">
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Test authentication
+        window.testAuth = async function() {
+            log('Testing authentication...');
+            try {
+                // Check if AuthGate exists
+                if (typeof window.authGate === 'undefined') {
+                    updateStatus('authStatus', 'AuthGate not found - authentication system not loaded', 'error');
+                    log('ERROR: window.authGate is undefined');
+                    return;
+                }
+
+                // Initialize AuthGate
+                await window.authGate.initialize();
+                const isAuth = window.authGate.isAuthenticated();
+                
+                if (isAuth) {
+                    updateStatus('authStatus', 'User is authenticated ✓', 'success');
+                    log('SUCCESS: User is authenticated');
+                } else {
+                    updateStatus('authStatus', 'User is not authenticated', 'warning');
+                    log('WARNING: User is not authenticated');
+                }
+            } catch (error) {
+                updateStatus('authStatus', `Authentication error: ${error.message}`, 'error');
+                log(`ERROR: Authentication test failed - ${error.message}`);
+                console.error('Auth test error:', error);
+            }
+        };
+
+        // Test Firebase connection
+        window.testFirebase = function() {
+            log('Testing Firebase connection...');
+            try {
+                // Check if Firebase is loaded
+                if (typeof firebase === 'undefined') {
+                    updateStatus('firebaseStatus', 'Firebase not loaded', 'error');
+                    log('ERROR: Firebase is not loaded');
+                    return;
+                }
+
+                // Check if Firebase is initialized
+                const app = firebase.app();
+                if (app) {
+                    updateStatus('firebaseStatus', 'Firebase is initialized ✓', 'success');
+                    log('SUCCESS: Firebase is initialized');
+                    
+                    // Test database connection
+                    const db = firebase.database();
+                    db.ref('.info/connected').on('value', function(snapshot) {
+                        if (snapshot.val() === true) {
+                            log('SUCCESS: Firebase database is connected');
+                        } else {
+                            log('WARNING: Firebase database is not connected');
+                        }
+                    });
+                } else {
+                    updateStatus('firebaseStatus', 'Firebase not initialized', 'error');
+                    log('ERROR: Firebase is not initialized');
+                }
+            } catch (error) {
+                updateStatus('firebaseStatus', `Firebase error: ${error.message}`, 'error');
+                log(`ERROR: Firebase test failed - ${error.message}`);
+                console.error('Firebase test error:', error);
+            }
+        };
+
+        // Test messaging functionality
+        window.testMessaging = async function() {
+            log('Testing messaging functionality...');
+            try {
+                // Check if messaging elements exist
+                const messagesList = document.getElementById('messages-list');
+                const newMessageInput = document.getElementById('new-message');
+                const addMessageButton = document.getElementById('add-message');
+                
+                if (!messagesList && !newMessageInput && !addMessageButton) {
+                    updateStatus('messagingStatus', 'Messaging elements not found on this page', 'warning');
+                    log('WARNING: This debug page does not contain messaging elements');
+                    log('INFO: Check the main popup.html for messaging elements');
+                    return;
+                }
+
+                // Check if messaging.js functions are available
+                if (typeof loadContactsPanel === 'undefined') {
+                    updateStatus('messagingStatus', 'Messaging functions not loaded', 'error');
+                    log('ERROR: Messaging functions are not available');
+                    return;
+                }
+
+                updateStatus('messagingStatus', 'Messaging system appears to be loaded ✓', 'success');
+                log('SUCCESS: Messaging system is loaded');
+                
+            } catch (error) {
+                updateStatus('messagingStatus', `Messaging error: ${error.message}`, 'error');
+                log(`ERROR: Messaging test failed - ${error.message}`);
+                console.error('Messaging test error:', error);
+            }
+        };
+
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+        };
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Chat Debug Test initialized');
+            log('Loading required scripts...');
+            
+            // Load required scripts
+            const scripts = [
+                './firebase/firebase-app.js',
+                './firebase/firebase-auth.js', 
+                './firebase/firebase-database.js',
+                './firebase-init.js',
+                './partials/auth.js'
+            ];
+            
+            let loadedScripts = 0;
+            scripts.forEach(src => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = function() {
+                    loadedScripts++;
+                    log(`Loaded: ${src}`);
+                    if (loadedScripts === scripts.length) {
+                        log('All scripts loaded, running tests...');
+                        setTimeout(() => {
+                            testAuth();
+                            testFirebase();
+                            testMessaging();
+                        }, 1000);
+                    }
+                };
+                script.onerror = function() {
+                    log(`ERROR: Failed to load ${src}`);
+                };
+                document.head.appendChild(script);
+            });
+        });
+    </script>
+</body>
+</html>

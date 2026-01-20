@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phraze</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              serif: ['Times New Roman', 'Times', 'serif'],
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              teal: {
+                600: '#548C98', // Custom teal from image
+                700: '#40707A',
+              },
+              slate: {
+                850: '#1a1f2e', // Dark text color
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #fcfcfc;
+      }
+      .grid-lines {
+        background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px),
+                          linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
+        background-size: 100% 100%; 
+        /* The design shows specific large borders rather than a repeating small grid, 
+           so we will implement borders on the main container instead of a background pattern */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

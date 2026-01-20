@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<body>
+    <div style="width: 100px;">
+        <p><mark id="mark">Text goes hereText goes here Text goes here </mark>Text goes here Text goes here Text goes
+            here Text goes here</p>
+    </div>
+</body>
+
+<script>
+    var originalMark = document.getElementById("mark");
+    var textNode = originalMark.childNodes[0];
+    var textContent = textNode.textContent;
+    var newRanges = [];
+    var range = document.createRange();
+    var rangeStart = 0;
+    for (let i = 0; i < textContent.length; ++i) {
+        range.setStart(textNode, 0);
+        range.setEnd(textNode, (i + 1));
+        var lineIndex = (range.getClientRects().length - 1);
+        if (newRanges.length == lineIndex) {
+            newRanges.push([rangeStart, i]);
+            rangeStart = i;
+        }
+    }
+    newRanges.splice(0, 1);
+
+    if (rangeStart < textContent.length) {
+        newRanges.push([rangeStart, textContent.length]);
+    }
+
+    console.log(newRanges);
+
+    // --- New code to split the mark element ---
+    // Remove the original mark
+    
+    var parent = originalMark.parentNode;
+    // Insert new marks before removing the original
+    newRanges.forEach(function (range) {
+        var mark = document.createElement('mark');
+        mark.textContent = textContent.slice(range[0], range[1]);
+        parent.insertBefore(mark, originalMark);
+    });
+    parent.removeChild(originalMark);
+</script>

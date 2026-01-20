@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Screenshot Categories</title>
+    <style>
+        body {
+            width: 400px;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .new-category-section, .existing-category-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input, select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            flex-grow: 1;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        label {
+            margin-bottom: 5px;
+        }
+
+        .divider {
+            margin: 20px 0;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="new-category-section">
+            <input type="text" id="screenshot_new_categories" placeholder="Add new category">
+            <button id="screenshot_add_new">Add New +</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="existing-category-section">
+            <div style="width: 100%;">
+                <label for="screenshot_existing_categories">Choose existing category:</label>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <select name="categories" id="screenshot_existing_categories"></select>
+                    <button id="screenshot_use_existing">Use Existing</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="screenshot.js"></script>
+</body>
+</html> 
