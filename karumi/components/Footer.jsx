@@ -7,12 +7,13 @@ export default function Footer(
     backgroundImageSrc = '/flower.jpg',
     headlineLine1 = 'Accelerate your growth',
     headlineLine2 = 'with a live demo.',
+    showTypography = false,
   } = {}
 ) {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full bg-white relative overflow-hidden border-t border-gray-50">
+    <div className="w-full bg-[#FFFEFC] relative overflow-hidden border-t border-gray-50">
       <div className="relative overflow-hidden pt-32 pb-48">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div
@@ -50,12 +51,12 @@ export default function Footer(
 
           <div
             className="absolute top-0 left-0 w-full h-[80px]"
-            style={{ background: 'linear-gradient(to bottom, #ffffff 0%, rgba(255,255,255,0) 80%)' }}
+            style={{ background: 'linear-gradient(to bottom, #FFFEFC 0%, rgba(255,255,255,0) 80%)' }}
           />
 
           <div
             className="absolute bottom-0 left-0 w-full h-[340px]"
-            style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, #ffffff 100%)' }}
+            style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, #FFFEFC 100%)' }}
           />
         </div>
 
@@ -75,7 +76,38 @@ export default function Footer(
       </div>
 
       <div className="max-w-[1400px] mx-auto px-6 relative z-10 mt-24 pb-24">
-        <div className="flex justify-center border-t border-gray-100 pt-16">
+        {showTypography && (
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 -translate-x-1/2 bottom-12 w-[120vw] text-center select-none pointer-events-none"
+            style={{
+              fontFamily: 'Times New Roman, Times, serif',
+              fontSize: 'clamp(84px, 16vw, 280px)',
+              fontWeight: 700,
+              letterSpacing: '-0.06em',
+              lineHeight: 0.9,
+              opacity: 0.2,
+              backgroundImage:
+                'linear-gradient(180deg, rgba(31,41,55,0.12) 0%, rgba(31,41,55,0.28) 55%, rgba(31,41,55,0.12) 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
+              WebkitTextFillColor: 'transparent',
+              maskImage: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 100%)',
+              WebkitMaskImage:
+                'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 100%)',
+            }}
+          >
+            PHRAZE
+          </div>
+        )}
+
+        {showTypography && (
+          <p className="absolute left-1/2 -translate-x-1/2 bottom-4 text-xs text-slate-400 font-medium text-center w-full px-6">
+            © 2024 Phraze AI Inc. All rights reserved.
+          </p>
+        )}
+        <div className="flex justify-center border-t border-gray-100 pt-8">
           <div className="flex flex-wrap justify-center gap-16 lg:gap-32">
             <div className="flex flex-col gap-4 text-center md:text-left">
               <h4 className="font-bold text-slate-900 text-sm">Company</h4>
@@ -128,7 +160,9 @@ export default function Footer(
         </div>
 
         <div className="mt-16 pt-8 border-t border-gray-50 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-medium pb-8">
-          <p>© 2024 Phraze AI Inc. All rights reserved.</p>
+          <p style={{ visibility: showTypography ? 'hidden' : 'visible' }}>
+            © 2024 Phraze AI Inc. All rights reserved.
+          </p>
         </div>
       </div>
     </div>

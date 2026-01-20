@@ -37,7 +37,7 @@ export default function About() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#FFFCF6]">
+      <div className="min-h-screen bg-[#FFFDFA]">
         <div className="relative overflow-hidden">
           <div className="max-w-6xl mx-auto px-6 pt-24 pb-24 relative">
             <div className="max-w-3xl">
