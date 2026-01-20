@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FaGlobe, FaLinkedin } from 'react-icons/fa';
 import Footer from '../../karumi/components/Footer.jsx';
 
 export default function About() {
@@ -117,6 +118,47 @@ export default function About() {
                       <div className="min-w-0">
                         <h2 className="text-xl font-serif font-bold text-slate-900 truncate">{person.name}</h2>
                         <p className="mt-1 text-sm text-slate-500 font-medium leading-relaxed">{person.title}</p>
+
+                        <div className="mt-4 flex items-center gap-3 text-cyan-700">
+                          {person.name === 'Dr. Umair Rehman' && (
+                            <a
+                              href="https://thehccg.com/"
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              aria-label="HCCG Lab Website"
+                              title="HCCG Lab Website"
+                              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/70 border border-gray-100 hover:text-cyan-900 hover:bg-white transition-colors"
+                            >
+                              <FaGlobe size={16} />
+                            </a>
+                          )}
+
+                          {person.name === 'Dr. Umair Rehman' && (
+                            <a
+                              href="https://www.linkedin.com/in/umair-rehman-phd-42aa2854/"
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              aria-label="Umair Rehman LinkedIn"
+                              title="Umair Rehman LinkedIn"
+                              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/70 border border-gray-100 hover:text-cyan-900 hover:bg-white transition-colors"
+                            >
+                              <FaLinkedin size={16} />
+                            </a>
+                          )}
+
+                          {person.name === 'Het Patel' && (
+                            <a
+                              href="https://www.linkedin.com/in/hetp04/"
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              aria-label="Het Patel LinkedIn"
+                              title="Het Patel LinkedIn"
+                              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/70 border border-gray-100 hover:text-cyan-900 hover:bg-white transition-colors"
+                            >
+                              <FaLinkedin size={16} />
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
 
