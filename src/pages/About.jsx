@@ -20,7 +20,7 @@ export default function About() {
       name: 'Het Patel',
       title: 'Founder · Founding Engineer · Honours Computer Science Student · Western University',
       initials: 'HP',
-      imageSrc: '/het.png',
+      imageSrc: '/het.jpeg',
       bioParts: [
         "Het Patel is the founder and founding engineer of Phraze, and the lead software engineer behind the platform. He designed and built the core product experience end-to-end.",
         "Phraze started as a scrappy Chrome extension idea. After a year of shipping iterations, talking to users, and rebuilding the workflow again and again, the pattern became obvious: the hardest part wasn’t generating answers, it was keeping track of decisions, context, and the reasoning that led there. That’s when it made sense to transition from a small add-on into a single, unified platform. One place where conversations, annotations, and collaboration could live together without the workflow falling apart.",
