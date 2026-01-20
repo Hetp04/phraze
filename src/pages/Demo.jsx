@@ -97,7 +97,21 @@ export default function Demo() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ position: 'relative' }}>
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url(/newflo.jpg)',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          backgroundColor: '#ffffff',
+          filter: 'grayscale(0.5)',
+          zIndex: -1,
+        }}
+      />
       <div className="max-w-5xl mx-auto px-6 py-16">
         {isEmbedReady && (
           <button
@@ -110,15 +124,17 @@ export default function Demo() {
             Back
           </button>
         )}
-        <div
-          id="cal-embed"
-          className="w-full"
-          style={{
-            minHeight: '900px',
-            opacity: isEmbedReady ? 1 : 0,
-            transition: 'opacity 220ms ease',
-          }}
-        />
+        <div className="w-full" style={{ position: 'relative', overflow: 'hidden' }}>
+          <div
+            id="cal-embed"
+            className="w-full"
+            style={{
+              minHeight: '900px',
+              opacity: isEmbedReady ? 1 : 0,
+              transition: 'opacity 220ms ease',
+            }}
+          />
+        </div>
       </div>
     </div>
   );
