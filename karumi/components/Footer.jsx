@@ -82,13 +82,13 @@ export default function Footer(
             className="absolute left-1/2 -translate-x-1/2 bottom-12 w-[120vw] text-center select-none pointer-events-none"
             style={{
               fontFamily: 'Times New Roman, Times, serif',
-              fontSize: 'clamp(84px, 16vw, 280px)',
+              fontSize: 'clamp(100px, 18vw, 320px)',
               fontWeight: 700,
               letterSpacing: '-0.06em',
               lineHeight: 0.9,
-              opacity: 0.2,
+              opacity: 0.45,
               backgroundImage:
-                'linear-gradient(180deg, rgba(31,41,55,0.12) 0%, rgba(31,41,55,0.28) 55%, rgba(31,41,55,0.12) 100%)',
+                'linear-gradient(180deg, rgba(34,211,238,0.35) 0%, rgba(34,211,238,0.45) 55%, rgba(34,211,238,0.25) 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               color: 'transparent',
