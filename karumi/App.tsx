@@ -183,7 +183,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
 
           <Platforms />
           <Demonstration />
-          <Footer showTypography={true} />
+          <Footer showTypography={true} showStencil={true} />
         </main>
       </div>
     </div>

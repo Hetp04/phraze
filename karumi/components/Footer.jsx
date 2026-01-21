@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import phrazeLogo from '../../extension/reallogo.png';
 
 export default function Footer(
   {
@@ -8,12 +9,29 @@ export default function Footer(
     headlineLine1 = 'Accelerate your growth',
     headlineLine2 = 'with a live demo.',
     showTypography = false,
+    showStencil = false,
   } = {}
 ) {
   const navigate = useNavigate();
 
   return (
     <div className="w-full bg-[#FFFEFC] relative overflow-hidden border-t border-gray-50">
+      {showStencil && (
+        <div className="absolute left-0 bottom-0 w-[240px] h-[220px] overflow-hidden pointer-events-none z-20">
+          <img
+            src="/stencil.png"
+            alt=""
+            className="absolute left-0 bottom-0 w-[720px] h-auto max-w-none opacity-25"
+            style={{ objectFit: 'cover', objectPosition: 'left bottom' }}
+            aria-hidden="true"
+          />
+          <div
+            className="absolute top-0 left-0 w-full h-[80px]"
+            style={{ background: 'linear-gradient(to bottom, #FFFDFA 0%, rgba(255,253,250,0) 100%)' }}
+            aria-hidden="true"
+          />
+        </div>
+      )}
       <div className="relative overflow-hidden pt-32 pb-48">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div
@@ -75,18 +93,18 @@ export default function Footer(
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-6 relative z-10 mt-24 pb-24">
+      <div className="max-w-[1400px] mx-auto px-6 relative z-10 mt-24 pb-44">
         {showTypography && (
           <div
             aria-hidden="true"
-            className="absolute left-1/2 -translate-x-1/2 bottom-12 w-[120vw] text-center select-none pointer-events-none"
+            className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[120vw] text-center select-none pointer-events-none"
             style={{
               fontFamily: 'Times New Roman, Times, serif',
               fontSize: 'clamp(100px, 18vw, 320px)',
               fontWeight: 700,
               letterSpacing: '-0.06em',
               lineHeight: 0.9,
-              opacity: 0.45,
+              opacity: 0.52,
               backgroundImage:
                 'linear-gradient(180deg, rgba(34,211,238,0.35) 0%, rgba(34,211,238,0.45) 55%, rgba(34,211,238,0.25) 100%)',
               backgroundClip: 'text',
@@ -102,13 +120,44 @@ export default function Footer(
           </div>
         )}
 
-        {showTypography && (
-          <p className="absolute left-1/2 -translate-x-1/2 bottom-4 text-xs text-slate-400 font-medium text-center w-full px-6">
-            © 2024 Phraze AI Inc. All rights reserved.
-          </p>
-        )}
-        <div className="flex justify-center border-t border-gray-100 pt-8">
-          <div className="flex flex-wrap justify-center gap-16 lg:gap-32">
+        <div className="w-full max-w-[1150px] mx-auto flex flex-col md:flex-row md:items-start md:justify-between border-t border-gray-100 pt-8 gap-10">
+          <div className="flex flex-col gap-4 text-center md:text-left md:-mt-6">
+            <div className="flex items-center justify-center md:justify-start -mb-2 md:-ml-4 md:-mt-2">
+              <img src={phrazeLogo} alt="Phraze" className="h-[80px] w-auto object-contain" />
+            </div>
+            <p className="text-sm text-slate-400 font-medium -mt-6">
+              © 2024 Phraze AI Inc.
+            </p>
+            <p className="text-sm text-slate-500 font-medium leading-relaxed -mt-4">
+              Collaborative AI workspace.
+            </p>
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <a
+                href="https://www.producthunt.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="Product Hunt"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12.001 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624C13.666 10.618 15.027 12 18.001 12c3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C16.337 6.182 14.976 4.8 12.001 4.8zm-6 7.2c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624 1.177 1.194 2.538 2.576 5.512 2.576 3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C10.337 13.382 8.976 12 6.001 12z" />
+                </svg>
+              </a>
+              <a
+                href="https://www.linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="LinkedIn"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center md:justify-end gap-16 lg:gap-32">
             <div className="flex flex-col gap-4 text-center md:text-left">
               <h4 className="font-bold text-slate-900 text-sm">Company</h4>
               <ul className="space-y-3 text-sm text-slate-500 font-medium">

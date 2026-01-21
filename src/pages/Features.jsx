@@ -5795,6 +5795,7 @@ export default function Features() {
         backgroundImageSrc="/pedals.jpg"
         headlineLine1="Get the full walkthrough"
         headlineLine2="in a live demo."
+        showTypography={true}
       />
     </main>
   );

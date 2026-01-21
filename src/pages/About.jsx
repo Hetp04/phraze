@@ -197,6 +197,7 @@ export default function About() {
         backgroundImageSrc="/secondflower.jpg"
         headlineLine1="See the story behind Phraze"
         headlineLine2="in a live demo."
+        showTypography={true}
       />
     </>
   );
