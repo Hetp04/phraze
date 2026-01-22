@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Highlighter, MessageSquare, Tag, Users } from 'lucide-react';
 
 const IconChevronDown = ({ className = '' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -64,11 +66,205 @@ const ToolItem = ({ icon: Icon, label, subLabel }) => (
   </div>
 );
 
+export const CollaboratorAvatars = () => {
+  return (
+    <div className="flex -space-x-2 overflow-hidden items-center justify-center p-1 bg-white rounded-full shadow-sm border border-gray-100">
+      <img
+        className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
+        src="https://picsum.photos/seed/user1/100/100"
+        alt="User 1"
+      />
+      <img
+        className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
+        src="https://picsum.photos/seed/user2/100/100"
+        alt="User 2"
+      />
+      <img
+        className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
+        src="https://picsum.photos/seed/user3/100/100"
+        alt="User 3"
+      />
+      <div className="h-6 w-6 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[10px] text-gray-500 font-medium">
+        +2
+      </div>
+    </div>
+  );
+};
+
+export const LiveCollaborationCard = () => {
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % 3);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const users = [
+    { id: 'P', label: 'highlight', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200', dot: 'bg-indigo-500', icon: Highlighter, avatarSrc: '/priya.png', position: { x: 18, y: 46 }, linePosition: { x: 18, y: 46 }, nodeOffset: { x: -10, y: -14 } },
+    { id: 'A', label: 'label', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', dot: 'bg-rose-500', icon: Tag, avatarSrc: '/alex.png', position: { x: 82, y: 46 }, linePosition: { x: 82, y: 46 }, nodeOffset: { x: 0, y: -14 } },
+    { id: 'M', label: 'comment', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: MessageSquare, avatarSrc: '/maya.png', position: { x: 50, y: 82 }, linePosition: { x: 50, y: 82 }, nodeOffset: { x: -16, y: 0 } },
+  ];
+
+  const centerPos = { x: 50, y: 40 };
+
+  return (
+    <div className="w-full h-full bg-white rounded-3xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden transition-all hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)]">
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-gray-50 rounded-lg border border-gray-100">
+              <Users className="w-3.5 h-3.5 text-gray-700" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-sm tracking-tight">Collaboration</h3>
+          </div>
+        </div>
+
+        <div className="flex items-center px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100 shadow-sm">
+          <div className="flex gap-2">
+            {users.map((u, i) => (
+              <div
+                key={u.id}
+                className={`w-5 h-5 rounded-full border-2 border-white overflow-hidden flex items-center justify-center ${u.bg} transition-all duration-500 ${activeStep === i ? 'opacity-100 scale-110 shadow-sm' : 'opacity-40 scale-100'}`}
+              >
+                <img src={u.avatarSrc} alt={u.id} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 relative mx-4 mb-6 bg-transparent rounded-2xl min-h-[160px]">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-0">
+          {users.map((user) => (
+            <line
+              key={user.id}
+              x1={`${(user.linePosition ?? user.position).x}%`}
+              y1={`${(user.linePosition ?? user.position).y}%`}
+              x2={`${centerPos.x}%`}
+              y2={`${centerPos.y}%`}
+              stroke="#cbd5e1"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeDasharray="4 6"
+            />
+          ))}
+        </svg>
+
+        {users.map((user, index) => {
+          const isActive = activeStep === index;
+          const particlePos = user.linePosition ?? user.position;
+          return (
+            isActive && (
+              <motion.div
+                key={`particle-${index}`}
+                className={`absolute w-2 h-2 rounded-full ${user.dot} z-10 shadow-sm`}
+                initial={{ left: `${particlePos.x}%`, top: `${particlePos.y}%`, opacity: 0 }}
+                animate={{
+                  left: [`${particlePos.x}%`, `${centerPos.x}%`],
+                  top: [`${particlePos.y}%`, `${centerPos.y}%`],
+                  opacity: [0, 1, 1, 0],
+                }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.2 }}
+                style={{ transform: 'translate(-50%, -50%)' }}
+              />
+            )
+          );
+        })}
+
+        <div
+          className="absolute z-20"
+          style={{ left: `${centerPos.x}%`, top: `${centerPos.y}%`, transform: 'translate(-50%, -50%)' }}
+        >
+          <motion.div
+            animate={activeStep !== null ? { scale: [1, 1.05, 1], boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' } : {}}
+            transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 2.1 }}
+            className="w-24 h-20 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col p-2.5 relative z-20"
+          >
+            <div className="flex flex-col gap-1.5 flex-1">
+              <div className="flex items-center gap-1.5 self-start">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" />
+                <div className="w-12 h-1.5 bg-gray-100 rounded-full" />
+              </div>
+
+              <div className="flex items-center gap-1.5 self-end flex-row-reverse">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-300 flex-shrink-0" />
+                <div className="w-10 h-1.5 bg-indigo-50 rounded-full" />
+              </div>
+
+              <div className="flex items-center gap-1.5 self-start">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" />
+                <div className="w-8 h-1.5 bg-gray-100 rounded-full" />
+              </div>
+            </div>
+
+            <div className="mt-auto w-full h-3 bg-gray-50 border border-gray-100 rounded-md flex items-center px-1">
+              <div className="w-8 h-1 bg-gray-200 rounded-full opacity-50" />
+            </div>
+
+            <div className="absolute -top-3 -right-3">
+              <CollaboratorAvatars />
+            </div>
+          </motion.div>
+        </div>
+
+        {users.map((user, index) => {
+          const isActive = activeStep === index;
+          const Icon = user.icon;
+          const nodeOffset = user.nodeOffset ?? { x: 0, y: 0 };
+
+          return (
+            <div
+              key={user.id}
+              className="absolute z-30"
+              style={{
+                left: `${user.position.x}%`,
+                top: `${user.position.y}%`,
+                transform: `translate(${nodeOffset.x}px, ${nodeOffset.y}px)`,
+              }}
+            >
+              <motion.div
+                className={`w-8 h-8 rounded-full border-2 bg-white flex items-center justify-center text-[10px] font-bold shadow-sm transition-colors duration-300 ${
+                  isActive ? `${user.border} ${user.color}` : 'border-gray-100 text-gray-300'
+                }`}
+                style={{ transform: 'translate(-50%, -50%)' }}
+                animate={{ scale: isActive ? 1.15 : 1 }}
+              >
+                <img
+                  src={user.avatarSrc}
+                  alt={user.id}
+                  className={`w-full h-full rounded-full object-cover ${isActive ? '' : 'opacity-50 grayscale'}`}
+                />
+              </motion.div>
+
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                    className={`absolute top-5 left-1/2 px-2.5 py-1 bg-white rounded-md shadow-lg border text-[9px] font-bold uppercase tracking-wide flex items-center gap-1 whitespace-nowrap z-40 ${user.color} ${user.border}`}
+                    style={{ transform: 'translateX(-50%)' }}
+                  >
+                    <Icon className="w-2.5 h-2.5" />
+                    {user.label}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const AnalyticsVisual = () => (
   <div className="w-full h-full flex items-center justify-center p-0 relative">
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-gradient-to-br from-teal-50/40 to-indigo-50/40 rounded-full blur-3xl -z-10" />
 
-    <div className="bg-white w-full max-w-[340px] rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 p-6 relative z-10">
+    <div className="bg-white w-full max-w-[340px] rounded-2xl border border-gray-100 p-6 relative z-10">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-slate-700">
@@ -175,10 +371,23 @@ const ToolsAndAnalyticsSection = () => {
             Visualize trends and uncover hidden patterns in your conversations with powerful analytics tools.
           </p>
 
-          <div className="bg-white rounded-[32px] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.06)] border border-gray-100 p-12 h-[400px] flex items-center justify-center relative overflow-hidden select-none">
+          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-12 h-[400px] flex items-center justify-center relative overflow-hidden select-none">
             <AnalyticsVisual />
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-10">
+        <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[400px] md:col-span-2 flex flex-col">
+          <div className="mb-4">
+            <h3 className="text-lg font-serif font-bold text-slate-900">Live collaboration</h3>
+            <p className="text-slate-500 text-sm font-light mt-1">See changes merge in real time as your team annotates.</p>
+          </div>
+          <div className="flex-1 w-full">
+            <LiveCollaborationCard />
+          </div>
+        </div>
+        <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[400px] md:col-span-1" />
       </div>
     </div>
   );
