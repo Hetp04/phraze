@@ -66,7 +66,6 @@ export default function Navbar() {
         </div>
         <div className="nav-center">
           <Link to="/" className="nav-link" style={{ fontSize: '18px' }}>Home</Link>
-          <Link to="/features" className="nav-link" style={{ fontSize: '18px' }}>Features</Link>
           <Link to="/about" className="nav-link" style={{ fontSize: '18px' }}>About</Link>
           <Link to="/contact" className="nav-link" style={{ fontSize: '18px' }}>Contact</Link>
         </div>

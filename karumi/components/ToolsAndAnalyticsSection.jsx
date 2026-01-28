@@ -17,8 +17,8 @@ const ContactChatBubble = ({ side = 'left', children }) => {
         style={{
           padding: '8px 14px',
           borderRadius: '12px',
-          backgroundColor: isCurrentUser ? '#0078d4' : '#f3f4f6',
-          color: isCurrentUser ? '#ffffff' : '#111827',
+          backgroundColor: isCurrentUser ? '#E1EEFF' : '#f3f4f6',
+          color: isCurrentUser ? '#0f172a' : '#111827',
           fontSize: '14px',
           lineHeight: '1.4',
           wordWrap: 'break-word',
@@ -584,6 +584,9 @@ const ContactBento = () => {
                   style={{
                     animation: 'phrazeContactFadeUp 520ms cubic-bezier(0.16, 1, 0.3, 1) both',
                     marginBottom: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: '100%',
                   }}
                 >
                   <div
@@ -594,8 +597,7 @@ const ContactBento = () => {
                       padding: 0,
                       textAlign: m.side === 'right' ? 'right' : 'left',
                       fontVariantNumeric: 'tabular-nums',
-                      maxWidth: '78%',
-                      alignSelf: m.side === 'right' ? 'flex-end' : 'flex-start',
+                      width: '100%',
                     }}
                   >
                     {m.time}
@@ -608,10 +610,10 @@ const ContactBento = () => {
                           style={{
                             padding: '10px 12px',
                             borderRadius: '10px',
-                            backgroundColor: m.side === 'right' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.04)',
-                            border: m.side === 'right' ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(0, 0, 0, 0.06)',
-                            borderLeft: m.side === 'right' ? '3px solid rgba(255, 255, 255, 0.35)' : '3px solid rgba(17, 24, 39, 0.18)',
-                            color: m.side === 'right' ? 'rgba(255, 255, 255, 0.92)' : '#374151',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderLeft: m.side === 'right' ? '3px solid rgba(37, 99, 235, 0.55)' : '3px solid rgba(17, 24, 39, 0.18)',
+                            color: '#0f172a',
                             fontSize: '12px',
                             lineHeight: '1.35',
                           }}
@@ -621,7 +623,7 @@ const ContactBento = () => {
                       </div>
                     ) : (
                       m.side === 'right' && m.kind === 'text' && typingMessageIndex === index ? (
-                        <span style={{ whiteSpace: 'pre-wrap' }}>{typingText}</span>
+                        <span style={{ whiteSpace: 'pre-line' }}>{typingText}</span>
                       ) : (
                         m.text
                       )
@@ -631,14 +633,23 @@ const ContactBento = () => {
               ))}
 
               {isTyping ? (
-                <div style={{ marginBottom: '12px', animation: 'phrazeContactFadeUp 360ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-                  <div style={{ display: 'flex', justifyContent: typingSide === 'right' ? 'flex-end' : 'flex-start' }}>
+                <div
+                  style={{
+                    marginBottom: '12px',
+                    animation: 'phrazeContactFadeUp 360ms cubic-bezier(0.16, 1, 0.3, 1) both',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: typingSide === 'right' ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  <div style={{ width: '100%', display: 'flex', justifyContent: typingSide === 'right' ? 'flex-end' : 'flex-start' }}>
                     <div
                       style={{
                         padding: '10px 14px',
                         borderRadius: '16px',
-                        backgroundColor: typingSide === 'right' ? '#0078d4' : '#f3f4f6',
-                        color: typingSide === 'right' ? 'rgba(255,255,255,0.92)' : '#111827',
+                        backgroundColor: typingSide === 'right' ? '#E1EEFF' : '#f3f4f6',
+                        color: typingSide === 'right' ? '#0f172a' : '#111827',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
@@ -647,9 +658,9 @@ const ContactBento = () => {
                         boxSizing: 'border-box',
                       }}
                     >
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(255,255,255,0.9)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite' }} />
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(255,255,255,0.9)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite', animationDelay: '160ms' }} />
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(255,255,255,0.9)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite', animationDelay: '320ms' }} />
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(15,23,42,0.65)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite' }} />
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(15,23,42,0.65)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite', animationDelay: '160ms' }} />
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(15,23,42,0.65)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite', animationDelay: '320ms' }} />
                     </div>
                   </div>
                 </div>
@@ -876,6 +887,9 @@ const EmptyBentoPage = ({ revealActive = false }) => {
   const [expandedHistoryId, setExpandedHistoryId] = useState('h2');
   const historyScrollRef = useRef(null);
   const historyItemRefs = useRef({});
+  const dataScrollRef = useRef(null);
+  const [exportButtonClicked, setExportButtonClicked] = useState(false);
+  const [importButtonClicked, setImportButtonClicked] = useState(false);
 
   const annotationHistory = [
     {
@@ -973,8 +987,80 @@ const EmptyBentoPage = ({ revealActive = false }) => {
     return () => window.cancelAnimationFrame(raf);
   }, [expandedHistoryId]);
 
+  useEffect(() => {
+    const scrollContainer = dataScrollRef.current;
+    if (!scrollContainer) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) {
+      scrollContainer.scrollTop = 0;
+      return;
+    }
+
+    let rafId = null;
+    let t1 = null;
+    let t2 = null;
+    let t3 = null;
+    let loopId = null;
+    let target = 0;
+
+    const tick = () => {
+      const maxScroll = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+      const current = scrollContainer.scrollTop;
+      const next = current + (target - current) * 0.08;
+      scrollContainer.scrollTop = next;
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+
+    const runSequence = () => {
+      const maxScroll = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+      target = maxScroll;
+
+      t1 = window.setTimeout(() => {
+        setExportButtonClicked(true);
+      }, 520);
+
+      t2 = window.setTimeout(() => {
+        setExportButtonClicked(false);
+      }, 920);
+
+      t3 = window.setTimeout(() => {
+        setImportButtonClicked(true);
+        window.setTimeout(() => setImportButtonClicked(false), 320);
+      }, 1550);
+
+      window.setTimeout(() => {
+        target = 0;
+      }, 2600);
+    };
+
+    runSequence();
+    loopId = window.setInterval(runSequence, 5200);
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      if (t1) window.clearTimeout(t1);
+      if (t2) window.clearTimeout(t2);
+      if (t3) window.clearTimeout(t3);
+      if (loopId) window.clearInterval(loopId);
+    };
+  }, []);
+
   return (
     <div>
+      <style>{`
+        .phraze-hide-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .phraze-hide-scrollbar::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+      `}</style>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
         <div
           className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-4 h-[440px] md:col-span-7 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
@@ -1066,14 +1152,308 @@ const EmptyBentoPage = ({ revealActive = false }) => {
             <ContactBento />
           </div>
         </div>
+
         <div
           className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-4 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
           style={{ transitionDelay: '420ms' }}
-        />
+        >
+          <div className="mb-4">
+            <h3 className="text-lg font-serif font-bold text-slate-900">Import & Export</h3>
+            <p className="text-slate-500 text-sm font-light mt-1">Export your annotations for backup or sharing, or import previously exported data.</p>
+          </div>
+
+          <div className="bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 flex flex-col flex-1 min-h-0">
+            <div
+              ref={dataScrollRef}
+              className="phraze-hide-scrollbar"
+              style={{
+                width: '100%',
+                height: '100%',
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+                pointerEvents: 'none',
+                borderRadius: 16,
+                border: '1px solid #e5e7eb',
+                padding: 16,
+                paddingTop: 18,
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  marginBottom: 16,
+                  fontSize: 12,
+                  color: '#71717a',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  lineHeight: 1.5,
+                }}
+              >
+                Export your annotations to a file for backup or sharing, or import previously exported annotation data.
+              </p>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 10,
+                  marginBottom: 20,
+                }}
+              >
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    background: exportButtonClicked ? '#f1f5f9' : '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    transition: 'all 0.15s ease',
+                    transform: exportButtonClicked ? 'scale(0.96)' : 'scale(1)',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: '#334155',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    Export Data
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    background: importButtonClicked ? '#f1f5f9' : '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    transition: 'all 0.15s ease',
+                    transform: importButtonClicked ? 'scale(0.96)' : 'scale(1)',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: '#334155',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    Import Data
+                  </span>
+                </div>
+              </div>
+
+              <p
+                style={{
+                  margin: 0,
+                  marginBottom: 10,
+                  fontSize: 12,
+                  color: '#71717a',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  lineHeight: 1.5,
+                }}
+              >
+                Share your annotations with others using a unique link.
+              </p>
+
+              <div
+                style={{
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: '#334155',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Share and View
+                </span>
+              </div>
+
+              <div style={{ marginTop: 20 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    marginBottom: 12,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#64748b',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Recent Exports
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[
+                    { name: 'ml-annotations-2024.json', date: '2 hours ago', size: '1.2 MB' },
+                    { name: 'dataset-labels.json', date: 'Yesterday', size: '856 KB' },
+                    { name: 'training-notes.json', date: '3 days ago', size: '324 KB' },
+                  ].map((file, idx) => (
+                    <div
+                      key={file.name}
+                      style={{
+                        padding: '10px 12px',
+                        background: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        opacity: idx === 2 ? 0.92 : 1,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: '#18181b',
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                              letterSpacing: '-0.01em',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {file.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: '#a1a1aa',
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                              marginTop: 2,
+                            }}
+                          >
+                            {file.date} · {file.size}
+                          </div>
+                        </div>
+                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ height: 18 }} />
+            </div>
+          </div>
+        </div>
         <div
           className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-4 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
           style={{ transitionDelay: '560ms' }}
-        />
+        >
+          <div className="mb-4">
+            <h3 className="text-lg font-serif font-bold text-slate-900">RBAC</h3>
+            <p className="text-slate-500 text-sm font-light mt-1">
+              Give the right access to the right people. Owners manage, editors collaborate, viewers observe.
+            </p>
+          </div>
+
+          <div className="h-[300px] bg-white rounded-[24px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-3.5 overflow-hidden flex flex-col">
+            <div className="flex items-start justify-between gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2">
+              <div className="text-[11px] font-semibold text-slate-600">Roles</div>
+              <div className="flex flex-wrap justify-end items-center gap-1.5 pr-1">
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-50 border border-amber-200">
+                  <Users className="w-3.5 h-3.5 text-amber-700" />
+                  <span className="text-[11px] font-medium text-amber-900">Owner</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-50 border border-blue-200">
+                  <Tag className="w-3.5 h-3.5 text-blue-700" />
+                  <span className="text-[11px] font-medium text-blue-900">Editor</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-50 border border-slate-200">
+                  <MessageSquare className="w-3.5 h-3.5 text-slate-700" />
+                  <span className="text-[11px] font-medium text-slate-900">Viewer</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2.5 rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="grid grid-cols-4 bg-gray-50 border-b border-gray-100">
+                <div className="px-2 py-2 text-[11px] font-semibold text-slate-600">Permission</div>
+                <div className="px-2 py-2 text-[11px] font-semibold text-slate-600 text-center">Owner</div>
+                <div className="px-2 py-2 text-[11px] font-semibold text-slate-600 text-center">Editor</div>
+                <div className="px-2 py-2 text-[11px] font-semibold text-slate-600 text-center">Viewer</div>
+              </div>
+
+              {[
+                { label: 'View', o: true, e: true, v: true },
+                { label: 'Edit', o: true, e: true, v: false },
+                { label: 'Manage access', o: true, e: false, v: false },
+              ].map((row) => (
+                <div key={row.label} className="grid grid-cols-4 border-b border-gray-100 last:border-b-0 bg-white">
+                  <div className="px-2 py-2 text-[11px] text-slate-700">{row.label}</div>
+                  <div className="px-2 py-2 flex justify-center">
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${row.o ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                      <div className={`w-2.5 h-2.5 rounded-full ${row.o ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+                    </div>
+                  </div>
+                  <div className="px-2 py-2 flex justify-center">
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${row.e ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                      <div className={`w-2.5 h-2.5 rounded-full ${row.e ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+                    </div>
+                  </div>
+                  <div className="px-2 py-2 flex justify-center">
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${row.v ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                      <div className={`w-2.5 h-2.5 rounded-full ${row.v ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-2.5 text-[11px] text-slate-500">Owner can manage roles. Editors can edit. Viewers are read-only.</div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -2117,7 +2497,7 @@ const ToolsAndAnalyticsSection = () => {
                 className="flex gap-10 will-change-transform"
                 style={{ transform: `translate3d(${-conveyorX}px, 0, 0)`, transition: 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1)' }}
               >
-                {[0, 1, 2].map((pageIndex) => (
+                {[0, 1].map((pageIndex) => (
                   <div key={`bento-page-${pageIndex}`} className="shrink-0 w-full">
                     {pageIndex === 1 ? (
                       <EmptyBentoPage revealActive={secondRevealActive} />

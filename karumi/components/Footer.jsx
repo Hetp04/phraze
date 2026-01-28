@@ -175,17 +175,6 @@ export default function Footer(
             </div>
 
             <div className="flex flex-col gap-4 text-center md:text-left">
-              <h4 className="font-bold text-slate-900 text-sm">Product</h4>
-              <ul className="space-y-3 text-sm text-slate-500 font-medium">
-                <li>
-                  <Link to="/features" className="hover:text-slate-900 transition-colors">
-                    Features
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div className="flex flex-col gap-4 text-center md:text-left">
               <h4 className="font-bold text-slate-900 text-sm">Legal</h4>
               <ul className="space-y-3 text-sm text-slate-500 font-medium">
                 <li>

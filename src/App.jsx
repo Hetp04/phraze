@@ -1,9 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Preloader from './components/Preloader';
 import Home from './pages/Home';
-import Features from './pages/Features';
 import About from './pages/About';
 import Auth from './pages/Auth';
 import Demonstration from './pages/Demonstration';
@@ -330,10 +329,11 @@ function AuthRedirectHandler({ children }) {
   }, [isAuthenticated]);
 
   // Truly public routes that don't require any auth check
-  const trulyPublicRoutes = ['/', '/features', '/about', '/contact', '/terms', '/privacy', '/cookies'];
+  const trulyPublicRoutes = ['/', '/about', '/contact', '/terms', '/privacy', '/cookies'];
   
   // STRICT RENDER GUARD - Don't render anything until context is ready
   if (!isReady) {
+    console.log('[AuthRedirect] Waiting for auth context to be ready...');
     return null;
   }
 
@@ -476,7 +476,7 @@ function App() {
                   <Layout currentProject={currentProject} onProjectChange={onProjectChange}>
                     <Routes>
                       <Route path="/" element={<Home />} />
-                      <Route path="features" element={<Features />} />
+                      <Route path="features" element={<Navigate to="/" replace />} />
                       <Route path="about" element={<About />} />
                       <Route path="demo" element={<Demo />} />
                       <Route path="demonstration" element={<Demonstration currentProject={currentProject} onProjectChange={onProjectChange} setCurrentProject={setCurrentProject}/>} />
