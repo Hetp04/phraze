@@ -729,7 +729,250 @@ const BentoCard = ({ className = '', padClass = 'p-8', children }) => (
   <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] ${padClass} h-[440px] flex flex-col relative select-none overflow-hidden ${className}`}>{children}</div>
 );
 
+const AnnotationHistoryItem = ({ item, isExpanded }) => {
+  const tagStyle = (tone) => {
+    if (tone === 'positive') {
+      return {
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '3px 8px',
+        borderRadius: '999px',
+        fontSize: '12px',
+        fontWeight: 500,
+        lineHeight: 1.3,
+        backgroundColor: 'rgb(236, 253, 245)',
+        border: '1px solid rgb(52, 211, 153)',
+        color: 'rgb(6, 95, 70)',
+        whiteSpace: 'nowrap',
+      };
+    }
+
+    if (tone === 'negative') {
+      return {
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '3px 8px',
+        borderRadius: '999px',
+        fontSize: '12px',
+        fontWeight: 500,
+        lineHeight: 1.3,
+        backgroundColor: 'rgb(254, 242, 242)',
+        border: '1px solid rgb(252, 165, 165)',
+        color: 'rgb(153, 27, 27)',
+        whiteSpace: 'nowrap',
+      };
+    }
+
+    return {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '3px 8px',
+      borderRadius: '999px',
+      fontSize: '12px',
+      fontWeight: 500,
+      lineHeight: 1.3,
+      backgroundColor: 'rgb(239, 246, 255)',
+      border: '1px solid rgb(147, 197, 253)',
+      color: 'rgb(30, 64, 175)',
+      whiteSpace: 'nowrap',
+    };
+  };
+
+  return (
+    <button
+      type="button"
+      style={{
+        width: '100%',
+        textAlign: 'left',
+        border: '1px solid rgb(229, 231, 235)',
+        backgroundColor: 'rgb(255, 255, 255)',
+        borderRadius: '10px',
+        padding: '9px 11px 24px',
+        position: 'relative',
+        cursor: 'default',
+        transform: 'translateX(0px)',
+        opacity: 1,
+        pointerEvents: 'none',
+        willChange: 'transform, opacity',
+        transition:
+          'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+        touchAction: 'pan-y',
+      }}
+      tabIndex={-1}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: '14px',
+            lineHeight: 1.35,
+            color: 'rgb(17, 24, 39)',
+            fontWeight: 500,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            flex: '1 1 0%',
+          }}
+        >
+          {item.summary}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
+        <span style={tagStyle(item.sentimentTone)}>{`Sentiment: ${item.sentimentLabel}`}</span>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '3px 8px',
+            borderRadius: '999px',
+            fontSize: '12px',
+            fontWeight: 500,
+            lineHeight: 1.3,
+            backgroundColor: 'rgb(249, 250, 251)',
+            border: '1px solid rgb(229, 231, 235)',
+            color: 'rgb(55, 65, 81)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {item.type}
+        </span>
+      </div>
+
+      <div style={{ fontSize: '12px', color: 'rgb(156, 163, 175)', position: 'absolute', right: '11px', bottom: '7px' }}>
+        {item.when}
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isExpanded ? '1fr' : '0fr',
+          transition: 'grid-template-rows 140ms ease-out',
+          marginTop: isExpanded ? '8px' : '0px',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+          <div
+            style={{
+              fontSize: '13px',
+              color: 'rgb(55, 65, 81)',
+              lineHeight: 1.5,
+              whiteSpace: 'normal',
+              wordBreak: 'break-word',
+              opacity: isExpanded ? 1 : 0,
+              transform: isExpanded ? 'translateY(0px)' : 'translateY(-2px)',
+              transition: 'opacity 120ms ease-out, transform 120ms ease-out',
+            }}
+          >
+            {item.details}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+};
+
 const EmptyBentoPage = ({ revealActive = false }) => {
+  const [expandedHistoryId, setExpandedHistoryId] = useState('h2');
+  const historyScrollRef = useRef(null);
+  const historyItemRefs = useRef({});
+
+  const annotationHistory = [
+    {
+      id: 'h1',
+      summary: '“Non intrusive oil” could mean a few different things. Want the energy definition or the networking one?',
+      details:
+        'I saved this response because it clarifies ambiguity and offers options. You can label this highlight as “Disambiguation” and add a quick note explaining which definition you chose.',
+      sentimentTone: 'neutral',
+      sentimentLabel: 'Neutral',
+      type: 'Clarification',
+      when: 'just now',
+    },
+    {
+      id: 'h2',
+      summary: 'Tagged “Core Web Vitals” and added a note to track LCP and INP for the next release.',
+      details:
+        'Label: Metrics. Code: WEBVITALS 001. Note: Measure on mobile first, compare before and after, and attach the baseline screenshot in the thread.',
+      sentimentTone: 'positive',
+      sentimentLabel: 'Positive',
+      type: 'Label + Note',
+      when: '2 min ago',
+    },
+    {
+      id: 'h3',
+      summary: 'Marked this answer as “Needs sourcing” before sharing externally.',
+      details:
+        'Reason: the claim is plausible but not cited. Add a source link to the highlight or rephrase to keep it conservative for the doc.',
+      sentimentTone: 'negative',
+      sentimentLabel: 'Caution',
+      type: 'Review',
+      when: '12 min ago',
+    },
+    {
+      id: 'h4',
+      summary: 'Created a highlight for the rollout checklist and assigned it to Priya.',
+      details:
+        'Checklist includes: verify staging, run Lighthouse, validate analytics events, and post the changelog snippet in the channel.',
+      sentimentTone: 'positive',
+      sentimentLabel: 'Positive',
+      type: 'Assignment',
+      when: '1 hr ago',
+    },
+  ];
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) return;
+    if (!annotationHistory.length) return;
+
+    let idx = Math.max(0, annotationHistory.findIndex((i) => i.id === expandedHistoryId));
+    if (idx < 0) idx = 0;
+
+    const id = window.setInterval(() => {
+      idx = (idx + 1) % annotationHistory.length;
+      setExpandedHistoryId(annotationHistory[idx].id);
+    }, 2200);
+
+    return () => window.clearInterval(id);
+    // Intentionally run once for "video" autoplay
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const scroller = historyScrollRef.current;
+    const el = expandedHistoryId ? historyItemRefs.current?.[expandedHistoryId] : null;
+    if (!scroller || !el) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const behavior = mediaQuery?.matches ? 'auto' : 'smooth';
+    const padding = 10;
+
+    const raf = window.requestAnimationFrame(() => {
+      const sRect = scroller.getBoundingClientRect();
+      const eRect = el.getBoundingClientRect();
+
+      if (eRect.top < sRect.top + padding) {
+        const delta = sRect.top + padding - eRect.top;
+        const next = Math.max(0, scroller.scrollTop - delta);
+        try {
+          scroller.scrollTo({ top: next, behavior });
+        } catch (_) {
+          scroller.scrollTop = next;
+        }
+      } else if (eRect.bottom > sRect.bottom - padding) {
+        const delta = eRect.bottom - (sRect.bottom - padding);
+        const next = Math.min(scroller.scrollHeight, scroller.scrollTop + delta);
+        try {
+          scroller.scrollTo({ top: next, behavior });
+        } catch (_) {
+          scroller.scrollTop = next;
+        }
+      }
+    });
+
+    return () => window.cancelAnimationFrame(raf);
+  }, [expandedHistoryId]);
+
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
@@ -744,7 +987,69 @@ const EmptyBentoPage = ({ revealActive = false }) => {
         <div
           className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-5 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
           style={{ transitionDelay: '140ms' }}
-        />
+        >
+          <div className="mb-4">
+            <h3 className="text-lg font-serif font-bold text-slate-900">Annotation History</h3>
+            <p className="text-slate-500 text-sm font-light mt-1">A running log of saved highlights, labels, and quick notes.</p>
+          </div>
+
+          <div className="flex-1 min-h-0" style={{ width: '100%' }}>
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                padding: '10px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                overflow: 'hidden',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>Recent</div>
+                <div style={{ fontSize: '12px', color: '#9ca3af' }}>{`${annotationHistory.length} items`}</div>
+              </div>
+
+              <div style={{ width: '100%', flex: 1, position: 'relative', overflow: 'hidden' }}>
+                <div
+                  ref={historyScrollRef}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                    overscrollBehavior: 'contain',
+                    paddingBottom: '18px',
+                    boxSizing: 'border-box',
+                    WebkitMaskImage:
+                      'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 68%, rgba(0,0,0,0) 100%)',
+                    maskImage:
+                      'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 18%, rgba(0,0,0,1) 68%, rgba(0,0,0,0) 100%)',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskSize: '100% 100%',
+                    maskSize: '100% 100%',
+                  }}
+                >
+                  {annotationHistory.map((item) => (
+                    <div key={item.id} ref={(el) => (historyItemRefs.current[item.id] = el)}>
+                      <AnnotationHistoryItem item={item} isExpanded={expandedHistoryId === item.id} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-10 mt-10">
