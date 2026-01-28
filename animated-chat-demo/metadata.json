@@ -1,0 +1,5 @@
+{
+  "name": "Animated Chat Demo",
+  "description": "A simulated chat interface with typing animations, auto-scrolling, and AI responses for a product marketing demo.",
+  "requestFramePermissions": []
+}

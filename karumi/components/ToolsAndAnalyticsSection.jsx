@@ -1,12 +1,668 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Highlighter, MessageSquare, Tag, Users } from 'lucide-react';
+import SecondPageChatDemo from './SecondPageChatDemo';
 
 const IconChevronDown = ({ className = '' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="m6 9 6 6 6-6" />
   </svg>
 );
+
+const ContactChatBubble = ({ side = 'left', children }) => {
+  const isCurrentUser = side === 'right';
+  return (
+    <div style={{ display: 'flex', justifyContent: isCurrentUser ? 'flex-end' : 'flex-start' }}>
+      <div
+        style={{
+          padding: '8px 14px',
+          borderRadius: '12px',
+          backgroundColor: isCurrentUser ? '#0078d4' : '#f3f4f6',
+          color: isCurrentUser ? '#ffffff' : '#111827',
+          fontSize: '14px',
+          lineHeight: '1.4',
+          wordWrap: 'break-word',
+          display: 'inline-block',
+          position: 'relative',
+          maxWidth: '78%',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const ContactBento = () => {
+  const [mode, setMode] = useState('list');
+  const [playKey, setPlayKey] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [activeContactIndex, setActiveContactIndex] = useState(0);
+  const [listSelected, setListSelected] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingSide, setTypingSide] = useState('left');
+  const [typingMessageIndex, setTypingMessageIndex] = useState(null);
+  const [typingText, setTypingText] = useState('');
+
+  const chatScrollRef = useRef(null);
+
+  const presenceDotStyle = {
+    position: 'absolute',
+    bottom: '-2px',
+    right: '0px',
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#22c55e',
+    border: '2px solid white',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+  };
+
+  const conversations = [
+    {
+      contact: { name: 'Alex', role: 'Editor', avatarSrc: '/alex.png' },
+      messages: [
+        { id: 'a1', sender: 'Alex', time: '10:23 AM', side: 'right', kind: 'text', text: 'Did you see the latest transformer updates? They look really promising.' },
+        { id: 'a2', sender: 'Priya', time: '10:25 AM', side: 'left', kind: 'text', text: 'Yes, I skimmed it earlier. The attention improvements are super interesting.' },
+        { id: 'a3', sender: 'Alex', time: '10:27 AM', side: 'right', kind: 'text', text: 'Here is the highlight I pulled from it.' },
+        {
+          id: 'a4',
+          sender: 'Alex',
+          time: '10:27 AM',
+          side: 'right',
+          kind: 'highlight',
+          title: 'Attached highlight',
+          quote: '"The transformer model achieves state-of-the-art performance by using self-attention mechanisms to process entire sequences simultaneously"',
+        },
+        { id: 'a5', sender: 'Priya', time: '10:28 AM', side: 'left', kind: 'text', text: 'Nice find. The parallel processing benefit is huge. This is great context to keep.' },
+      ],
+    },
+    {
+      contact: { name: 'Priya', role: 'Editor', avatarSrc: '/priya.png' },
+      messages: [
+        { id: 'p1', sender: 'Priya', time: '10:59 AM', side: 'right', kind: 'text', text: 'Quick update. I tagged the key claims and added labels.' },
+        { id: 'p2', sender: 'Alex', time: '11:01 AM', side: 'left', kind: 'text', text: 'Awesome. Can you send the highlight excerpt you used?' },
+        {
+          id: 'p3',
+          sender: 'Priya',
+          time: '11:02 AM',
+          side: 'right',
+          kind: 'highlight',
+          title: 'Attached highlight',
+          quote: '"Attention optimizations reduce compute while improving throughput on long sequences."',
+        },
+        { id: 'p4', sender: 'Alex', time: '11:03 AM', side: 'left', kind: 'text', text: 'Perfect. Let’s include that in the summary.' },
+      ],
+    },
+  ];
+
+  const active = conversations[activeContactIndex % conversations.length];
+  const messages = active?.messages || [];
+  const activeContact = active?.contact || { name: 'Alex', role: 'Editor', avatarSrc: '/alex.png' };
+
+  useEffect(() => {
+    if (mode !== 'chat') return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) {
+      setVisibleCount(messages.length);
+      return;
+    }
+
+    setVisibleCount(0);
+    setIsTyping(false);
+    setTypingMessageIndex(null);
+    setTypingText('');
+    let timeoutIds = [];
+    let rafIds = [];
+    const typingDelayMs = 1450;
+    const betweenDelayMs = 460;
+    const charMs = 36;
+
+    let t = 220;
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (!m) continue;
+
+      const isOutgoingText = m.side === 'right' && m.kind === 'text' && typeof m.text === 'string';
+
+      t += betweenDelayMs;
+      const startId = window.setTimeout(() => {
+        if (isOutgoingText) {
+          setIsTyping(false);
+          setTypingSide('right');
+          setTypingMessageIndex(i);
+          setTypingText('');
+          setVisibleCount((prev) => Math.max(prev, i + 1));
+
+          const full = m.text || '';
+          const startAt = performance.now();
+          const tick = () => {
+            const elapsed = performance.now() - startAt;
+            const nextLen = Math.min(full.length, Math.floor(elapsed / charMs));
+            setTypingText(full.slice(0, nextLen));
+            if (nextLen >= full.length) return;
+            const rafId = window.requestAnimationFrame(tick);
+            rafIds.push(rafId);
+          };
+          const rafId = window.requestAnimationFrame(tick);
+          rafIds.push(rafId);
+        } else {
+          setTypingMessageIndex(null);
+          setTypingText('');
+          setTypingSide(m.side);
+          setIsTyping(m.side === 'left');
+        }
+      }, t);
+      timeoutIds.push(startId);
+
+      const revealDelay = isOutgoingText
+        ? Math.min(2600, Math.max(1200, (m.text?.length ?? 0) * charMs + 520))
+        : typingDelayMs + 260;
+      t += revealDelay;
+      const revealId = window.setTimeout(() => {
+        setIsTyping(false);
+        setTypingMessageIndex(null);
+        setTypingText('');
+        if (!isOutgoingText) {
+          setVisibleCount((prev) => Math.max(prev, i + 1));
+        }
+      }, t);
+      timeoutIds.push(revealId);
+    }
+
+    return () => {
+      timeoutIds.forEach((id) => window.clearTimeout(id));
+      rafIds.forEach((id) => window.cancelAnimationFrame(id));
+      timeoutIds = [];
+      rafIds = [];
+    };
+  }, [mode, playKey, activeContactIndex]);
+
+  useEffect(() => {
+    if (mode !== 'list') return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const selectDelay = mediaQuery?.matches ? 0 : 420;
+    const openDelay = mediaQuery?.matches ? 0 : 1400;
+
+    setListSelected(false);
+    const id1 = window.setTimeout(() => {
+      setListSelected(true);
+    }, selectDelay);
+
+    const id2 = window.setTimeout(() => {
+      setMode('chat');
+      setPlayKey((k) => k + 1);
+    }, openDelay);
+
+    return () => {
+      window.clearTimeout(id1);
+      window.clearTimeout(id2);
+    };
+  }, [mode, activeContactIndex]);
+
+  useEffect(() => {
+    if (mode !== 'chat') return;
+    if (visibleCount < messages.length) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const holdDelay = mediaQuery?.matches ? 700 : 2000;
+
+    const id = window.setTimeout(() => {
+      setMode('list');
+      setActiveContactIndex((idx) => (idx + 1) % conversations.length);
+    }, holdDelay);
+
+    return () => window.clearTimeout(id);
+  }, [mode, visibleCount]);
+
+  useEffect(() => {
+    if (mode !== 'chat') return;
+    const el = chatScrollRef.current;
+    if (!el) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const behavior = mediaQuery?.matches ? 'auto' : 'smooth';
+
+    const raf = window.requestAnimationFrame(() => {
+      try {
+        el.scrollTo({ top: el.scrollHeight, behavior });
+      } catch (e) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+
+    return () => window.cancelAnimationFrame(raf);
+  }, [mode, visibleCount, isTyping, typingText, typingMessageIndex]);
+
+  return (
+    <div className="w-full h-full">
+      <style>{`
+        @keyframes phrazeContactFadeUp {
+          0% { opacity: 0; transform: translate3d(0, 8px, 0); }
+          100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+
+        @keyframes phrazeTypingDot {
+          0%, 80%, 100% { transform: translate3d(0, 0, 0); opacity: 0.55; }
+          40% { transform: translate3d(0, -2px, 0); opacity: 1; }
+        }
+      `}</style>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          padding: '10px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+        }}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {mode === 'list' ? (
+            <motion.div
+              key="contact-list"
+              style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}
+              initial={{ x: 0, opacity: 1 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -42, opacity: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'center',
+                marginBottom: '0px',
+                padding: '0px 4px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '14px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                }}
+              >
+                Choose Contact
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', width: '100%', padding: '0 4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px',
+                  border: 'none',
+                  background: listSelected && activeContactIndex % conversations.length === 0 ? '#f5f5f5' : '#ffffff',
+                  borderTop: 'solid 1px #F7F7F8',
+                  width: '100%',
+                  borderRadius: '8px',
+                  boxSizing: 'border-box',
+                  transition: 'background-color 240ms cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              >
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      backgroundColor: '#e5e7eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                      position: 'relative',
+                    }}
+                  >
+                    <img
+                      src="/alex.png"
+                      alt="Alex"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      ...presenceDotStyle,
+                      width: '12px',
+                      height: '12px',
+                      border: '2px solid white',
+                      bottom: '-3px',
+                      right: '-1px',
+                    }}
+                    title="Active"
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: '500', fontSize: '14px', color: '#1f2937', marginBottom: '4px' }}>Alex</div>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      color: '#6b7280',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    Check out this highlight I found:
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>10:27 AM</div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px',
+                  border: 'none',
+                  background: listSelected && activeContactIndex % conversations.length === 1 ? '#f5f5f5' : '#ffffff',
+                  borderTop: 'solid 1px #F7F7F8',
+                  width: '100%',
+                  borderRadius: '8px',
+                  boxSizing: 'border-box',
+                  transition: 'background-color 240ms cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              >
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <img
+                    src="/priya.png"
+                    alt="Priya"
+                    style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                  />
+                  <div
+                    style={{
+                      ...presenceDotStyle,
+                      width: '12px',
+                      height: '12px',
+                      border: '2px solid white',
+                      bottom: '-3px',
+                      right: '-1px',
+                    }}
+                    title="Active"
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: '500', fontSize: '14px', color: '#1f2937', marginBottom: '4px' }}>Priya</div>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      color: '#6b7280',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    Yes! The attention mechanism optimizations are fascinating
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>10:25 AM</div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px',
+                  border: 'none',
+                  background: '#ffffff',
+                  borderTop: 'solid 1px #F7F7F8',
+                  width: '100%',
+                  borderRadius: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <img
+                  src="/maya.png"
+                  alt="Maya"
+                  style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: '500', fontSize: '14px', color: '#1f2937', marginBottom: '4px' }}>Maya</div>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      color: '#6b7280',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    Have you reviewed the latest changes?
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>10:15 AM</div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px',
+                  border: 'none',
+                  background: '#ffffff',
+                  borderTop: 'solid 1px #F7F7F8',
+                  width: '100%',
+                  borderRadius: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#1f2937',
+                    flexShrink: 0,
+                  }}
+                >
+                  J
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: '500', fontSize: '14px', color: '#1f2937', marginBottom: '4px' }}>James</div>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      color: '#6b7280',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    Great progress on the project!
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>9:52 AM</div>
+              </div>
+            </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="contact-chat"
+              style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}
+              initial={{ x: 42, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 42, opacity: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+            <div
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderBottom: '1px solid rgba(226, 232, 240, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                gap: '12px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    border: '1px solid #e5e7eb',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <img
+                    src={activeContact.avatarSrc}
+                    alt={activeContact.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+                <div
+                  style={{
+                    ...presenceDotStyle,
+                    width: '14px',
+                    height: '14px',
+                    border: '2px solid white',
+                    bottom: '-3px',
+                    right: '-1px',
+                  }}
+                  title="Active"
+                />
+              </div>
+
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#111827',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: '1.2',
+                  }}
+                >
+                  {activeContact.name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px', lineHeight: '1.2' }}>{activeContact.role}</div>
+              </div>
+            </div>
+
+            <div ref={chatScrollRef} style={{ width: '100%', flex: 1, overflowY: 'auto', padding: '12px 12px', boxSizing: 'border-box' }}>
+              {messages.slice(0, visibleCount).map((m, index) => (
+                <div
+                  key={m.id}
+                  className="animate-in"
+                  style={{
+                    animation: 'phrazeContactFadeUp 520ms cubic-bezier(0.16, 1, 0.3, 1) both',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: '#6b7280',
+                      marginBottom: '8px',
+                      padding: 0,
+                      textAlign: m.side === 'right' ? 'right' : 'left',
+                      fontVariantNumeric: 'tabular-nums',
+                      maxWidth: '78%',
+                      alignSelf: m.side === 'right' ? 'flex-end' : 'flex-start',
+                    }}
+                  >
+                    {m.time}
+                  </div>
+                  <ContactChatBubble side={m.side}>
+                    {m.kind === 'highlight' ? (
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '10px' }}>{m.title}</div>
+                        <div
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '10px',
+                            backgroundColor: m.side === 'right' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.04)',
+                            border: m.side === 'right' ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(0, 0, 0, 0.06)',
+                            borderLeft: m.side === 'right' ? '3px solid rgba(255, 255, 255, 0.35)' : '3px solid rgba(17, 24, 39, 0.18)',
+                            color: m.side === 'right' ? 'rgba(255, 255, 255, 0.92)' : '#374151',
+                            fontSize: '12px',
+                            lineHeight: '1.35',
+                          }}
+                        >
+                          {m.quote}
+                        </div>
+                      </div>
+                    ) : (
+                      m.side === 'right' && m.kind === 'text' && typingMessageIndex === index ? (
+                        <span style={{ whiteSpace: 'pre-wrap' }}>{typingText}</span>
+                      ) : (
+                        m.text
+                      )
+                    )}
+                  </ContactChatBubble>
+                </div>
+              ))}
+
+              {isTyping ? (
+                <div style={{ marginBottom: '12px', animation: 'phrazeContactFadeUp 360ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
+                  <div style={{ display: 'flex', justifyContent: typingSide === 'right' ? 'flex-end' : 'flex-start' }}>
+                    <div
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '16px',
+                        backgroundColor: typingSide === 'right' ? '#0078d4' : '#f3f4f6',
+                        color: typingSide === 'right' ? 'rgba(255,255,255,0.92)' : '#111827',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        maxWidth: '78%',
+                        minWidth: '54px',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(255,255,255,0.9)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite' }} />
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(255,255,255,0.9)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite', animationDelay: '160ms' }} />
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: typingSide === 'right' ? 'rgba(255,255,255,0.9)' : '#9ca3af', animation: 'phrazeTypingDot 1200ms ease-in-out infinite', animationDelay: '320ms' }} />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
 
 const IconBarChart3 = ({ className = '' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -56,15 +712,67 @@ const IconSearch = ({ className = '' }) => (
   </svg>
 );
 
-const ToolItem = ({ icon: Icon, label, subLabel }) => (
+const ToolItem = ({ icon: Icon, label, subLabel, pulseDelayMs = 0 }) => (
   <div className="flex flex-col items-center text-center group cursor-pointer">
-    <div className="w-[68px] h-[68px] bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] flex items-center justify-center mb-3 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-gray-200">
+    <div
+      className="phraze-toolitem-pulse w-[68px] h-[68px] bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] flex items-center justify-center mb-3 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-gray-200 group-hover:[animation-play-state:paused]"
+      style={{ animationDelay: `${pulseDelayMs}ms` }}
+    >
       <Icon className="w-7 h-7 text-slate-800 stroke-[1.5]" />
     </div>
     <h3 className="font-bold text-slate-900 text-[13px] mb-0.5">{label}</h3>
     <p className="text-[11px] text-slate-400 font-medium">{subLabel}</p>
   </div>
 );
+
+const BentoCard = ({ className = '', padClass = 'p-8', children }) => (
+  <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] ${padClass} h-[440px] flex flex-col relative select-none overflow-hidden ${className}`}>{children}</div>
+);
+
+const EmptyBentoPage = ({ revealActive = false }) => {
+  return (
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+        <div
+          className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-4 h-[440px] md:col-span-7 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
+          style={{ transitionDelay: '0ms' }}
+        >
+          <div className="flex-1 min-h-0">
+            <SecondPageChatDemo />
+          </div>
+        </div>
+        <div
+          className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-5 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
+          style={{ transitionDelay: '140ms' }}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-10 mt-10">
+        <div
+          className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-4 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
+          style={{ transitionDelay: '280ms' }}
+        >
+          <div className="mb-4">
+            <h3 className="text-lg font-serif font-bold text-slate-900">Contact</h3>
+            <p className="text-slate-500 text-sm font-light mt-1">Choose a teammate, preview their latest message, and jump into the thread instantly.</p>
+          </div>
+
+          <div className="flex-1 min-h-0">
+            <ContactBento />
+          </div>
+        </div>
+        <div
+          className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-4 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
+          style={{ transitionDelay: '420ms' }}
+        />
+        <div
+          className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-4 flex flex-col relative select-none overflow-hidden phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`}
+          style={{ transitionDelay: '560ms' }}
+        />
+      </div>
+    </div>
+  );
+};
 
 export const CollaboratorAvatars = () => {
   return (
@@ -103,7 +811,7 @@ export const LiveCollaborationCard = () => {
 
   const users = [
     { id: 'P', label: 'highlight', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200', dot: 'bg-indigo-500', icon: Highlighter, avatarSrc: '/priya.png', position: { x: 18, y: 46 }, linePosition: { x: 18, y: 46 }, nodeOffset: { x: -10, y: -14 } },
-    { id: 'A', label: 'label', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', dot: 'bg-rose-500', icon: Tag, avatarSrc: '/alex.png', position: { x: 82, y: 46 }, linePosition: { x: 82, y: 46 }, nodeOffset: { x: 0, y: -14 } },
+    { id: 'A', label: 'label', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', dot: 'bg-rose-500', icon: Tag, avatarSrc: '/alex.png', position: { x: 82, y: 46 }, linePosition: { x: 82, y: 46 }, nodeOffset: { x: -6, y: -14 } },
     { id: 'M', label: 'comment', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: MessageSquare, avatarSrc: '/maya.png', position: { x: 50, y: 82 }, linePosition: { x: 50, y: 82 }, nodeOffset: { x: -16, y: 0 } },
   ];
 
@@ -126,7 +834,7 @@ export const LiveCollaborationCard = () => {
             {users.map((u, i) => (
               <div
                 key={u.id}
-                className={`w-5 h-5 rounded-full border-2 border-white overflow-hidden flex items-center justify-center ${u.bg} transition-all duration-500 ${activeStep === i ? 'opacity-100 scale-110 shadow-sm' : 'opacity-40 scale-100'}`}
+                className={`w-6 h-6 rounded-full border-2 border-white overflow-hidden flex items-center justify-center bg-transparent transition-all duration-500 ${activeStep === i ? 'opacity-100 scale-110 shadow-sm' : 'opacity-40 scale-100'}`}
               >
                 <img src={u.avatarSrc} alt={u.id} className="w-full h-full object-cover" />
               </div>
@@ -135,7 +843,7 @@ export const LiveCollaborationCard = () => {
         </div>
       </div>
 
-      <div className="flex-1 relative mx-4 mb-6 bg-transparent rounded-2xl min-h-[160px]">
+      <div className="flex-1 relative mx-4 mb-6 bg-transparent rounded-2xl min-h-[200px]">
         <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-0">
           {users.map((user) => (
             <line
@@ -261,11 +969,11 @@ export const LiveCollaborationCard = () => {
 };
 
 const AnalyticsVisual = () => (
-  <div className="w-full h-full flex items-center justify-center p-0 relative">
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-gradient-to-br from-teal-50/40 to-indigo-50/40 rounded-full blur-3xl -z-10" />
+  <div className="w-full h-full min-w-0 flex items-center justify-center p-0 relative overflow-hidden">
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-gradient-to-br from-teal-50/40 to-indigo-50/40 rounded-full blur-3xl -z-10" />
 
-    <div className="bg-white w-full max-w-[340px] rounded-2xl border border-gray-100 p-6 relative z-10">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white w-full max-w-[360px] rounded-2xl border border-gray-100 p-6 pb-[10px] relative z-10 overflow-hidden">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-slate-700">
             <IconBarChart3 className="w-4 h-4" />
@@ -274,8 +982,8 @@ const AnalyticsVisual = () => (
         </div>
       </div>
 
-      <div className="relative h-32 w-full mb-6">
-        <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible">
+      <div className="relative h-24 w-full mb-6">
+        <svg viewBox="0 0 300 100" className="w-full h-full">
           <defs>
             <linearGradient id="chartGradientHome" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#64748b" stopOpacity="0.1" />
@@ -298,7 +1006,7 @@ const AnalyticsVisual = () => (
         </div>
       </div>
 
-      <div className="border-t border-gray-50 pt-4 space-y-3">
+      <div className="border-t border-gray-50 pt-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -332,62 +1040,882 @@ const AnalyticsVisual = () => (
           </div>
         </div>
       </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 56,
+          background: 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.82) 62%, rgba(255,255,255,1))',
+          pointerEvents: 'none',
+        }}
+      />
+    </div>
+  </div>
+);
+
+const ProjectOrganizationVisual = () => (
+  <div
+    style={{
+      background: 'transparent',
+      borderRadius: 24,
+      padding: 0,
+      margin: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <div style={{ width: '100%', position: 'relative' }}>
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0px 0px 28px',
+          background: 'transparent',
+          position: 'relative',
+        }}
+      >
+        <div style={{ position: 'relative', width: '100%', height: 290 }}>
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: 0,
+              transform: 'translateX(-50%) translateY(0px)',
+              width: '100%',
+              zIndex: 40,
+              background: 'rgb(255, 255, 255)',
+              border: '1px solid rgb(229, 231, 235)',
+              borderRadius: '6px 6px 0px 0px',
+              boxShadow: 'rgba(0, 0, 0, 0.08) 0px 4px 12px, rgba(0, 0, 0, 0.04) 0px 2px 4px',
+              overflow: 'hidden',
+              opacity: 1,
+              transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 4,
+                    background: 'rgb(244, 244, 245)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: '1px solid rgb(229, 231, 235)',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#18181b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <div style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 1 }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'rgb(24, 24, 27)',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Project Alpha
+                  </h3>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: 'rgb(82, 82, 91)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.01em',
+                        background: 'rgb(244, 244, 245)',
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        border: '1px solid rgb(228, 228, 231)',
+                      }}
+                    >
+                      12 threads
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: 'rgb(82, 82, 91)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.01em',
+                        background: 'rgb(244, 244, 245)',
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        border: '1px solid rgb(228, 228, 231)',
+                      }}
+                    >
+                      5 annotations
+                    </span>
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, paddingTop: 2 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: 78,
+              transform: 'translateX(-50%) translateY(0px)',
+              width: '100%',
+              zIndex: 30,
+              background: 'rgb(255, 255, 255)',
+              border: '1px solid rgb(229, 231, 235)',
+              borderRadius: '6px 6px 0px 0px',
+              boxShadow: 'rgba(0, 0, 0, 0.06) 0px 3px 8px, rgba(0, 0, 0, 0.03) 0px 1px 3px',
+              overflow: 'hidden',
+              opacity: 0.92,
+              transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 4,
+                    background: 'rgb(244, 244, 245)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: '1px solid rgb(229, 231, 235)',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#18181b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <div style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 1 }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'rgb(24, 24, 27)',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Project Beta
+                  </h3>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: 'rgb(82, 82, 91)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.01em',
+                        background: 'rgb(244, 244, 245)',
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        border: '1px solid rgb(228, 228, 231)',
+                      }}
+                    >
+                      8 threads
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: 'rgb(82, 82, 91)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.01em',
+                        background: 'rgb(244, 244, 245)',
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        border: '1px solid rgb(228, 228, 231)',
+                      }}
+                    >
+                      3 annotations
+                    </span>
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, paddingTop: 2 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: 156,
+              transform: 'translateX(-50%) translateY(0px)',
+              width: '100%',
+              zIndex: 20,
+              background: 'rgb(255, 255, 255)',
+              border: '1px solid rgb(229, 231, 235)',
+              borderRadius: '6px 6px 0px 0px',
+              boxShadow: 'rgba(0, 0, 0, 0.04) 0px 2px 6px, rgba(0, 0, 0, 0.02) 0px 1px 2px',
+              overflow: 'hidden',
+              opacity: 0.78,
+              transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 4,
+                    background: 'rgb(244, 244, 245)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: '1px solid rgb(229, 231, 235)',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#18181b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <div style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 1 }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'rgb(24, 24, 27)',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Project Gamma
+                  </h3>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: 'rgb(82, 82, 91)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.01em',
+                        background: 'rgb(244, 244, 245)',
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        border: '1px solid rgb(228, 228, 231)',
+                      }}
+                    >
+                      15 threads
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: 'rgb(82, 82, 91)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.01em',
+                        background: 'rgb(244, 244, 245)',
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        border: '1px solid rgb(228, 228, 231)',
+                      }}
+                    >
+                      7 annotations
+                    </span>
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, paddingTop: 2 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: 234,
+              transform: 'translateX(-50%) translateY(0px)',
+              width: '100%',
+              zIndex: 10,
+              background: 'rgb(255, 255, 255)',
+              border: '1.5px dashed rgb(209, 213, 219)',
+              borderRadius: '6px 6px 0px 0px',
+              boxShadow: 'rgba(0, 0, 0, 0.03) 0px 1px 3px',
+              overflow: 'hidden',
+              opacity: 0.64,
+              transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 4,
+                    background: 'rgb(250, 250, 250)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: '1px solid rgb(229, 231, 235)',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </div>
+                <div style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 1 }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'rgb(113, 113, 122)',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Create New Project
+                  </h3>
+                  <p
+                    style={{
+                      margin: '6px 0px 0px',
+                      fontSize: 13,
+                      color: 'rgb(161, 161, 170)',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Start a new workspace
+                  </p>
+                </div>
+                <div style={{ flexShrink: 0, paddingTop: 2 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 140,
+          background:
+            'linear-gradient(to bottom, rgba(250,249,246,0) 0%, rgba(250,249,246,0.18) 28%, rgba(250,249,246,0.75) 68%, rgba(250,249,246,1) 100%)',
+          pointerEvents: 'none',
+          borderRadius: 24,
+        }}
+      />
     </div>
   </div>
 );
 
 const ToolsAndAnalyticsSection = () => {
+  const headerRef = useRef(null);
+  const headerBottomLineRef = useRef(null);
+  const conveyorOuterRef = useRef(null);
+  const conveyorTrackRef = useRef(null);
+  const stickyInnerRef = useRef(null);
+  const rafRef = useRef(null);
+  const didSnapRef = useRef(false);
+  const snappingRef = useRef(false);
+  const lastWheelTsRef = useRef(0);
+  const wheelIdleTimerRef = useRef(null);
+  const lastWheelWasTrackpadRef = useRef(false);
+  const startRef = useRef(0);
+  const endRef = useRef(0);
+  const stickyTopPxRef = useRef(96);
+  const [conveyorX, setConveyorX] = useState(0);
+  const [conveyorMax, setConveyorMax] = useState(0);
+  const [stickyTopPx, setStickyTopPx] = useState(96);
+  const [revealActive, setRevealActive] = useState(false);
+  const revealWasOutRef = useRef(true);
+  const [isSecondScreen, setIsSecondScreen] = useState(false);
+  const [secondRevealActive, setSecondRevealActive] = useState(false);
+  const secondWasOutRef = useRef(true);
+
+  useEffect(() => {
+    const computeStickyTop = () => {
+      const el = stickyInnerRef.current;
+      if (!el) return;
+      const viewportH = window.innerHeight;
+      const h = el.getBoundingClientRect().height;
+      const visualOffset = 40;
+      const next = Math.max(24, Math.floor((viewportH - h) / 2) + visualOffset);
+      stickyTopPxRef.current = next;
+      setStickyTopPx(next);
+    };
+
+    computeStickyTop();
+    window.addEventListener('resize', computeStickyTop);
+    return () => window.removeEventListener('resize', computeStickyTop);
+  }, []);
+
+  useEffect(() => {
+    const sectionEl = conveyorOuterRef.current;
+    if (!sectionEl) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) {
+      setRevealActive(true);
+      return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      setRevealActive(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+
+        if (entry.isIntersecting) {
+          if (revealWasOutRef.current) {
+            revealWasOutRef.current = false;
+            setRevealActive(false);
+            window.requestAnimationFrame(() => {
+              window.requestAnimationFrame(() => {
+                setRevealActive(true);
+              });
+            });
+          }
+        } else {
+          revealWasOutRef.current = true;
+          setRevealActive(false);
+        }
+      },
+      {
+        threshold: 0.08,
+        rootMargin: '0px 0px -10% 0px'
+      }
+    );
+
+    observer.observe(sectionEl);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (isSecondScreen) {
+      if (secondWasOutRef.current) {
+        secondWasOutRef.current = false;
+        setSecondRevealActive(false);
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            setSecondRevealActive(true);
+          });
+        });
+      }
+    } else {
+      secondWasOutRef.current = true;
+      setSecondRevealActive(false);
+    }
+  }, [isSecondScreen]);
+
+  const toolItems = [
+    { icon: IconTag, label: 'Labels', subLabel: 'Active' },
+    { icon: IconFileText, label: 'Notes', subLabel: 'Synced' },
+    { icon: IconUsers, label: 'Collaboration', subLabel: 'Is live' },
+    { icon: IconSearch, label: 'Search', subLabel: 'Annotations' },
+  ];
+
+  useEffect(() => {
+    const outer = conveyorOuterRef.current;
+    const track = conveyorTrackRef.current;
+    if (!outer || !track) return;
+
+    const onWheel = (e) => {
+      const absY = Math.abs(e?.deltaY ?? 0);
+      const absX = Math.abs(e?.deltaX ?? 0);
+      const deltaMode = e?.deltaMode ?? 0;
+
+      // Heuristic: trackpads typically emit many small pixel deltas (deltaMode === 0)
+      // while mouse wheels tend to emit larger step deltas.
+      const isLikelyTrackpad = deltaMode === 0 && (absY > 0 && absY < 50 || absX > 0);
+
+      lastWheelWasTrackpadRef.current = Boolean(isLikelyTrackpad);
+      lastWheelTsRef.current = Date.now();
+      if (wheelIdleTimerRef.current) {
+        window.clearTimeout(wheelIdleTimerRef.current);
+      }
+      wheelIdleTimerRef.current = window.setTimeout(() => {
+        wheelIdleTimerRef.current = null;
+      }, 200);
+    };
+
+    const compute = () => {
+      const outerRect = outer.getBoundingClientRect();
+      const pageTop = window.scrollY + outerRect.top;
+      const viewportH = window.innerHeight;
+
+      const bottomLineEl = headerBottomLineRef.current;
+      const bottomLineTopAbs = bottomLineEl ? window.scrollY + bottomLineEl.getBoundingClientRect().top : pageTop - viewportH * 0.25;
+
+      const startOffset = Math.min(110, viewportH * 0.1);
+
+      const desiredStart = bottomLineTopAbs - startOffset;
+      const stickyStart = pageTop - stickyTopPxRef.current;
+      const start = Math.max(desiredStart, stickyStart);
+      const end = Math.max(start + 1, pageTop + outer.offsetHeight - viewportH * 0.75);
+
+      const motionDelayPx = Math.min(140, viewportH * 0.14);
+      const motionStart = start + motionDelayPx;
+
+      const endHoldPx = Math.min(220, viewportH * 0.22);
+      const motionEnd = Math.max(motionStart + 1, end - endHoldPx);
+
+      startRef.current = start;
+      endRef.current = end;
+
+      const snapWindow = Math.min(140, viewportH * 0.14);
+      const resetBuffer = Math.min(220, viewportH * 0.22);
+
+      const isInSection = window.scrollY >= start - resetBuffer && window.scrollY <= end + resetBuffer;
+      if (!isInSection) {
+        didSnapRef.current = false;
+      }
+
+      const wheelIsActive = Date.now() - lastWheelTsRef.current < 200;
+      const recentlyTrackpad = lastWheelWasTrackpadRef.current && Date.now() - lastWheelTsRef.current < 600;
+      if (!recentlyTrackpad && !wheelIsActive && !didSnapRef.current && !snappingRef.current && window.scrollY > start && window.scrollY < start + snapWindow) {
+        snappingRef.current = true;
+        window.scrollTo({ top: start, behavior: 'smooth' });
+        didSnapRef.current = true;
+        window.setTimeout(() => {
+          snappingRef.current = false;
+        }, 180);
+      }
+
+      const progress = Math.min(1, Math.max(0, (window.scrollY - motionStart) / Math.max(1, motionEnd - motionStart)));
+      const outerW = Math.max(1, outer.clientWidth);
+      const maxTranslate = Math.max(0, track.scrollWidth - outerW);
+      const translateX = progress * maxTranslate;
+      setConveyorMax(maxTranslate);
+      setConveyorX(translateX);
+
+      const page = Math.round(translateX / outerW);
+      setIsSecondScreen(page === 1);
+    };
+
+    const onScroll = () => {
+      if (rafRef.current) return;
+      rafRef.current = window.requestAnimationFrame(() => {
+        rafRef.current = null;
+        compute();
+      });
+    };
+
+    compute();
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', compute);
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', compute);
+      if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      if (wheelIdleTimerRef.current) {
+        window.clearTimeout(wheelIdleTimerRef.current);
+        wheelIdleTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const fadeW = 46;
+  const edgeFadeStrength = 0.32;
+  const leftFadeAmt = conveyorMax > 0 ? Math.min(1, conveyorX / 120) : 0;
+  const rightFadeAmtRaw = conveyorMax > 0 ? Math.min(1, (conveyorMax - conveyorX) / 120) : 0;
+  const rightGatePx = 36;
+  const rightGate = Math.min(1, Math.max(0, conveyorX / rightGatePx));
+  const rightFadeAmt = rightFadeAmtRaw * rightGate;
+  const leftEdgeAlpha = 1 - leftFadeAmt * edgeFadeStrength;
+  const rightEdgeAlpha = 1 - rightFadeAmt * edgeFadeStrength;
+
+  const chatAnnotationVisualHtml = `<div style="width: 100%; height: 100%; background: radial-gradient(ellipse at 50% 100%, rgba(34,211,238,0.22) 0%, rgba(34,211,238,0.11) 34%, rgba(34,211,238,0.05) 58%, rgba(255,255,255,0) 80%), linear-gradient(135deg, rgb(255, 254, 252) 0%, rgb(251, 252, 253) 55%, rgb(246, 248, 251) 100%); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgb(226, 232, 240); box-shadow: rgba(0, 0, 0, 0.08) 0px 4px 16px, rgba(0, 0, 0, 0.06) 0px 2px 8px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset; position: relative;"><div style="position: absolute; inset: 0px; background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2) 0%, transparent 50%), radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.1) 0%, transparent 50%); pointer-events: none; z-index: 1;"></div><div style="position: absolute; top: 15%; right: 10%; width: 4px; height: 4px; background: rgba(255, 255, 255, 0.6); border-radius: 50%; box-shadow: rgba(255, 255, 255, 0.8) 0px 0px 6px; z-index: 1;"></div><div style="position: absolute; top: 60%; left: 8%; width: 3px; height: 3px; background: rgba(255, 255, 255, 0.4); border-radius: 50%; box-shadow: rgba(255, 255, 255, 0.6) 0px 0px 4px; z-index: 1;"></div><div style="position: absolute; top: 80%; right: 20%; width: 2px; height: 2px; background: rgba(255, 255, 255, 0.5); border-radius: 50%; box-shadow: rgba(255, 255, 255, 0.7) 0px 0px 3px; z-index: 1;"></div><div style="flex: 1 1 0%; padding: 8px; display: flex; flex-direction: column; gap: 10px; justify-content: center; position: relative; z-index: 2;"><div style="display: flex; justify-content: flex-end;"><div style="background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(248, 250, 252) 100%); border-radius: 20px 20px 6px; padding: 14px 18px; max-width: 80%; font-size: 14px; line-height: 1.5; color: rgb(55, 65, 81); border: 1px solid rgb(229, 231, 235); box-shadow: rgba(0, 0, 0, 0.08) 0px 1px 4px, rgba(255, 255, 255, 0.8) 0px 1px 0px inset; position: relative;">Can you explain <span style="background-color: rgb(254, 243, 199); padding: 2px 4px; border-radius: 4px; font-weight: 500;">machine learning</span>?</div></div><div style="display: flex; justify-content: flex-start;"><div style="display: flex; flex-direction: column; max-width: 85%;"><div style="font-size: 0.8rem; margin-bottom: 8px; font-weight: 500; color: rgb(85, 85, 85); text-align: left; padding-right: 0rem; display: flex; align-items: center; gap: 0.5rem; justify-content: flex-start; padding-left: 16px;"><span>phraze</span><div style="width: 16px; height: 16px; border-radius: 50%; background-color: rgb(100, 116, 139); display: flex; align-items: center; justify-content: center; font-size: 0.5rem; font-weight: 600; color: white; border: 1px solid rgb(71, 85, 105);">P</div></div><div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%); border-radius: 20px 20px 20px 6px; padding: 16px 20px; font-size: 14px; line-height: 1.5; color: rgb(55, 65, 81); border: 1px solid rgba(229, 231, 235, 0.5); box-shadow: rgba(0, 0, 0, 0.06) 0px 1px 4px, rgba(255, 255, 255, 0.6) 0px 1px 0px inset; backdrop-filter: blur(10px); position: relative;"><span style="background-color: rgb(219, 234, 254); padding: 2px 4px; border-radius: 4px; font-weight: 500;">Machine learning</span> is a subset of AI that enables computers to learn and make decisions from data. Key concepts include <span style="background-color: rgb(220, 252, 231); padding: 2px 4px; border-radius: 4px; font-weight: 500;">neural networks</span>, <span style="background-color: rgb(252, 231, 243); padding: 2px 4px; border-radius: 4px; font-weight: 500;">algorithms</span>, and <span style="background-color: rgb(254, 243, 199); padding: 2px 4px; border-radius: 4px; font-weight: 500;">data preprocessing</span> techniques.</div></div></div></div><div style="padding: 8px 10px; border-top: 1px solid rgba(229, 231, 235, 0.3); background: rgb(255, 255, 255); border-radius: 0px 0px 16px 16px; position: relative; z-index: 2; backdrop-filter: blur(20px); box-shadow: rgba(255, 255, 255, 0.6) 0px 1px 0px inset;"><div style="display: flex; flex-flow: wrap; gap: 12px; align-items: center; justify-content: center;"><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(254, 243, 199); border-radius: 2px;"></div><span>Technology</span></div><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(219, 234, 254); border-radius: 2px;"></div><span>AI Concepts</span></div><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(220, 252, 231); border-radius: 2px;"></div><span>Algorithms</span></div><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(252, 231, 243); border-radius: 2px;"></div><span>Methods</span></div></div></div></div>`;
+
   return (
-    <div className="w-full max-w-[1200px] mx-auto py-[72px] px-[24px]">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        <div className="flex flex-col">
-          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-4">Annotate your chats</h2>
-          <p className="text-slate-500 text-lg leading-relaxed font-light mb-8 max-w-md md:min-h-[84px]">
-            Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.
-          </p>
+    <div className="w-full max-w-[1480px] mx-auto py-[72px] px-[24px]">
+      <style>{`
+        @keyframes phrazeToolItemPulse {
+          0%, 72%, 100% {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+            border-color: rgb(243 244 246);
+          }
+          12%, 24% {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.14);
+            border-color: rgb(229 231 235);
+          }
+        }
 
-          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-12 h-[400px] flex items-center justify-center relative overflow-hidden select-none">
-            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-8 w-full max-w-md">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-slate-700">
-                  <IconWrench className="w-4 h-4" />
-                </div>
-                <span className="font-semibold text-slate-700 text-sm">Tools</span>
-              </div>
+        .phraze-toolitem-pulse {
+          animation: phrazeToolItemPulse 3200ms ease-in-out infinite;
+        }
 
-              <div className="grid grid-cols-4 gap-4">
-                <ToolItem icon={IconTag} label="Labels" subLabel="Active" />
-                <ToolItem icon={IconFileText} label="Notes" subLabel="Synced" />
-                <ToolItem icon={IconUsers} label="Collaboration" subLabel="Is live" />
-                <ToolItem icon={IconSearch} label="Search" subLabel="Annotations" />
+        .phraze-secondpage-chat {
+          height: 100%;
+        }
+
+        .phraze-secondpage-chat > div {
+          height: 100% !important;
+          background: radial-gradient(ellipse at 50% 100%, rgba(34,211,238,0.22) 0%, rgba(34,211,238,0.11) 34%, rgba(34,211,238,0.05) 58%, rgba(255,255,255,0) 80%), linear-gradient(135deg, rgb(255, 254, 252) 0%, rgb(251, 252, 253) 55%, rgb(246, 248, 251) 100%) !important;
+          border-radius: 16px !important;
+          border: 1px solid rgb(226, 232, 240) !important;
+          box-shadow: rgba(0, 0, 0, 0.08) 0px 4px 16px, rgba(0, 0, 0, 0.06) 0px 2px 8px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset !important;
+          overflow: hidden !important;
+        }
+
+        .phraze-secondpage-chat > div > div {
+          height: 100% !important;
+          overflow-y: auto !important;
+          padding: 14px !important;
+          scroll-snap-type: y mandatory;
+          scroll-padding-top: 14px;
+          padding-bottom: 24px !important;
+        }
+
+        .phraze-secondpage-chat > div > div > div {
+          padding-left: 10px !important;
+          padding-right: 10px !important;
+          scroll-snap-align: start;
+        }
+
+        .phraze-secondpage-chat > div > div > div > div {
+          max-width: 92% !important;
+        }
+
+        .phraze-secondpage-chat > div > div > div > div > div:nth-child(2) {
+          background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(248, 250, 252) 100%) !important;
+          border: 1px solid rgb(229, 231, 235) !important;
+          border-radius: 20px 20px 6px !important;
+          box-shadow: rgba(0, 0, 0, 0.06) 0px 2px 10px !important;
+          padding: 14px 18px !important;
+        }
+
+        .phraze-secondpage-chat span[style*="background-color"] {
+          background-color: rgba(254, 243, 199, 0.6) !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .phraze-toolitem-pulse {
+            animation: none;
+          }
+
+          .phraze-bento-reveal {
+            opacity: 1 !important;
+            transform: none !important;
+            filter: none !important;
+            transition: none !important;
+          }
+
+          .phraze-reveal-apple {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+          }
+        }
+
+        .phraze-reveal-apple {
+          opacity: 0;
+          transform: translate3d(0, 10px, 0);
+          transition-property: opacity, transform;
+          transition-duration: 420ms;
+          transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+
+        .phraze-reveal-apple.is-revealed {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
+
+        .phraze-bento-reveal {
+          opacity: 0;
+          transform: translateY(28px) scale(0.98);
+          filter: blur(6px);
+          transition: opacity 760ms cubic-bezier(0.22, 1, 0.36, 1), transform 760ms cubic-bezier(0.22, 1, 0.36, 1), filter 760ms cubic-bezier(0.22, 1, 0.36, 1);
+          will-change: opacity, transform, filter;
+        }
+
+        .phraze-bento-reveal.is-revealed {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: blur(0px);
+        }
+      `}</style>
+
+      <div ref={headerRef} className="max-w-3xl mx-auto text-center mb-14">
+        <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mb-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }} />
+        <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }}>
+          <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
+            <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
+              Tools & analytics
+            </span>
+          </span>
+        </div>
+        <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
+          <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Annotate your chats.</h2>
+        </div>
+        <div ref={headerBottomLineRef} className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mt-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '160ms' : '0ms' }} />
+      </div>
+
+      <div ref={conveyorOuterRef} className="relative mt-10">
+        <div className="h-[240vh]">
+          <div ref={stickyInnerRef} className="sticky" style={{ top: stickyTopPx }}>
+            <div
+              className="relative overflow-hidden"
+              style={{
+                WebkitMaskImage: `linear-gradient(to right, rgba(0,0,0,${leftEdgeAlpha}) 0px, rgba(0,0,0,1) ${fadeW}px, rgba(0,0,0,1) calc(100% - ${fadeW}px), rgba(0,0,0,${rightEdgeAlpha}) 100%)`,
+                maskImage: `linear-gradient(to right, rgba(0,0,0,${leftEdgeAlpha}) 0px, rgba(0,0,0,1) ${fadeW}px, rgba(0,0,0,1) calc(100% - ${fadeW}px), rgba(0,0,0,${rightEdgeAlpha}) 100%)`,
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskSize: '100% 100%',
+                maskSize: '100% 100%',
+              }}
+            >
+              <div
+                ref={conveyorTrackRef}
+                className="flex gap-10 will-change-transform"
+                style={{ transform: `translate3d(${-conveyorX}px, 0, 0)`, transition: 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1)' }}
+              >
+                {[0, 1, 2].map((pageIndex) => (
+                  <div key={`bento-page-${pageIndex}`} className="shrink-0 w-full">
+                    {pageIndex === 1 ? (
+                      <EmptyBentoPage revealActive={secondRevealActive} />
+                    ) : (
+                      <div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '0ms' }}>
+                            <div className="mb-6">
+                              <h3 className="text-lg font-serif font-bold text-slate-900">Annotate your chats</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1">Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.</p>
+                            </div>
+
+                            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 w-full max-w-md mx-auto mt-auto">
+                              <div className="flex items-center gap-3 mb-6">
+                                <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-slate-700">
+                                  <IconWrench className="w-4 h-4" />
+                                </div>
+                                <span className="font-semibold text-slate-700 text-sm">Tools</span>
+                              </div>
+                              <div className="grid grid-cols-4 gap-4">
+                                {toolItems.map((item, idx) => (
+                                  <ToolItem
+                                    key={item.label}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    subLabel={item.subLabel}
+                                    pulseDelayMs={(pageIndex * 1200) + (idx * 260)}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '140ms' }}>
+                            <div className="mb-6">
+                              <h3 className="text-lg font-serif font-bold text-slate-900">Project Organization</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1">Keep every thread, tag, and decision structured in one place.</p>
+                            </div>
+                            <div className="flex-1 min-h-0 flex items-center justify-center">
+                              <div className="w-full">
+                                <ProjectOrganizationVisual />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '280ms' }}>
+                            <div className="mb-4">
+                              <h3 className="text-lg font-serif font-bold text-slate-900">{pageIndex % 2 === 0 ? 'Chat annotation' : 'Exports'}</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1">
+                                {pageIndex % 2 === 0
+                                  ? 'Highlight key phrases in the conversation and label them instantly.'
+                                  : 'Share insights with a clean export your team can trust.'}
+                              </p>
+                            </div>
+                            <div className="flex-1 min-h-0">
+                              {pageIndex % 2 === 0 ? (
+                                <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: chatAnnotationVisualHtml }} />
+                              ) : (
+                                <div className="bg-white rounded-3xl border border-gray-100 p-6 w-full max-w-md mx-auto">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="text-[11px] font-semibold text-slate-700">Export report</div>
+                                    <div className="text-[10px] font-medium text-slate-400">PDF · CSV</div>
+                                  </div>
+                                  <div className="h-10 bg-slate-50 border border-slate-100 rounded-2xl" />
+                                  <div className="mt-3 space-y-2">
+                                    <div className="h-2 bg-slate-100 rounded-full w-[88%]" />
+                                    <div className="h-2 bg-slate-100 rounded-full w-[72%]" />
+                                    <div className="h-2 bg-slate-100 rounded-full w-[80%]" />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 mt-10">
+                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-7 flex flex-col phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '420ms' }}>
+                            <div className="mb-4">
+                              <h3 className="text-lg font-serif font-bold text-slate-900">Live collaboration</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1">See changes merge in real time as your team annotates.</p>
+                            </div>
+                            <div className="flex-1 w-full">
+                              <LiveCollaborationCard />
+                            </div>
+                          </div>
+                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-5 flex flex-col phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '560ms' }}>
+                            <div className="mb-4">
+                              <h3 className="text-lg font-serif font-bold text-slate-900">Analyze your data</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1">Visualize trends and uncover insights in your conversations with analytics tools.</p>
+                            </div>
+                            <div className="flex-1 flex items-center justify-center overflow-visible">
+                              <AnalyticsVisual />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
-
-        <div className="flex flex-col">
-          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-4">Analyze your data</h2>
-          <p className="text-slate-500 text-lg leading-relaxed font-light mb-8 max-w-md md:min-h-[84px]">
-            Visualize trends and uncover hidden patterns in your conversations with powerful analytics tools.
-          </p>
-
-          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-12 h-[400px] flex items-center justify-center relative overflow-hidden select-none">
-            <AnalyticsVisual />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-10">
-        <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[400px] md:col-span-2 flex flex-col">
-          <div className="mb-4">
-            <h3 className="text-lg font-serif font-bold text-slate-900">Live collaboration</h3>
-            <p className="text-slate-500 text-sm font-light mt-1">See changes merge in real time as your team annotates.</p>
-          </div>
-          <div className="flex-1 w-full">
-            <LiveCollaborationCard />
-          </div>
-        </div>
-        <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[400px] md:col-span-1" />
       </div>
     </div>
   );

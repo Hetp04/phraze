@@ -62,6 +62,7 @@ function NotionDemo() {
   const sectionRef = useRef(null);
   const stickyRef = useRef(null);
   const [stickyTop, setStickyTop] = useState(140);
+  const [revealActive, setRevealActive] = useState(false);
   const programmaticScrollRef = useRef(false);
   const programmaticTargetYRef = useRef(null);
   const programmaticUntilRef = useRef(0);
@@ -95,6 +96,48 @@ function NotionDemo() {
   }, [activeTab]);
 
   useEffect(() => {
+    const sectionEl = sectionRef.current;
+    if (!sectionEl) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) {
+      setRevealActive(true);
+      return;
+    }
+
+    let raf = 0;
+
+    const compute = () => {
+      raf = 0;
+      const rect = sectionEl.getBoundingClientRect();
+      const vh = window.innerHeight || 0;
+
+      // Start reveal a bit later so the user can actually see the animation.
+      // Keep it visible longer when scrolling past so the big panel doesn't disappear too early.
+      const enterAt = vh * 0.62;
+      const exitAt = vh * 0.15;
+
+      const shouldBeActive = rect.top < enterAt && rect.bottom > exitAt;
+      setRevealActive(shouldBeActive);
+    };
+
+    const onScrollOrResize = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(compute);
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize);
+    compute();
+
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  useEffect(() => {
     const navbarMinOffset = 96;
 
     const recalcStickyTop = () => {
@@ -107,8 +150,8 @@ function NotionDemo() {
       const rect = el.getBoundingClientRect();
       const blockH = rect.height || 0;
       const centered = (window.innerHeight - blockH) / 2;
-      const visualOffset = 40;
-      const maxTop = navbarMinOffset + 104;
+      const visualOffset = 26;
+      const maxTop = navbarMinOffset + 84;
       const nextTop = Math.min(
         maxTop,
         Math.max(navbarMinOffset, Math.floor(centered) + visualOffset)
@@ -181,38 +224,82 @@ function NotionDemo() {
 
   return (
     <section ref={sectionRef} className="w-full py-12 relative z-20">
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .phraze-reveal-apple {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+          }
+        }
+
+        .phraze-reveal-apple {
+          opacity: 0;
+          transform: translate3d(0, 10px, 0);
+          transition-property: opacity, transform;
+          transition-duration: 420ms;
+          transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+
+        .phraze-reveal-apple.is-revealed {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
+      `}</style>
       <div className="max-w-[1200px] mx-auto px-6">
         <div className="relative">
           <div ref={stickyRef} className="z-10" style={{ position: 'sticky', top: stickyTop }}>
+            <div className="max-w-3xl mx-auto text-center mb-12">
+              <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }}>
+                <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
+                  <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
+                    Workspace
+                  </span>
+                </span>
+              </div>
+              <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
+                <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Collaborate in real time.</h2>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {tabs.map((tab, idx) => (
-                <FeatureCard
+                <div
                   key={idx}
-                  title={tab.title}
-                  description={tab.desc}
-                  Icon={tab.Icon}
-                  active={activeTab === idx}
-                  onClick={() => {
-                    setActiveTab(idx);
-                    const sectionEl = sectionRef.current;
-                    if (!sectionEl) return;
-                    const start = sectionEl.offsetTop;
-                    const end = start + sectionEl.offsetHeight - window.innerHeight;
-                    const denom = Math.max(1, end - start);
-                    const target = start + (idx + 0.5) * (denom / tabs.length);
+                  className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+                  style={{ transitionDelay: revealActive ? `${idx * 70}ms` : '0ms' }}
+                >
+                  <FeatureCard
+                    title={tab.title}
+                    description={tab.desc}
+                    Icon={tab.Icon}
+                    active={activeTab === idx}
+                    onClick={() => {
+                      setActiveTab(idx);
+                      const sectionEl = sectionRef.current;
+                      if (!sectionEl) return;
+                      const start = sectionEl.offsetTop;
+                      const end = start + sectionEl.offsetHeight - window.innerHeight;
+                      const denom = Math.max(1, end - start);
+                      const target = start + (idx + 0.5) * (denom / tabs.length);
 
-                    programmaticScrollRef.current = true;
-                    programmaticTargetYRef.current = target;
-                    programmaticTabRef.current = idx;
-                    programmaticUntilRef.current = Date.now() + 900;
+                      programmaticScrollRef.current = true;
+                      programmaticTargetYRef.current = target;
+                      programmaticTabRef.current = idx;
+                      programmaticUntilRef.current = Date.now() + 900;
 
-                    window.scrollTo({ top: target, behavior: 'smooth' });
-                  }}
-                />
+                      window.scrollTo({ top: target, behavior: 'smooth' });
+                    }}
+                  />
+                </div>
               ))}
             </div>
 
-            <div className="w-full bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-gray-200 overflow-hidden flex flex-col h-[640px] relative transition-all duration-500">
+            <div
+              className={`w-full bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-gray-200 overflow-hidden flex flex-col h-[640px] relative transition-all duration-500 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+              style={{ transitionDelay: revealActive ? '260ms' : '0ms' }}
+            >
               <div className="flex-1 bg-white flex items-center justify-center p-12 overflow-hidden">
                 <style>{`
                   @keyframes smoothFadeSlide {

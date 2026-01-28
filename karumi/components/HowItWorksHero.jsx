@@ -859,23 +859,111 @@ const CollaborateVisual = () => {
   );
 };
 
-const StepSection = ({ number, title, description, visual, reversed = false }) => (
-  <div
-    className={`flex flex-col ${reversed ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-12 md:gap-24 mb-48 last:mb-0`}
-  >
-    <div className={`flex-1 text-center md:text-left ${reversed ? '' : 'md:-ml-6'}`}>
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-slate-900 font-serif font-semibold text-lg mb-6 shadow-sm">
-        {number}
-      </div>
-      <h3 className="text-3xl font-serif font-bold text-slate-900 mb-4">{title}</h3>
-      <p className="text-slate-500 text-lg leading-relaxed font-light">{description}</p>
-    </div>
+const StepSection = ({ number, title, description, visual, reversed = false, delayMs = 0, revealCycle = 0 }) => {
+  const stepRef = useRef(null);
+  const [isRevealed, setIsRevealed] = useState(false);
 
-    <div className="flex-1 w-full flex justify-center md:justify-end select-none">{visual}</div>
-  </div>
-);
+  useEffect(() => {
+    setIsRevealed(false);
+  }, [revealCycle]);
+
+  useEffect(() => {
+    const el = stepRef.current;
+    if (!el) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) {
+      setIsRevealed(true);
+      return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      setIsRevealed(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        setIsRevealed(Boolean(entry.isIntersecting));
+      },
+      {
+        threshold: 0.12,
+        rootMargin: '0px 0px -18% 0px'
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [revealCycle]);
+
+  return (
+    <div
+      ref={stepRef}
+      className={`flex flex-col ${reversed ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-12 md:gap-24 mb-48 last:mb-0 phraze-bento-reveal ${isRevealed ? 'is-revealed' : ''}`}
+      style={{ transitionDelay: isRevealed ? `${delayMs}ms` : '0ms' }}
+    >
+      <div className={`flex-1 text-center md:text-left ${reversed ? '' : 'md:-ml-6'}`}>
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-slate-900 font-serif font-semibold text-lg mb-6 shadow-sm">
+          {number}
+        </div>
+        <h3 className="text-3xl font-serif font-bold text-slate-900 mb-4">{title}</h3>
+        <p className="text-slate-500 text-lg leading-relaxed font-light">{description}</p>
+      </div>
+
+      <div className="flex-1 w-full flex justify-center md:justify-end select-none">{visual}</div>
+    </div>
+  );
+};
 
 export default function HowItWorksHero() {
+  const sectionRef = useRef(null);
+  const [revealCycle, setRevealCycle] = useState(0);
+  const revealWasOutRef = useRef(true);
+  const [headerRevealActive, setHeaderRevealActive] = useState(false);
+
+  useEffect(() => {
+    const sectionEl = sectionRef.current;
+    if (!sectionEl) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) {
+      setRevealCycle(1);
+      return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      setRevealCycle(1);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+
+        if (entry.isIntersecting) {
+          if (revealWasOutRef.current) {
+            revealWasOutRef.current = false;
+            setRevealCycle((c) => c + 1);
+          }
+          setHeaderRevealActive(true);
+        } else {
+          revealWasOutRef.current = true;
+          setHeaderRevealActive(false);
+        }
+      },
+      {
+        threshold: 0.12,
+        rootMargin: '0px 0px -10% 0px'
+      }
+    );
+
+    observer.observe(sectionEl);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="w-full flex flex-col items-center relative overflow-hidden bg-[#fcfcfc]">
       <style>{`
@@ -905,15 +993,54 @@ export default function HowItWorksHero() {
         .animate-draw-arrow {
             animation: fadeIn 0.4s ease-out forwards;
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .phraze-bento-reveal {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+          }
+        }
+
+        .phraze-bento-reveal {
+          opacity: 0;
+          transform: translate3d(0, 12px, 0);
+          transition-property: opacity, transform;
+          transition-duration: 480ms;
+          transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+
+        .phraze-bento-reveal.is-revealed {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
       `}</style>
 
       <div className="w-full bg-white py-24 relative z-10">
-        <div className="max-w-6xl mx-auto px-6">
+        <div ref={sectionRef} className="max-w-6xl mx-auto px-6">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mb-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '0ms' : '0ms' }} />
+            <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '0ms' : '0ms' }}>
+              <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
+                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-white text-slate-700 text-[11px] font-semibold tracking-wide">
+                  How it works
+                </span>
+              </span>
+            </div>
+            <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '90ms' : '0ms' }}>
+              <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">From chat to shared insights.</h2>
+            </div>
+            <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mt-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '160ms' : '0ms' }} />
+          </div>
+
           <StepSection
             number="01"
             title="Chat with Phraze AI"
             description="Experience natural, context-aware conversations. Ask complex questions, generate content, and explore ideas with an AI that understands your goals."
             visual={<ChatVisual />}
+            delayMs={0}
+            revealCycle={revealCycle}
           />
 
           <StepSection
@@ -922,6 +1049,8 @@ export default function HowItWorksHero() {
             description="Don't let good ideas get lost in the scroll. Highlight key moments, attach custom labels, and add notes to structure your qualitative data instantly."
             visual={<AnnotateVisual />}
             reversed
+            delayMs={120}
+            revealCycle={revealCycle}
           />
 
           <StepSection
@@ -929,6 +1058,8 @@ export default function HowItWorksHero() {
             title="Collaborate & Share"
             description="Turn individual chats into team knowledge. Invite colleagues to view, comment, assign role-based permissions (Owner, Editor, Viewer), and build upon your annotated conversations in a shared workspace."
             visual={<CollaborateVisual />}
+            delayMs={240}
+            revealCycle={revealCycle}
           />
         </div>
       </div>

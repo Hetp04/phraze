@@ -6,18 +6,18 @@ export const Hero: React.FC = () => {
   return (
     <section className="relative pt-[80px] min-h-[calc(100vh-80px)] max-w-[1150px] mx-auto px-6">
 
-      <div className="absolute inset-0 pointer-events-none z-0 flex justify-center w-full">
-         <div className="w-full max-w-[1150px] h-full border-x border-gray-200 relative">
+      <div className="absolute -top-[80px] left-0 right-0 bottom-0 pointer-events-none z-0 flex justify-center w-full">
+         <div className="w-full max-w-[1150px] h-[calc(100%+80px)] border-x border-gray-200 relative">
             <div className="absolute inset-0">
-              <div className="absolute left-0 top-0 bottom-0 w-px overflow-visible" style={{ transform: 'translateX(-50%)' }}>
+              <div className="absolute left-0 top-0 bottom-0 w-px overflow-hidden">
                 <div
-                  className="absolute left-0 w-[1px] h-full bg-gradient-to-b from-transparent via-[#14B8A6] to-transparent animate-beam-v"
+                  className="absolute left-0 w-px h-full bg-gradient-to-b from-transparent via-[#14B8A6] to-transparent animate-beam-v"
                   style={{ animationDelay: '0s' }}
                 />
               </div>
-              <div className="absolute right-0 top-0 bottom-0 w-px overflow-visible" style={{ transform: 'translateX(50%)' }}>
+              <div className="absolute right-0 top-0 bottom-0 w-px overflow-hidden">
                 <div
-                  className="absolute left-0 w-[1px] h-full bg-gradient-to-b from-transparent via-[#14B8A6] to-transparent animate-beam-v"
+                  className="absolute left-0 w-px h-full bg-gradient-to-b from-transparent via-[#14B8A6] to-transparent animate-beam-v"
                   style={{ animationDelay: '3s' }}
                 />
               </div>
