@@ -119,20 +119,20 @@ const ScrollHero: React.FC = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative h-[420vh] w-full bg-[#FFFEFC] text-stone-900">
-      <div className="pointer-events-none absolute left-0 right-0 top-0 h-24 bg-gradient-to-b from-[#FFFEFC] to-transparent z-20" />
+    <div ref={containerRef} className="relative h-[420vh] w-full bg-[#FFFDF8] text-stone-900">
+      <div className="pointer-events-none absolute left-0 right-0 top-0 h-24 bg-gradient-to-b from-[#FFFDF8] to-transparent z-20" />
       <div
         className="pointer-events-none absolute left-0 right-0 -bottom-px h-32 z-20"
         style={{
           backgroundImage: [
-            'linear-gradient(to top, rgba(255,254,252,1) 0%, rgba(255,254,252,1) 30%, rgba(255,254,252,0) 100%)',
-            'radial-gradient(120% 110% at 0% 100%, rgba(255,254,252,1) 0%, rgba(255,254,252,1) 22%, rgba(255,254,252,0) 62%)',
-            'radial-gradient(120% 110% at 100% 100%, rgba(255,254,252,1) 0%, rgba(255,254,252,1) 22%, rgba(255,254,252,0) 62%)'
+            'linear-gradient(to top, rgba(255,253,248,1) 0%, rgba(255,253,248,1) 30%, rgba(255,253,248,0) 100%)',
+            'radial-gradient(120% 110% at 0% 100%, rgba(255,253,248,1) 0%, rgba(255,253,248,1) 22%, rgba(255,253,248,0) 62%)',
+            'radial-gradient(120% 110% at 100% 100%, rgba(255,253,248,1) 0%, rgba(255,253,248,1) 22%, rgba(255,253,248,0) 62%)'
           ].join(', ')
         }}
       />
       <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
-        <div className="absolute inset-x-0 top-0 bottom-12 bg-[#FFFEFC]" />
+        <div className="absolute inset-x-0 top-0 bottom-12 bg-[#FFFDF8]" />
         
         {/* --- LIGHT BACKGROUND ATMOSPHERE --- */}
         <div className="absolute inset-0 pointer-events-none">

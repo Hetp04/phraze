@@ -27,7 +27,7 @@ export const Hero: React.FC = () => {
 
       <div className="relative pb-[360px] lg:pb-[400px] min-h-[calc(100vh-80px)]">
 
-        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-0 w-screen h-28 bg-gradient-to-b from-transparent to-[#FFFEFC] z-0" />
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-0 w-screen h-28 bg-gradient-to-b from-transparent to-[#FFFDF8] z-0" />
       
       {/* 
         Horizontal Grid Line 
@@ -85,23 +85,23 @@ export const Hero: React.FC = () => {
       */}
 
       {/* Top Left: Chat - Rotated CCW */}
-      <div className="absolute top-24 lg:top-16 2xl:top-6 left-0 md:-left-10 lg:-left-16 2xl:-left-[36px] hidden md:flex w-[72px] h-[72px] bg-white rounded-2xl border border-gray-100/50 items-center justify-center transform -rotate-12 hover:rotate-0 transition-transform duration-500 z-0">
-         <MessageSquare className="w-7 h-7 text-gray-300 fill-gray-50" />
+      <div className="group absolute top-24 lg:top-16 2xl:top-6 left-0 md:-left-10 lg:-left-16 2xl:-left-[36px] hidden md:flex w-[72px] h-[72px] rounded-2xl bg-[#FFFEFA] border border-slate-200/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] items-center justify-center transform -rotate-12 hover:rotate-0 transition-transform duration-500 z-0 hover:border-cyan-200/70 hover:shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
+         <MessageSquare className="w-7 h-7 text-slate-400 transition-colors duration-300 group-hover:text-[#14B8A6]" />
       </div>
 
       {/* Top Right: Pen - Rotated CW */}
-      <div className="absolute top-24 lg:top-16 2xl:top-6 right-0 md:-right-10 lg:-right-16 2xl:-right-[36px] hidden md:flex w-[72px] h-[72px] bg-white rounded-2xl border border-gray-100/50 items-center justify-center transform rotate-12 hover:rotate-0 transition-transform duration-500 z-0">
-         <PenTool className="w-7 h-7 text-gray-300 fill-gray-50" />
+      <div className="group absolute top-24 lg:top-16 2xl:top-6 right-0 md:-right-10 lg:-right-16 2xl:-right-[36px] hidden md:flex w-[72px] h-[72px] rounded-2xl bg-[#FFFEFA] border border-slate-200/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] items-center justify-center transform rotate-12 hover:rotate-0 transition-transform duration-500 z-0 hover:border-cyan-200/70 hover:shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
+         <PenTool className="w-7 h-7 text-slate-400 transition-colors duration-300 group-hover:text-[#14B8A6]" />
       </div>
 
       {/* Bottom Left: Users - Rotated CW */}
-      <div className="absolute bottom-56 lg:bottom-80 2xl:bottom-[calc(17rem-36px)] left-0 md:-left-10 lg:-left-16 2xl:-left-[36px] hidden md:flex w-[72px] h-[72px] bg-white rounded-2xl border border-gray-100/50 items-center justify-center transform rotate-6 hover:rotate-0 transition-transform duration-500 z-0">
-         <Users className="w-7 h-7 text-gray-300 fill-gray-50" />
+      <div className="group absolute bottom-56 lg:bottom-80 2xl:bottom-[calc(17rem-36px)] left-0 md:-left-10 lg:-left-16 2xl:-left-[36px] hidden md:flex w-[72px] h-[72px] rounded-2xl bg-[#FFFEFA] border border-slate-200/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] items-center justify-center transform rotate-6 hover:rotate-0 transition-transform duration-500 z-0 hover:border-cyan-200/70 hover:shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
+         <Users className="w-7 h-7 text-slate-400 transition-colors duration-300 group-hover:text-[#14B8A6]" />
       </div>
 
       {/* Bottom Right: Book - Rotated CCW */}
-      <div className="absolute bottom-56 lg:bottom-80 2xl:bottom-[calc(17rem-36px)] right-0 md:-right-10 lg:-right-16 2xl:-right-[36px] hidden md:flex w-[72px] h-[72px] bg-white rounded-2xl border border-gray-100/50 items-center justify-center transform -rotate-6 hover:rotate-0 transition-transform duration-500 z-0">
-         <BookOpen className="w-7 h-7 text-gray-300 fill-gray-50" />
+      <div className="group absolute bottom-56 lg:bottom-80 2xl:bottom-[calc(17rem-36px)] right-0 md:-right-10 lg:-right-16 2xl:-right-[36px] hidden md:flex w-[72px] h-[72px] rounded-2xl bg-[#FFFEFA] border border-slate-200/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] items-center justify-center transform -rotate-6 hover:rotate-0 transition-transform duration-500 z-0 hover:border-cyan-200/70 hover:shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
+         <BookOpen className="w-7 h-7 text-slate-400 transition-colors duration-300 group-hover:text-[#14B8A6]" />
       </div>
 
       <div className="mx-auto max-w-[900px] text-center relative z-10 flex flex-col items-center pt-[190px] lg:pt-[150px] 2xl:pt-[130px]">

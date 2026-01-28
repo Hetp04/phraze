@@ -15,7 +15,7 @@ export default function Footer(
   const navigate = useNavigate();
 
   return (
-    <div className="w-full bg-[#FFFEFC] relative overflow-hidden border-t border-gray-50">
+    <div className="w-full bg-[#FFFDF8] relative overflow-hidden border-t border-gray-50">
       {showStencil && (
         <div className="absolute left-0 bottom-0 w-[240px] h-[220px] overflow-hidden pointer-events-none z-20">
           <img

@@ -16,7 +16,7 @@ type AppProps = {
 
 const App: React.FC<AppProps> = ({ showNavbar = true }) => {
   return (
-    <div className="min-h-screen bg-[#FFFEFC] text-gray-900 font-sans selection:bg-orange-100 selection:text-orange-900">
+    <div className="min-h-screen bg-[#FFFDF8] text-gray-900 font-sans selection:bg-orange-100 selection:text-orange-900">
 
       <div className="relative z-10">
         {showNavbar && <Navbar />}
@@ -165,7 +165,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
 
           <div style={{ height: '96px' }} />
 
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFEFC' }}>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
             <WorkspaceHero />
           </div>
 
@@ -173,11 +173,11 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
             <HowItWorksHero />
           </div>
 
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFEFC' }}>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
             <ToolsAndAnalyticsSection />
           </div>
 
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFEFC' }}>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
             <FAQPartSection />
           </div>
 

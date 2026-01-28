@@ -39,7 +39,7 @@ export const Navbar: React.FC = () => {
     } ${
       isOnWhiteSection
         ? (isCompact ? 'supports-[backdrop-filter]:bg-white/75 bg-white/95' : 'supports-[backdrop-filter]:bg-white/50 bg-white/85')
-        : (isCompact ? 'supports-[backdrop-filter]:bg-[#FFFEFC]/75 bg-[#FFFEFC]/95' : 'supports-[backdrop-filter]:bg-[#FFFEFC]/50 bg-[#FFFEFC]/85')
+        : (isCompact ? 'supports-[backdrop-filter]:bg-[#FFFDF8]/75 bg-[#FFFDF8]/95' : 'supports-[backdrop-filter]:bg-[#FFFDF8]/50 bg-[#FFFDF8]/85')
     }`}>
       <div
         className={`pointer-events-none absolute left-0 right-0 bottom-0 h-px bg-gray-200/80 transition-opacity duration-300 ${
