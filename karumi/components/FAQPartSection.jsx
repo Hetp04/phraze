@@ -109,7 +109,7 @@ const FAQPartSection = () => {
   }, []);
 
   return (
-    <div ref={sectionRef} className="w-full max-w-6xl mx-auto pt-24 pb-32">
+    <div ref={sectionRef} className="w-full pt-24 pb-32">
       <style>{`
         @media (prefers-reduced-motion: reduce) {
           .phraze-reveal-apple {
@@ -134,79 +134,91 @@ const FAQPartSection = () => {
         }
       `}</style>
 
-      <div className="max-w-3xl mx-auto text-center mb-16">
-        <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mb-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }} />
-        <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }}>
-          <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
-            <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
-              FAQ
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-3xl mx-auto text-center mb-16">
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+            <div
+              className={`h-px bg-gray-200/60 mb-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+              style={{ width: '100%', transitionDelay: revealActive ? '0ms' : '0ms' }}
+            />
+          </div>
+          <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }}>
+            <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
+              <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
+                FAQ
+              </span>
             </span>
-          </span>
-        </div>
-        <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
-          <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Your Questions, Answered</h2>
-        </div>
-        <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mt-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '160ms' : '0ms' }} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
-        <div>
-          <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '220ms' : '0ms' }}>
-            <h3 className="text-xl font-serif font-semibold text-slate-800 mb-6">Common Questions</h3>
           </div>
-          <div className="space-y-0">
-            {faqs.map((faq, index) => (
-              <FAQItem key={index} question={faq.question} answer={faq.answer} revealActive={revealActive} delayMs={240 + (index * 60)} />
-            ))}
+          <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
+            <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Your Questions, Answered</h2>
+          </div>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+            <div
+              className={`h-px bg-gray-200/60 mt-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+              style={{ width: '100%', transitionDelay: revealActive ? '160ms' : '0ms' }}
+            />
           </div>
         </div>
 
-        <div
-          className={`bg-white rounded-2xl p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-24 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
-          style={{ transitionDelay: revealActive ? '460ms' : '0ms' }}
-        >
-          <div className="mb-8">
-            <h3 className="text-xl font-serif font-semibold text-slate-800 mb-2">Need more support?</h3>
-            <p className="text-slate-500 text-sm leading-relaxed">Can't find what you're looking for? Get in touch with our team.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
+          <div>
+            <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '220ms' : '0ms' }}>
+              <h3 className="text-xl font-serif font-semibold text-slate-800 mb-6">Common Questions</h3>
+            </div>
+            <div className="space-y-0">
+              {faqs.map((faq, index) => (
+                <FAQItem key={index} question={faq.question} answer={faq.answer} revealActive={revealActive} delayMs={240 + (index * 60)} />
+              ))}
+            </div>
           </div>
 
-          <form className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Your name</label>
-              <input
-                type="text"
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
-                placeholder="John Doe"
-              />
+          <div
+            className={`bg-white rounded-2xl p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-24 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+            style={{ transitionDelay: revealActive ? '460ms' : '0ms' }}
+          >
+            <div className="mb-8">
+              <h3 className="text-xl font-serif font-semibold text-slate-800 mb-2">Need more support?</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">Can't find what you're looking for? Get in touch with our team.</p>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Your email</label>
-              <input
-                type="email"
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
-                placeholder="john@company.com"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Subject</label>
-              <input
-                type="text"
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
-                placeholder="How can we help?"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Message</label>
-              <textarea
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 min-h-[120px] resize-none transition-all"
-                placeholder="Tell us more about your inquiry..."
-              />
-            </div>
-            <button className="w-full bg-slate-900 text-white py-3.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2">
-              Send Message
-              <Send className="w-3.5 h-3.5" />
-            </button>
-          </form>
+
+            <form className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Your name</label>
+                <input
+                  type="text"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
+                  placeholder="John Doe"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Your email</label>
+                <input
+                  type="email"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
+                  placeholder="john@company.com"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Subject</label>
+                <input
+                  type="text"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
+                  placeholder="How can we help?"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Message</label>
+                <textarea
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 min-h-[120px] resize-none transition-all"
+                  placeholder="Tell us more about your inquiry..."
+                />
+              </div>
+              <button className="w-full bg-slate-900 text-white py-3.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2">
+                Send Message
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

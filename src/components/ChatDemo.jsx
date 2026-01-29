@@ -2127,10 +2127,10 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
               
               <div style={{
                 height: '300px',
-                background: 'radial-gradient(circle at 50% 50%, #c3e8ff, #cceeff, #d4f0ff, #dcf3ff, #e5f6ff, #eef9ff, #f6fcff, #ffffff)',
+                background: '#ffffff',
                 borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                border: '1px solid rgba(0, 0, 0, 0.06)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                border: '1px solid rgba(0, 0, 0, 0.04)',
                 position: 'relative'
               }}>
                 <div style={{
@@ -2142,8 +2142,8 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                   height: '242px',
                   backgroundColor: '#ffffff',
                   borderRadius: '16px 16px 0 0',
-                  boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid rgba(0, 0, 0, 0.06)',
+                  boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.07)',
+                  border: '1px solid rgba(0, 0, 0, 0.04)',
                   padding: '1.5rem',
                   display: 'flex',
                   alignItems: 'center',

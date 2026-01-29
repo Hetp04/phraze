@@ -165,7 +165,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
 
           <div style={{ height: '96px' }} />
 
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFEFC' }}>
             <WorkspaceHero />
           </div>
 

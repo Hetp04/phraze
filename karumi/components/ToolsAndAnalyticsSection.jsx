@@ -2464,7 +2464,12 @@ const ToolsAndAnalyticsSection = () => {
       `}</style>
 
       <div ref={headerRef} className="max-w-3xl mx-auto text-center mb-14">
-        <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mb-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }} />
+        <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+          <div
+            className={`h-px bg-gray-200/60 mb-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+            style={{ width: '100%', transitionDelay: revealActive ? '0ms' : '0ms' }}
+          />
+        </div>
         <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }}>
           <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
             <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
@@ -2475,7 +2480,13 @@ const ToolsAndAnalyticsSection = () => {
         <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
           <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Annotate your chats.</h2>
         </div>
-        <div ref={headerBottomLineRef} className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mt-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '160ms' : '0ms' }} />
+        <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+          <div
+            ref={headerBottomLineRef}
+            className={`h-px bg-gray-200/60 mt-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+            style={{ width: '100%', transitionDelay: revealActive ? '160ms' : '0ms' }}
+          />
+        </div>
       </div>
 
       <div ref={conveyorOuterRef} className="relative mt-10">

@@ -965,7 +965,7 @@ export default function HowItWorksHero() {
   }, []);
 
   return (
-    <div className="w-full flex flex-col items-center relative overflow-hidden bg-[#fcfcfc]">
+    <div className="w-full flex flex-col items-center relative overflow-hidden bg-[#FFFEFC]">
       <style>{`
         @keyframes highlight {
           from { transform: scaleX(0); }
@@ -1017,13 +1017,18 @@ export default function HowItWorksHero() {
         }
       `}</style>
 
-      <div className="w-full bg-white py-24 relative z-10">
+      <div className="w-full bg-[#FFFEFC] py-24 relative z-10">
         <div ref={sectionRef} className="max-w-6xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mb-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '0ms' : '0ms' }} />
+            <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+              <div
+                className={`h-px bg-gray-200/60 mb-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`}
+                style={{ width: '100%', transitionDelay: headerRevealActive ? '0ms' : '0ms' }}
+              />
+            </div>
             <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '0ms' : '0ms' }}>
               <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
-                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-white text-slate-700 text-[11px] font-semibold tracking-wide">
+                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
                   How it works
                 </span>
               </span>
@@ -1031,7 +1036,12 @@ export default function HowItWorksHero() {
             <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '90ms' : '0ms' }}>
               <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">From chat to shared insights.</h2>
             </div>
-            <div className={`relative left-1/2 -translate-x-1/2 w-screen h-px bg-gray-200/60 mt-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '160ms' : '0ms' }} />
+            <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+              <div
+                className={`h-px bg-gray-200/60 mt-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`}
+                style={{ width: '100%', transitionDelay: headerRevealActive ? '160ms' : '0ms' }}
+              />
+            </div>
           </div>
 
           <StepSection

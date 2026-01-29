@@ -221,7 +221,7 @@ The system has **significantly improved** since the initial audit. Critical vuln
 
 4. **Pending Invites Write Rule (Line 176)** ✅ **FIXED**
    - ✅ Restricted to invited user, owner, or members with `share` permission
-   - ✅ Prevents unauthorized pending invite creation
+   - ✅ Prevents unauthorized pending invite creationook do
 
 5. **Expiration Validation (Line 147)** ✅ **NEW**
    - ✅ Validates `expiresAt` format (string or number)
