@@ -97,7 +97,7 @@ The system has **significantly improved** since the initial audit. Critical vuln
    - ✅ Project existence validation ✅ **NEW**
 
 2. **Single-Use Codes**
-   - ✅ Code is deleted after successful acceptance
+   - ✅ Code is deleted wafter successful acceptance
    - ✅ Prevents code reuse
 
 3. **Expiration Handling** ✅ **NEW**

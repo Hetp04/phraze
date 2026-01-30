@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight,
   Sparkles,
+  Route,
   PenLine,
   ChevronDown,
   X,
@@ -1040,7 +1041,7 @@ export default function HowItWorksHero() {
                 <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '0ms' : '0ms' }}>
                   <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
                     <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-white text-slate-700 text-[11px] font-semibold tracking-wide">
-                      <Sparkles className="w-3.5 h-3.5 text-slate-500" />
+                      <Route className="w-3.5 h-3.5 text-slate-500" />
                       How it works
                     </span>
                   </span>
