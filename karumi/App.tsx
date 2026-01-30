@@ -41,7 +41,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
               position: 'relative',
               textAlign: 'center'
             }}>
-              <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 0, bottom: 0, width: '1150px', maxWidth: '100%', pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: '-0.75rem', bottom: 0, width: '1150px', maxWidth: '100%', pointerEvents: 'none' }}>
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '1px', backgroundColor: 'rgba(148, 163, 184, 0.28)' }} />
                 <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '1px', backgroundColor: 'rgba(148, 163, 184, 0.28)' }} />
               </div>
@@ -165,11 +165,11 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
 
           <div style={{ height: '96px' }} />
 
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFEFC' }}>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
             <WorkspaceHero />
           </div>
 
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
             <HowItWorksHero />
           </div>
 

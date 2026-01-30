@@ -93,11 +93,11 @@ export default function Footer(
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-6 relative z-10 mt-24 pb-44">
+      <div className="max-w-[1400px] mx-auto px-6 relative z-10 mt-16 pb-36">
         {showTypography && (
           <div
             aria-hidden="true"
-            className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[120vw] text-center select-none pointer-events-none"
+            className="absolute left-1/2 -translate-x-1/2 bottom-3 w-[120vw] text-center select-none pointer-events-none"
             style={{
               fontFamily: 'Times New Roman, Times, serif',
               fontSize: 'clamp(100px, 18vw, 320px)',
@@ -120,8 +120,8 @@ export default function Footer(
           </div>
         )}
 
-        <div className="w-full max-w-[1150px] mx-auto flex flex-col md:flex-row md:items-start md:justify-between border-t border-gray-100 pt-8 gap-10">
-          <div className="flex flex-col gap-4 text-center md:text-left md:-mt-6">
+        <div className="w-full max-w-[1150px] mx-auto flex flex-col md:flex-row md:items-start md:justify-between border-t border-gray-100 pt-6 gap-10">
+          <div className="flex flex-col gap-4 text-center md:text-left -mt-4 md:-mt-6">
             <div className="flex items-center justify-center md:justify-start -mb-2 md:-ml-4 md:-mt-2">
               <img src={phrazeLogo} alt="Phraze" className="h-[80px] w-auto object-contain" />
             </div>

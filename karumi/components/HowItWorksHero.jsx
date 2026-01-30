@@ -965,7 +965,7 @@ export default function HowItWorksHero() {
   }, []);
 
   return (
-    <div className="w-full flex flex-col items-center relative overflow-hidden bg-[#FFFEFC]">
+    <div className="w-full flex flex-col items-center relative overflow-hidden bg-[#FFFDF8]">
       <style>{`
         @keyframes highlight {
           from { transform: scaleX(0); }
@@ -1017,30 +1017,44 @@ export default function HowItWorksHero() {
         }
       `}</style>
 
-      <div className="w-full bg-[#FFFEFC] py-24 relative z-10">
+      <div className="w-full bg-[#FFFDF8] py-24 relative z-10">
         <div ref={sectionRef} className="max-w-6xl mx-auto px-6">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
-              <div
-                className={`h-px bg-gray-200/60 mb-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`}
-                style={{ width: '100%', transitionDelay: headerRevealActive ? '0ms' : '0ms' }}
-              />
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }} className="relative mb-16">
+            <div
+              className={`pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1150px] transition-opacity duration-300 ${
+                headerRevealActive ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(34,211,238,0.02) 0%, rgba(34,211,238,0.05) 36%, rgba(34,211,238,0.10) 62%, rgba(34,211,238,0.14) 100%)' }} />
+              <div className="absolute left-0 top-0 bottom-0 w-px bg-[rgba(148,163,184,0.28)]" />
+              <div className="absolute right-0 top-0 bottom-0 w-px bg-[rgba(148,163,184,0.28)]" />
             </div>
-            <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '0ms' : '0ms' }}>
-              <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
-                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
-                  How it works
-                </span>
-              </span>
-            </div>
-            <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '90ms' : '0ms' }}>
-              <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">From chat to shared insights.</h2>
-            </div>
-            <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
-              <div
-                className={`h-px bg-gray-200/60 mt-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`}
-                style={{ width: '100%', transitionDelay: headerRevealActive ? '160ms' : '0ms' }}
-              />
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="max-w-3xl mx-auto text-center relative">
+                <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+                  <div
+                    className={`h-px bg-gray-200/60 mb-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`}
+                    style={{ width: '100%', transitionDelay: headerRevealActive ? '0ms' : '0ms' }}
+                  />
+                </div>
+                <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '0ms' : '0ms' }}>
+                  <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
+                    <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-white text-slate-700 text-[11px] font-semibold tracking-wide">
+                      <Sparkles className="w-3.5 h-3.5 text-slate-500" />
+                      How it works
+                    </span>
+                  </span>
+                </div>
+                <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '90ms' : '0ms' }}>
+                  <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">From chat to shared insights.</h2>
+                </div>
+                <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+                  <div
+                    className={`h-px bg-gray-200/60 mt-8 phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`}
+                    style={{ width: '100%', transitionDelay: headerRevealActive ? '160ms' : '0ms' }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

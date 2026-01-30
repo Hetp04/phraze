@@ -34,12 +34,10 @@ export const Navbar: React.FC = () => {
   }, []);
 
   return (
-    <header className={`karumi-navbar fixed top-0 left-0 right-0 z-50 transition-all duration-300 supports-[backdrop-filter]:backdrop-blur-xl ${
+    <header className={`karumi-navbar fixed top-0 left-0 right-0 z-50 transition-all duration-300 supports-[backdrop-filter]:backdrop-blur supports-[backdrop-filter]:backdrop-saturate-150 ${
       isCompact ? 'border-b border-gray-200/70 shadow-sm' : 'border-b border-transparent'
     } ${
-      isOnWhiteSection
-        ? (isCompact ? 'supports-[backdrop-filter]:bg-white/75 bg-white/95' : 'supports-[backdrop-filter]:bg-white/50 bg-white/85')
-        : (isCompact ? 'supports-[backdrop-filter]:bg-[#FFFDF8]/75 bg-[#FFFDF8]/95' : 'supports-[backdrop-filter]:bg-[#FFFDF8]/50 bg-[#FFFDF8]/85')
+      isCompact ? 'supports-[backdrop-filter]:bg-[#FFFEFC]/90 bg-[#FFFEFC]/98' : 'supports-[backdrop-filter]:bg-[#FFFEFC]/78 bg-[#FFFEFC]/92'
     }`}>
       <div
         className={`pointer-events-none absolute left-0 right-0 bottom-0 h-px bg-gray-200/80 transition-opacity duration-300 ${
@@ -75,7 +73,7 @@ export const Navbar: React.FC = () => {
                 isCompact ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             >
-              <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/60 px-2 py-1 shadow-sm">
+              <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-transparent px-2 py-1 shadow-sm">
                 <Link to="/" className="text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Home</Link>
                 <Link to="/about" className="text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>About</Link>
                 <Link to="/contact" className="text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-white/70 px-3 py-1.5 rounded-full transition-colors" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Contact</Link>

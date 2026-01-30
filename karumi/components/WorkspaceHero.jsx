@@ -150,7 +150,7 @@ function NotionDemo() {
       const rect = el.getBoundingClientRect();
       const blockH = rect.height || 0;
       const centered = (window.innerHeight - blockH) / 2;
-      const visualOffset = 26;
+      const visualOffset = 44;
       const maxTop = navbarMinOffset + 84;
       const nextTop = Math.min(
         maxTop,
@@ -242,26 +242,53 @@ function NotionDemo() {
           will-change: opacity, transform;
         }
 
-        .phraze-reveal-apple.is-revealed {
-          opacity: 1;
-          transform: translate3d(0, 0, 0);
-        }
-      `}</style>
-      <div className="max-w-[1200px] mx-auto px-6">
-        <div className="relative">
+.phraze-reveal-apple.is-revealed {
+opacity: 1;
+transform: translate3d(0, 0, 0);
+}
+`}</style>
+<div className="max-w-[1200px] mx-auto px-6">
+<div className="relative">
+<div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }} className="relative mb-28">
+<div
+className={`pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1150px] transition-opacity duration-300 ${
+revealActive ? 'opacity-100' : 'opacity-0'
+}`}
+>
+<div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(34,211,238,0.02) 0%, rgba(34,211,238,0.05) 36%, rgba(34,211,238,0.10) 62%, rgba(34,211,238,0.14) 100%)' }} />
+<div className="absolute left-0 top-0 bottom-0 w-px bg-[rgba(148,163,184,0.28)]" />
+<div className="absolute right-0 top-0 bottom-0 w-px bg-[rgba(148,163,184,0.28)]" />
+</div>
+
+<div className="max-w-[1200px] mx-auto px-6">
+<div className="max-w-3xl mx-auto text-center relative">
+<div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+<div
+className={`h-px bg-gray-200/60 mb-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+style={{ width: '100%', transitionDelay: revealActive ? '0ms' : '0ms' }}
+/>
+</div>
+<div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }}>
+<span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
+<span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-white text-slate-700 text-[11px] font-semibold tracking-wide">
+<LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
+Workspace
+</span>
+</span>
+</div>
+<div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
+<h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Collaborate in real time.</h2>
+</div>
+<div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
+<div
+className={`h-px bg-gray-200/60 mt-8 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
+style={{ width: '100%', transitionDelay: revealActive ? '160ms' : '0ms' }}
+/>
+</div>
+</div>
+</div>
+</div>
           <div ref={stickyRef} className="z-10" style={{ position: 'sticky', top: stickyTop }}>
-            <div className="max-w-3xl mx-auto text-center mb-12">
-              <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '0ms' : '0ms' }}>
-                <span className="inline-flex rounded-full p-[1px] bg-gradient-to-r from-sky-500/70 via-blue-500/70 to-sky-500/70">
-                  <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#FFFEFC] text-slate-700 text-[11px] font-semibold tracking-wide">
-                    Workspace
-                  </span>
-                </span>
-              </div>
-              <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
-                <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Collaborate in real time.</h2>
-              </div>
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {tabs.map((tab, idx) => (
