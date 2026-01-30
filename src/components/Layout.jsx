@@ -6,6 +6,7 @@ import { Navbar as KarumiNavbar } from '../../karumi/components/Navbar';
 export default function Layout({ children, currentProject, onProjectChange }) {
   const location = useLocation();
   const isHomeRoute = location.pathname === '/';
+  const isDemonstrationRoute = location.pathname === '/demonstration';
 
   useEffect(() => {
     // Use a single, optimized scroll operation
@@ -30,13 +31,12 @@ export default function Layout({ children, currentProject, onProjectChange }) {
       
       if (mainElement) {
         mainElement.classList.add('reveal');
-        mainElement.style.paddingTop = '20px';
       }
       if (navbarElement) {
         navbarElement.classList.add('reveal');
       }
     });
-  }, [location]);
+  }, [location, isDemonstrationRoute]);
 
   // Hide navbar on specific pages
   const shouldHideNavbar = location.pathname === '/demo' ||

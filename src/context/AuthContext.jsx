@@ -215,18 +215,24 @@ export function AuthProvider({ children }) {
         // Check onboarding status
         setOnboardingCompleted(userData?.onboardingCompleted || false);
       } else {
-        // No company email found - user might be new
+        // No company email found/accessible - fall back to user-scoped profile
         console.log('[AuthContext] No company email found');
+        const [userData, profileImageData] = await Promise.all([
+          getFirebaseData(`Users/${sanitizedEmail}`),
+          getFirebaseData(`Users/${sanitizedEmail}/profileImage`)
+        ]);
+
         setUserProfile({
           email: email,
-          username: email.split('@')[0],
-          firstName: null,
-          lastName: null,
-          bio: null,
-          profileImage: null,
+          username: userData?.username || userData?.name || email.split('@')[0],
+          firstName: userData?.firstName || null,
+          lastName: userData?.lastName || null,
+          bio: userData?.bio || null,
+          profileImage: profileImageData || null,
           companyEmail: null
         });
-        setOnboardingCompleted(false);
+
+        setOnboardingCompleted(userData?.onboardingCompleted || false);
       }
     } catch (error) {
       console.error('[AuthContext] Error fetching user profile:', error);

@@ -195,7 +195,7 @@
       ".read": "auth.uid != null",
       "$email": {
         ".read": "auth.uid != null",
-        ".write": "auth.uid != null && auth.token.email != null && auth.token.email.replace('.', ',') == $email"
+        ".write": "auth.uid != null && auth.token.email != null && auth.token.email.replace('.', ',').toLowerCase() == $email.toLowerCase()"
       }
     },
     "phoneToCompanyDirectory": {
@@ -234,9 +234,11 @@
     },
     "Users": {
       "$userEmail": {
+        ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',').toLowerCase() == $userEmail.toLowerCase()) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+        ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',').toLowerCase() == $userEmail.toLowerCase()) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
         "uiState": {
-          ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
-          ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',') == $userEmail) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))"
+          ".read": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',').toLowerCase() == $userEmail.toLowerCase()) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))",
+          ".write": "auth.uid != null && ((auth.token.email != null && auth.token.email.replace('.', ',').toLowerCase() == $userEmail.toLowerCase()) || (auth.token.phone_number != null && auth.token.phone_number == $userEmail))"
         }
       }
     },

@@ -3787,7 +3787,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
   // Auto-scroll management
   const chatMessagesContainerRef = useRef(null);
-  const CHAT_CANVAS_WIDTH = 900;
+  const CHAT_CANVAS_WIDTH = 800;
   const [chatCanvasScale, setChatCanvasScale] = useState(1);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
 
@@ -9325,8 +9325,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             flex: 1,
             display: isLibraryVisible ? 'none' : 'flex',
             flexDirection: 'column',
+            marginTop: 0,
             background: 'rgb(249, 248, 246)',
-            position: 'relative'
+            position: 'relative',
+            paddingTop: '10px'
           }}>
           {/* Authentication Modal */}
           {showAuthModal && (
@@ -9338,7 +9340,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
           {/* Header bar - always visible */}
              <div style={{
-            padding: '1.5rem 1rem 1rem 1rem',
+            padding: '0.75rem 1rem 1rem 1rem',
                textAlign: 'center',
                display: 'flex',
                flexDirection: 'column',
@@ -12895,7 +12897,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               style={{
                 width: `${CHAT_CANVAS_WIDTH}px`,
                 margin: '0 auto',
-                padding: '3rem 0 2rem',
+                padding: '10px 0 2rem',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1.5rem',
@@ -12908,8 +12910,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     key={message?.messageId || message?.id || index}
                     data-cursor-anchor-id={(message?.messageId || message?.id) ? String(message.messageId || message.id) : undefined}
                     style={{
-                      padding: message.role === 'user' ? '0 1rem' : '0',
-                      maxWidth: `${CHAT_CANVAS_WIDTH}px`,
+                      padding: '0 1rem',
+                      maxWidth: `${800}px`,
                       margin: '0 auto',
                       width: '100%',
                       display: 'flex',
@@ -13815,7 +13817,6 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               <div
                 id="groqChatInputDiv"
                 style={{
-                  borderTop: '1px solid rgba(0,0,0,0.1)',
                   padding: '1.5rem',
                   background: 'rgb(249, 248, 246)'
                 }}>

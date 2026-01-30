@@ -350,22 +350,22 @@ export default function Onboarding() {
           const emailPath = userEmail.replace(/\./g, ',');
           companyEmail = await getFirebaseData(`emailToCompanyDirectory/${emailPath}`);
           if (!companyEmail) {
-            // Try user's email as company email (for new users)
-            companyEmail = userEmail;
+            // No mapping found/accessible; fall back to user-scoped path
+            companyEmail = null;
           }
         } catch (error) {
           console.error('Error fetching company email:', error);
-          // Fallback to user's email
-          companyEmail = userEmail;
+          companyEmail = null;
         }
       }
 
-      if (!companyEmail || !mounted) return;
+      if (!mounted) return;
 
       // Format emails for Firebase paths (replace dots with commas)
       const emailPath = userEmail.replace(/\./g, ',');
-      const companyEmailFormatted = companyEmail.replace(/\./g, ',');
-      const userDataPath = `Companies/${companyEmailFormatted}/users/${emailPath}`;
+      const userDataPath = companyEmail
+        ? `Companies/${companyEmail.replace(/\./g, ',')}/users/${emailPath}`
+        : `Users/${emailPath}`;
       userDataRef = ref(database, userDataPath);
 
       // Fetch initial data immediately
@@ -418,50 +418,47 @@ export default function Onboarding() {
 
     setLoading(true);
     try {
-      const companyEmail = await getMainCompanyEmail();
-      if (!companyEmail) {
-        throw new Error('Company email not found');
-      }
-
       const emailPath = userEmail.replace(/\./g, ',');
-      
-      // Save onboarding completion and username
-      await saveFirebaseData(
-        `Companies/${companyEmail}/users/${emailPath}/onboardingCompleted`,
-        true
-      );
-      
-      // Save username to both name (for backward compatibility) and username (for proper storage)
-      if (username.trim()) {
-        await saveFirebaseData(
-          `Companies/${companyEmail}/users/${emailPath}/name`,
-          username.trim()
-        );
-        await saveFirebaseData(
-          `Companies/${companyEmail}/users/${emailPath}/username`,
-          username.trim()
-        );
-      }
+      const companyEmail = (await getMainCompanyEmail()) || emailPath;
 
-      // Save bio (optional)
-      if (bio.trim()) {
-        await saveFirebaseData(
-          `Companies/${companyEmail}/users/${emailPath}/bio`,
-          bio.trim()
+      const isPermissionDenied = (err) => {
+        const msg = err?.message || '';
+        return (
+          err?.code === 'PERMISSION_DENIED' ||
+          msg.includes('PERMISSION_DENIED') ||
+          msg.toLowerCase().includes('permission denied')
         );
-      }
+      };
 
-      // Only save profile picture if user uploaded a new one (base64 data URL)
-      // Don't save existing URLs - only save when user explicitly uploads
-      if (avatarPreview && avatarPreview.startsWith('data:image/')) {
-        // User uploaded a new image - save it to Firebase
-        await saveFirebaseData(
-          `Companies/${companyEmail}/users/${emailPath}/profileImage`,
-          avatarPreview
-        );
-        console.log('Saved new profile picture to Firebase');
+      const writeOnboardingData = async (basePath) => {
+        await saveFirebaseData(`${basePath}/onboardingCompleted`, true);
+
+        if (username.trim()) {
+          await saveFirebaseData(`${basePath}/name`, username.trim());
+          await saveFirebaseData(`${basePath}/username`, username.trim());
+        }
+
+        if (bio.trim()) {
+          await saveFirebaseData(`${basePath}/bio`, bio.trim());
+        }
+
+        if (avatarPreview && avatarPreview.startsWith('data:image/')) {
+          await saveFirebaseData(`${basePath}/profileImage`, avatarPreview);
+          console.log('Saved new profile picture to Firebase');
+        }
+      };
+
+      const companyBasePath = `Companies/${companyEmail}/users/${emailPath}`;
+      const userBasePath = `Users/${emailPath}`;
+      
+      try {
+        await writeOnboardingData(companyBasePath);
+      } catch (error) {
+        if (!isPermissionDenied(error)) {
+          throw error;
+        }
+        await writeOnboardingData(userBasePath);
       }
-      // If avatarPreview is a URL (existing image), don't re-save it
 
       console.log('Onboarding completed successfully');
       

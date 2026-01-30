@@ -54,15 +54,19 @@ const ScrollHero: React.FC = () => {
   // We inverse the glow: a bright spot that focuses
   const bgGlowScale = mapRange(progress, 0, 0.5, 1, 0.4); 
 
-  const exitProgress = smoothStep(0.03, 0.5, progress);
-  const flareBoost = smoothStep(0.7, 1, exitProgress);
+  const meetEnterProgress = smoothStep(0.5, 0.58, progress);
+  const logoEnterProgress = smoothStep(0.56, 0.64, progress);
+  const phrazeEnterProgress = smoothStep(0.62, 0.7, progress);
+
+  const iconsExitProgress = smoothStep(0.56, 0.86, progress);
+  const flareBoost = smoothStep(0.7, 1, iconsExitProgress);
   
   const headlineOpacity = 1 - smoothStep(0.24, 0.41, progress);
   const headlineScale = mapRange(smoothStep(0, 0.41, progress), 0, 1, 1, 0.95);
   const headlineBlur = mapRange(smoothStep(0.26, 0.41, progress), 0, 1, 0, 10);
 
-  const iconGlobalOpacity = 1 - smoothStep(0.22, 0.48, progress);
-  const iconBlur = mapRange(smoothStep(0.30, 0.48, progress), 0, 1, 0, 4);
+  const iconGlobalOpacity = 1 - smoothStep(0.56, 0.88, progress);
+  const iconBlur = mapRange(smoothStep(0.62, 0.88, progress), 0, 1, 0, 4);
 
   const lockupEnterProgress = smoothStep(0.5, 0.75, progress);
   const lockupOpacity = lockupEnterProgress;
@@ -72,6 +76,15 @@ const ScrollHero: React.FC = () => {
   const subtextProgress = smoothStep(0.75, 0.9, progress);
   const subtextOpacity = subtextProgress;
   const subtextY = mapRange(subtextProgress, 0, 1, 20, 0);
+
+  const subtextLineProgress = smoothStep(0.75, 0.83, progress);
+  const subtextLineOpacity = subtextLineProgress;
+  const subtextLineY = mapRange(subtextLineProgress, 0, 1, 12, 0);
+  const subtextLineBlur = mapRange(subtextLineProgress, 0, 1, 6, 0);
+
+  const chipsBaseStart = 0.82;
+  const chipsStagger = 0.035;
+  const chipDur = 0.055;
 
   const icons = useMemo(() => {
     type IconDef =
@@ -165,8 +178,8 @@ const ScrollHero: React.FC = () => {
                  const flareScale = 1 + 0.08 * flareBoost;
                  const flareBiasX = 1.12;
                  const flareBiasY = 0.74;
-                 const currentX = mapRange(exitProgress, 0, 1, item.x, item.destX * flareScale * flareBiasX);
-                 const currentY = mapRange(exitProgress, 0, 1, item.y, item.destY * flareScale * flareBiasY);
+                 const currentX = mapRange(iconsExitProgress, 0, 1, item.x, item.destX * flareScale * flareBiasX);
+                 const currentY = mapRange(iconsExitProgress, 0, 1, item.y, item.destY * flareScale * flareBiasY);
                  const seed = item.id * 17.13;
                  const speedMul = lerp(0.85, 1.15, prand(seed + 1));
                  const dir = (item.id % 2 === 0 ? 1 : -1) * (prand(seed + 2) < 0.5 ? 1 : -1);
@@ -175,16 +188,16 @@ const ScrollHero: React.FC = () => {
                    0,
                    1
                  );
-                 const maxRot = lerp(15, 45, distN) * dir;
+                 const maxRot = lerp(24, 70, distN) * dir;
 
-                 const rotT = clamp(((progress - 0.10) / (0.55 - 0.10)) * speedMul, 0, 1);
+                 const rotT = clamp(iconsExitProgress * speedMul, 0, 1);
                  const rotE = easeOutCubic(rotT);
 
-                 const settleT = smoothStep(0.48, 0.6, progress);
+                 const settleT = smoothStep(0.80, 1, iconsExitProgress);
                  const wobble = Math.sin(rotT * 8) * 2 * (1 - rotT) * (1 - settleT);
 
                  const currentR = (rotE * maxRot + wobble) * (1 + 0.06 * flareBoost);
-                 const currentScale = mapRange(exitProgress, 0, 1, item.scale, item.scale * (0.8 - 0.04 * flareBoost));
+                 const currentScale = mapRange(iconsExitProgress, 0, 1, item.scale, item.scale * (0.8 - 0.04 * flareBoost));
 
                  return (
                      <div
@@ -258,11 +271,25 @@ const ScrollHero: React.FC = () => {
             }}
           >
               <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 mb-4">
-                  <span className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter">Meet</span>
+                  <span
+                    className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter"
+                    style={{
+                      opacity: meetEnterProgress,
+                      transform: `translateY(${mapRange(1 - meetEnterProgress, 0, 1, 0, 10)}px)`,
+                    }}
+                  >
+                    Meet
+                  </span>
                   
                   {/* Hero Logo Block (Dark Mode Inverse) */}
                   <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 md:w-20 md:h-20 bg-stone-900 text-white rounded-2xl border border-stone-800 shadow-2xl flex items-center justify-center relative overflow-hidden">
+                    <div
+                      className="w-16 h-16 md:w-20 md:h-20 bg-stone-900 text-white rounded-2xl border border-stone-800 shadow-2xl flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        opacity: logoEnterProgress,
+                        transform: `translateY(${mapRange(1 - logoEnterProgress, 0, 1, 0, 10)}px) scale(${mapRange(logoEnterProgress, 0, 1, 0.96, 1)})`,
+                      }}
+                    >
                         <img
                           src="/star.png"
                           alt="Phraze"
@@ -272,7 +299,15 @@ const ScrollHero: React.FC = () => {
                         />
                     </div>
 
-                    <span className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter">phraze</span>
+                    <span
+                      className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter"
+                      style={{
+                        opacity: phrazeEnterProgress,
+                        transform: `translateY(${mapRange(1 - phrazeEnterProgress, 0, 1, 0, 10)}px)`,
+                      }}
+                    >
+                      phraze
+                    </span>
                   </div>
               </div>
 
@@ -284,25 +319,48 @@ const ScrollHero: React.FC = () => {
                     transform: `translateY(${subtextY}px)`
                 }}
               >
-                  <h2 className="text-xl md:text-2xl text-stone-700 font-light tracking-wide">
+                  <h2
+                    className="text-xl md:text-2xl text-stone-700 font-light tracking-wide"
+                    style={{
+                      opacity: subtextLineOpacity,
+                      transform: `translateY(${subtextLineY}px)`,
+                      filter: subtextLineBlur > 0.01 ? `blur(${subtextLineBlur}px)` : 'none',
+                    }}
+                  >
                     One place for all your annotation work
                   </h2>
-                  <div className="flex items-center justify-center gap-3 mt-4 text-stone-400 text-xs md:text-sm tracking-widest uppercase font-medium">
-                    <span>Highlight</span>
-                    <span className="w-1 h-1 rounded-full bg-stone-300" />
-                    <span>Label</span>
-                    <span className="w-1 h-1 rounded-full bg-stone-300" />
-                    <span>Review</span>
-                    <span className="w-1 h-1 rounded-full bg-stone-300" />
-                    <span>Export</span>
+
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 mt-4 text-xs md:text-sm tracking-widest uppercase font-medium">
+                    {['Highlight', 'Label', 'Review', 'Export'].map((t, idx) => {
+                      const p = smoothStep(
+                        chipsBaseStart + idx * chipsStagger,
+                        chipsBaseStart + idx * chipsStagger + chipDur,
+                        progress
+                      );
+                      const y = mapRange(1 - p, 0, 1, 0, 6);
+                      const s = mapRange(p, 0, 1, 0.985, 1);
+                      return (
+                        <span
+                          key={t}
+                          className="text-stone-500 bg-white/70 border border-stone-200/70 shadow-sm px-3 py-1.5 rounded-full"
+                          style={{
+                            opacity: p,
+                            transform: `translateY(${y}px) scale(${s})`,
+                          }}
+                        >
+                          {t}
+                        </span>
+                      );
+                    })}
                   </div>
               </div>
               
               {/* CTA Button */}
               <div
                 style={{
-                  opacity: clamp(mapRange(progress, 0.85, 0.95, 0, 1), 0, 1),
-                  transform: `translateY(${mapRange(progress, 0.85, 0.95, 10, 0)}px)`,
+                  opacity: clamp(mapRange(progress, 0.885, 0.97, 0, 1), 0, 1),
+                  transform: `scale(${mapRange(clamp(mapRange(progress, 0.885, 0.97, 0, 1), 0, 1), 0, 1, 0.97, 1)})`,
+                  filter: `blur(${mapRange(clamp(mapRange(progress, 0.885, 0.97, 0, 1), 0, 1), 0, 1, 3, 0)}px)`,
                 }}
               >
                 <ExpandableScreenTrigger layoutId="get-started-free-button">

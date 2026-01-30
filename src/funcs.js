@@ -153,7 +153,7 @@ export async function saveFirebaseData(path, data) {
     const dbRef = ref(database, path);
 
     // Use set() to write data to the specified path
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         set(dbRef, data)
             .then(() => {
                 console.log(`Data successfully saved at path: ${path}`);
@@ -165,16 +165,17 @@ export async function saveFirebaseData(path, data) {
                                         error?.code === 'PERMISSION_DENIED' ||
                                         error?.message?.includes('PERMISSION_DENIED');
                 const isStatisticsPath = path.includes('/statistics');
+                const isEmailToCompanyDirectoryPath = path.startsWith('emailToCompanyDirectory/');
                 
-                if (isPermissionError && isStatisticsPath) {
+                if (isPermissionError && (isStatisticsPath || isEmailToCompanyDirectoryPath)) {
                     // Expected: members can't write statistics in shared projects
-                    // Silently fail for statistics permission errors
+                    // Silently fail for permission errors on these paths
                     resolve(false);
                     return;
                 }
                 
                 console.error(`Error saving data at path ${path}:`, error);
-                throw error;
+                reject(error);
             });
     });
 }
