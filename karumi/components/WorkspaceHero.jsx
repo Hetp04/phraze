@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Blocks, Users, Highlighter, LayoutGrid, Lightbulb } from 'lucide-react';
+import collaborationPanelImage from '../../videos/1.png';
+import smartHighlightingPanelVideo from '../../videos/2.mp4';
+import unifiedWorkspacePanelImage from '../../videos/3.png';
+import sharedInsightsPanelImage from '../../videos/4.png';
 
 function FeatureCard({ title, description, Icon, active, onClick }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -329,7 +333,7 @@ style={{ width: '100%', transitionDelay: revealActive ? '160ms' : '0ms' }}
               className={`w-full bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-gray-200 overflow-hidden flex flex-col h-[640px] relative transition-all duration-500 phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`}
               style={{ transitionDelay: revealActive ? '260ms' : '0ms' }}
             >
-              <div className="flex-1 bg-white flex items-center justify-center p-12 overflow-hidden">
+              <div className="flex-1 bg-white flex items-center justify-center p-4 overflow-hidden">
                 <style>{`
                   @keyframes smoothFadeSlide {
                     0% {
@@ -343,14 +347,76 @@ style={{ width: '100%', transitionDelay: revealActive ? '160ms' : '0ms' }}
                       filter: blur(0);
                     }
                   }
+
+                  @keyframes smoothFadeSlideMedia {
+                    0% {
+                      opacity: 0;
+                      transform: translateY(12px) scale(0.985);
+                    }
+                    100% {
+                      opacity: 1;
+                      transform: translateY(0) scale(1);
+                    }
+                  }
                 `}</style>
 
-                <div
-                  key={activeTab}
-                  className="text-[240px] font-serif text-gray-50 font-bold select-none tracking-tighter animate-[smoothFadeSlide_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards]"
-                >
-                  {activeTab + 1}
-                </div>
+                {activeTab === 0 ? (
+                  <div
+                    key={activeTab}
+                    className="w-full h-full animate-[smoothFadeSlideMedia_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+                  >
+                    <img
+                      src={collaborationPanelImage}
+                      alt="Real-Time Collaboration"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : activeTab === 1 ? (
+                  <div
+                    key={activeTab}
+                    className="w-full h-full animate-[smoothFadeSlideMedia_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+                  >
+                    <video
+                      key="smart-highlighting-video"
+                      src={smartHighlightingPanelVideo}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="auto"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : activeTab === 2 ? (
+                  <div
+                    key={activeTab}
+                    className="w-full h-full animate-[smoothFadeSlideMedia_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+                  >
+                    <img
+                      src={unifiedWorkspacePanelImage}
+                      alt="Unified Workspace"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : activeTab === 3 ? (
+                  <div
+                    key={activeTab}
+                    className="w-full h-full animate-[smoothFadeSlideMedia_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+                  >
+                    <img
+                      src={sharedInsightsPanelImage}
+                      alt="Shared Insights"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    key={activeTab}
+                    className="text-[240px] font-serif text-gray-50 font-bold select-none tracking-tighter animate-[smoothFadeSlide_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+                  >
+                    {activeTab + 1}
+                  </div>
+                )}
               </div>
             </div>
           </div>
