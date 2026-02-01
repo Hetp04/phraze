@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { firebaseLogin, firebaseCreateAccount, showToast, finishSignUp, getFirebaseData, saveFirebaseData, saveBetaAccessRequest, acceptProjectInviteCode, isUserWhitelisted } from '../funcs';
+import { firebaseLogin, firebaseCreateAccount, showToast, finishSignUp, getFirebaseData, saveFirebaseData, saveBetaAccessRequest, acceptProjectInviteCode } from '../funcs';
 import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth } from '../firebase-init';
@@ -19,7 +19,6 @@ export default function Auth({ embedded = false }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [showGoogleSignup, setShowGoogleSignup] = useState(false);
-  const [googleInviteCode, setGoogleInviteCode] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -169,32 +168,6 @@ export default function Auth({ embedded = false }) {
       const result = await signInWithPopup(auth, provider);
       if (result && result.user) {
         const user = result.user;
-        // Optional project invite code flow for Google sign up
-        const code = googleInviteCode && googleInviteCode.trim() !== '' ? googleInviteCode.trim() : inviteCode;
-        if (code && code !== '') {
-          try {
-            const inviteData = await getFirebaseData(`inviteCodes/${code}`);
-            
-            if (!inviteData) {
-              showToast("Invalid project invite code", "error");
-              return;
-            }
-            
-            // Check if this is a project-level invite code
-            if (inviteData.type === 'project') {
-              // Store the code to be processed after account creation
-              console.log("Project invite code detected - will be processed after signup");
-              localStorage.setItem('pendingProjectInviteCode', code);
-            } else {
-              // Old company-level invite codes are deprecated
-              showToast("This invite code format is no longer supported. Please use a project invite code.", "error");
-              return;
-            }
-          } catch (e) {
-            showToast("Failed to validate project invite code", "error");
-            return;
-          }
-        }
         
         // Check if this is a new user (first time signing in with Google)
         // by checking if they exist in the emailToCompanyDirectory
@@ -261,15 +234,10 @@ export default function Auth({ embedded = false }) {
           finishSignUp(user, user.displayName || null, user.email || null, user.email || null, googleFirstName, googleLastName);
         } else {
           // Existing user - check onboarding status and redirect accordingly
-          console.log('[Google Sign-In] Existing user - checking whitelist and onboarding');
-          const isWhitelisted = await isUserWhitelisted(user.email);
-          console.log('[Google Sign-In] Whitelisted:', isWhitelisted);
+          console.log('[Google Sign-In] Existing user - checking onboarding status');
           console.log('[Google Sign-In] Onboarding completed:', existingUserData?.onboardingCompleted);
           
-          if (!isWhitelisted) {
-            console.log('[Google Sign-In] Not whitelisted - redirecting to access-denied');
-            window.location.href = '/#/access-denied';
-          } else if (existingUserData && existingUserData.onboardingCompleted) {
+          if (existingUserData && existingUserData.onboardingCompleted) {
             console.log('[Google Sign-In] Onboarding complete - redirecting to demonstration');
             window.location.href = '/#/demonstration';
           } else {
@@ -549,20 +517,9 @@ export default function Auth({ embedded = false }) {
 
               {showGoogleSignup && (
                 <div className="google-signup-expanded">
-                  <div className="form-group" style={{ marginTop: "1rem" }}>
-                    <label className="form-label">Project Invite Code</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Project Invite Code (Optional)"
-                      value={googleInviteCode}
-                      onChange={(e) => setGoogleInviteCode(e.target.value)}
-                    />
-                  </div>
-
                   <button 
                     className="btn btn-secondary"
-                    style={{ marginTop: "0.5rem" }}
+                    style={{ marginTop: "1rem" }}
                     onClick={handleGoogleSignIn} 
                     type="button"
                   >

@@ -64,56 +64,29 @@ function AuthRedirectHandler({ children }) {
     checkInProgressRef.current = true;
       
       if (user) {
-      // Check if user is NOT whitelisted first
-      if (!isWhitelisted) {
-        // User authenticated but not whitelisted
-        if (location.pathname === '/auth') {
-          // Redirect to access-denied instead of demonstration
-          console.log('[AuthRedirect] Not whitelisted, redirecting to /access-denied');
-            navigate('/access-denied', { replace: true });
-          checkInProgressRef.current = false;
-            return;
-          }
-          
-        if (protectedRoutes.includes(location.pathname) || location.pathname === '/onboarding') {
-          console.log('[AuthRedirect] Not whitelisted, redirecting to /access-denied');
-          navigate('/access-denied', { replace: true });
-          checkInProgressRef.current = false;
-                  return;
-                }
-                
-        // Allow public pages for non-whitelisted users
-        checkInProgressRef.current = false;
-                  return;
-                }
-      
-      // User IS whitelisted - normal flow
+      // Normal flow for authenticated users
       if (location.pathname === '/auth') {
-        console.log('[AuthRedirect] Logged-in user trying to access /auth, redirecting...');
-        navigate('/demonstration', { replace: true });
-        checkInProgressRef.current = false;
-                return;
-              }
-          
-      // User is whitelisted, redirect away from /access-denied with 2 second delay
-      if (location.pathname === '/access-denied') {
-        // Clear any existing timer
-        if (redirectTimerRef.current) {
-          clearTimeout(redirectTimerRef.current);
+        // Redirect authenticated users away from auth page
+        if (onboardingCompleted) {
+          console.log('[AuthRedirect] Logged-in user with completed onboarding, redirecting to /demonstration');
+          navigate('/demonstration', { replace: true });
+        } else {
+          console.log('[AuthRedirect] Logged-in user without onboarding, redirecting to /onboarding');
+          navigate('/onboarding', { replace: true });
         }
-        
-        // Set up 2 second delay before redirecting
-        redirectTimerRef.current = setTimeout(() => {
-          if (onboardingCompleted) {
-            console.log('[AuthRedirect] User whitelisted and onboarding completed, redirecting to /demonstration');
-            navigate('/demonstration', { replace: true });
-          } else {
-            console.log('[AuthRedirect] User whitelisted but onboarding not completed, redirecting to /onboarding');
-            navigate('/onboarding', { replace: true });
-          }
-          redirectTimerRef.current = null;
-        }, 2000);
-        
+        checkInProgressRef.current = false;
+        return;
+      }
+      
+      // Redirect away from access-denied page (no longer needed)
+      if (location.pathname === '/access-denied') {
+        if (onboardingCompleted) {
+          console.log('[AuthRedirect] Redirecting from access-denied to /demonstration');
+          navigate('/demonstration', { replace: true });
+        } else {
+          console.log('[AuthRedirect] Redirecting from access-denied to /onboarding');
+          navigate('/onboarding', { replace: true });
+        }
         checkInProgressRef.current = false;
         return;
       }
@@ -354,16 +327,10 @@ function AuthRedirectHandler({ children }) {
       return null;
     }
     
-    // BLOCK protected routes if not whitelisted (they'll be redirected)
-    if ((protectedRoutes.includes(location.pathname) || location.pathname === '/onboarding') && !isWhitelisted) {
-      return null;
-    }
-    
     // Allow rendering for:
     // - Truly public routes
-    // - /access-denied page
-    // - /onboarding (if not completed and whitelisted)
-    // - Protected routes (if onboarding completed and whitelisted)
+    // - /onboarding (if not completed)
+    // - Protected routes (if onboarding completed)
     return children;
   }
 

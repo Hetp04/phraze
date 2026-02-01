@@ -420,15 +420,9 @@ export async function finishSignUp(user, username, email, companyEmail, firstNam
         // Don't block signup if invite processing fails
     }
     
-    // Check if user is whitelisted before allowing access
-    const isWhitelisted = await isUserWhitelisted(email);
-    if (!isWhitelisted) {
-        console.log('User not whitelisted, redirecting to access denied page');
-        window.location.href = '/#/access-denied';
-        return user;
-    }
-    
-    window.location.href = '/#/demonstration';
+    // Redirect new users to onboarding
+    console.log('New user signed up, redirecting to onboarding');
+    window.location.href = '/#/onboarding';
     return user;
 }
 
@@ -594,16 +588,29 @@ export function firebaseLogin(email, password) {
                 console.log('Using user email as company fallback:', userEmailAsCompany);
             }
             
-            // Check if user is whitelisted before allowing access
-            const isWhitelisted = await isUserWhitelisted(email);
-            if (!isWhitelisted) {
-                console.log('User not whitelisted, redirecting to access denied page');
-                window.location.href = '/#/access-denied';
-                return user;
+            // Check onboarding status and redirect accordingly
+            try {
+                const emailPath = email.replace(/\./g, ',');
+                const companyEmail = await getFirebaseData(`emailToCompanyDirectory/${emailPath}`);
+                let onboardingCompleted = false;
+                
+                if (companyEmail) {
+                    const userData = await getFirebaseData(`Companies/${companyEmail}/users/${emailPath}`);
+                    onboardingCompleted = userData?.onboardingCompleted || false;
+                }
+                
+                if (onboardingCompleted) {
+                    console.log('User has completed onboarding, redirecting to demonstration');
+                    window.location.href = '/#/demonstration';
+                } else {
+                    console.log('User has not completed onboarding, redirecting to onboarding');
+                    window.location.href = '/#/onboarding';
+                }
+            } catch (error) {
+                console.warn('Error checking onboarding status, redirecting to onboarding:', error);
+                window.location.href = '/#/onboarding';
             }
             
-            // Navigate directly to the demonstration page after successful login
-            window.location.href = '/#/demonstration';
             return user;
         })
         .catch((error) => {
