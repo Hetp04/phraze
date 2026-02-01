@@ -87,13 +87,13 @@ const Hero: React.FC = () => {
           </div>
 
           {/* Headline */}
-          <h1 className="font-serif text-5xl md:text-7xl leading-[1.1] text-slate-900 mb-8 max-w-4xl tracking-tight">
+          <h1 className="text-5xl md:text-7xl leading-[1.1] text-slate-900 mb-8 max-w-4xl tracking-tight" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
             Turn every <span className="text-teal-600 italic">AI conversation</span> <br className="hidden md:block" />
             into a workspace together
           </h1>
 
           {/* Subtext */}
-          <p className="text-gray-500 text-lg md:text-xl max-w-2xl leading-relaxed mb-10 font-light">
+          <p className="text-gray-500 text-lg md:text-xl max-w-2xl leading-relaxed mb-10 font-light" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
             The collaborative platform where teams annotate, share insights, and build on AI conversations together—all in real time.
           </p>
 

@@ -62,7 +62,7 @@ export const TextContent: React.FC<TextContentProps> = ({ progress }) => {
         }}
       >
         <div className="flex items-center gap-4 md:gap-6 mb-8">
-            <span className="text-3xl md:text-5xl font-light text-stone-800 tracking-tight">Meet</span>
+            <span className="text-3xl md:text-5xl font-light text-stone-800 tracking-tight" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Meet</span>
             
             <div className="relative group">
                 {/* Logo Tile */}
@@ -73,7 +73,7 @@ export const TextContent: React.FC<TextContentProps> = ({ progress }) => {
                 </div>
             </div>
 
-            <span className="text-3xl md:text-5xl font-semibold text-stone-900 tracking-tight">Phraze</span>
+            <span className="text-3xl md:text-5xl font-semibold text-stone-900 tracking-tight" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Phraze</span>
         </div>
 
         {/* 3. SUBHEADLINE (Nested to ensure it stays relative to lockup) */}

@@ -93,7 +93,7 @@ export default function PrivacyPolicy() {
             color: '#1a1a1a',
             marginBottom: '1rem',
             marginTop: 0,
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             textAlign: 'left'
           }}>Privacy Policy</h1>
           <p style={{
@@ -140,14 +140,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>Introduction</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 This Privacy Policy explains how Phraze, a research-driven project developed by the Human-Centered Computing Group in affiliation with Western University, collects, uses, and protects your personal information when you use our Services.
               </p>
@@ -156,7 +156,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We are committed to protecting your privacy and ensuring the security of your personal data. This policy outlines our practices regarding data collection, usage, and your rights as a user of our Services.
               </p>
@@ -165,7 +165,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 By using Phraze, you agree to the collection and use of information in accordance with this policy. If you have any questions about this Privacy Policy, please contact us.
               </p>
@@ -179,14 +179,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>1. Data Collection</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We collect information you provide directly to us, such as when you create an account, use our Services, or contact us for support. This may include:
               </p>
@@ -196,7 +196,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Account information (name, email address, institution affiliation)</li>
                 <li>Content you submit or generate using our Services</li>
@@ -208,7 +208,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We also collect basic technical information necessary for our Services to function, such as session data and authentication tokens. This information is stored securely using Firebase and is only used to maintain your account and provide the Services you request.
               </p>
@@ -222,14 +222,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>2. How We Use Your Data</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We use the information we collect to:
               </p>
@@ -239,7 +239,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Provide, maintain, and improve our Services</li>
                 <li>Process your requests and account activities</li>
@@ -253,7 +253,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We do not use your personal data for research, training, or any other purposes beyond providing our Services. Your data is stored securely using Firebase and is only used to maintain your account and provide the functionality you request.
               </p>
@@ -267,14 +267,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>3. Data Sharing & Disclosure</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except in the following circumstances:
               </p>
@@ -284,7 +284,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>With your explicit consent</li>
                 <li>To comply with legal obligations or court orders</li>
@@ -297,7 +297,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Any third-party service providers are bound by confidentiality agreements and may only use your data for the specific purposes we authorize.
               </p>
@@ -311,14 +311,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4. Data Security</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. These measures include:
               </p>
@@ -328,7 +328,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Encryption of data in transit and at rest</li>
                 <li>Regular security assessments and updates</li>
@@ -342,7 +342,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We use Firebase for secure data storage and authentication, which provides enterprise-grade security features. While we strive to protect your information, no method of transmission over the internet or electronic storage is 100% secure. We cannot guarantee absolute security but are committed to maintaining the highest standards of data protection.
               </p>
@@ -356,14 +356,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>5. Data Retention</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We retain your personal information only for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law. Our retention practices include:
               </p>
@@ -373,7 +373,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Account data: Retained while your account is active and for a reasonable period after deactivation</li>
                 <li>Usage data: Retained for service improvement and security purposes</li>
@@ -385,7 +385,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 When we no longer need your personal information, we will securely delete or anonymize it in accordance with our data retention policies.
               </p>
@@ -399,14 +399,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>6. Your Rights</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 You have certain rights regarding your personal information, including:
               </p>
@@ -416,7 +416,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
                 <li><strong>Correction:</strong> Request correction of inaccurate or incomplete information</li>
@@ -430,7 +430,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 To exercise these rights, please contact us using the information provided at the end of this policy. We will respond to your request within a reasonable timeframe and may require verification of your identity.
               </p>
@@ -444,14 +444,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>7. Cookies & Tracking</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We use cookies and similar tracking technologies to enhance your experience on our platform. These technologies help us:
               </p>
@@ -461,7 +461,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Remember your preferences and settings</li>
                 <li>Analyze how our Services are used</li>
@@ -474,7 +474,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 You can control cookie settings through your browser preferences. However, disabling certain cookies may affect the functionality of our Services.
               </p>
@@ -488,14 +488,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>8. Third-Party Services</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Our Services may integrate with third-party services and technologies, including:
               </p>
@@ -505,7 +505,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Firebase for data storage and authentication</li>
                 <li>AI language models and processing services</li>
@@ -517,7 +517,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 These third-party services have their own privacy policies and data handling practices. We encourage you to review their policies to understand how they may collect and use your information.
               </p>
@@ -531,14 +531,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>9. Children's Privacy</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Our Services are not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.
               </p>
@@ -547,7 +547,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 For users between the ages of 13 and 18, we require parental consent for the collection and processing of personal information. We take additional precautions to protect the privacy of young users.
               </p>
@@ -561,14 +561,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>10. Changes to This Policy</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors. When we make changes, we will:
               </p>
@@ -578,7 +578,7 @@ export default function PrivacyPolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Update the "Last Updated" date at the top of this policy</li>
                 <li>Notify you of significant changes through our Services or email</li>
@@ -589,7 +589,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Your continued use of our Services after any changes to this policy indicates your acceptance of the updated terms. We encourage you to review this policy periodically.
               </p>
@@ -603,14 +603,14 @@ export default function PrivacyPolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>11. Contact Us</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
               </p>
@@ -619,7 +619,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>Phraze — Human-Centered Computing Group</strong><br />
                 <strong>Western University</strong><br />
@@ -632,7 +632,7 @@ export default function PrivacyPolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We are committed to addressing your privacy concerns and will respond to your inquiries in a timely manner.
               </p>
@@ -655,7 +655,7 @@ export default function PrivacyPolicy() {
               color: '#111827',
               marginBottom: '1.25rem',
               marginTop: 0,
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               borderBottom: '2px solid #e5e7eb',
               paddingBottom: '0.75rem'
             }}>Contents</h3>
@@ -671,7 +671,7 @@ export default function PrivacyPolicy() {
                       fontWeight: activeSection === section.id ? '600' : '400',
                       textAlign: 'left',
                       width: '100%',
-                      fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       transition: 'color 0.2s ease',
                       padding: '0.25rem 0'
                     }}
@@ -704,28 +704,28 @@ export default function PrivacyPolicy() {
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Terms of Service</Link>
           <Link to="/privacy" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Privacy Policy</Link>
           <Link to="/cookies" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Cookie Policy</Link>
           <Link to="/contact" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Contact</Link>
         </div>

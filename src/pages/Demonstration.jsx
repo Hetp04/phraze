@@ -14421,7 +14421,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       <textarea id="new-message" placeholder="Write a comment..." className="comment-input"
                         rows="1"
                         style={{
-                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                          fontFamily: '"Glacial Indifference", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                         }}></textarea>
                       <button id="add-message" className="comment-button primary" style={{ marginRight: 13 }}>
                         <i className="fas fa-arrow-up"></i>

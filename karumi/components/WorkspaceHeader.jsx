@@ -17,7 +17,7 @@ export default function WorkspaceHeader() {
           </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
           <a href="#" className="hover:text-black transition-colors">Home</a>
           <a href="#" className="hover:text-black transition-colors">Features</a>
           <a href="#" className="hover:text-black transition-colors">About</a>
@@ -25,7 +25,7 @@ export default function WorkspaceHeader() {
         </nav>
 
         <div>
-          <button className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-lg transition-colors text-slate-700">
+          <button className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-lg transition-colors text-slate-700" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
             Login
           </button>
         </div>

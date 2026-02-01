@@ -161,7 +161,7 @@ const FAQPartSection = () => {
               </span>
             </div>
             <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
-              <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Your Questions, Answered</h2>
+              <h2 className="mt-4 text-3xl md:text-4xl font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Your Questions, Answered</h2>
             </div>
             <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
               <div

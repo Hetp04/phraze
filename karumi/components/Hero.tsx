@@ -113,7 +113,7 @@ export const Hero: React.FC = () => {
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-[450] text-gray-900 leading-[1.1] mb-6 tracking-tight">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-[450] text-gray-900 leading-[1.1] mb-6 tracking-tight" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
           Turn every{' '}
           <span
             style={{
@@ -135,7 +135,7 @@ export const Hero: React.FC = () => {
         </h1>
 
         {/* Subheadline */}
-        <p className="text-lg md:text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed font-light">
+        <p className="text-lg md:text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed font-light" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
           The collaborative platform where teams annotate, share insights, and build on AI conversations together—all in real time.
         </p>
 

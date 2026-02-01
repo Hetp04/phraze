@@ -48,13 +48,13 @@ function FeatureCard({ title, description, Icon, active, onClick }) {
 
       <h3
         className="text-[15px] font-semibold transition-colors text-slate-900"
-        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+        style={{ fontFamily: '"Glacial Indifference", sans-serif' }}
       >
         <span>{title}</span>
       </h3>
       <p
         className="text-[14px] leading-[1.4] transition-colors text-slate-700"
-        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+        style={{ fontFamily: '"Glacial Indifference", sans-serif' }}
       >
         {description}
       </p>
@@ -283,7 +283,7 @@ Workspace
 </span>
 </div>
 <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
-<h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Collaborate in real time.</h2>
+<h2 className="mt-4 text-3xl md:text-4xl font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Collaborate in real time.</h2>
 </div>
 <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
 <div

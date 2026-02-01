@@ -906,11 +906,11 @@ const StepSection = ({ number, title, description, visual, reversed = false, del
       style={{ transitionDelay: isRevealed ? `${delayMs}ms` : '0ms' }}
     >
       <div className={`flex-1 text-center md:text-left ${reversed ? '' : 'md:-ml-6'}`}>
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-slate-900 font-serif font-semibold text-lg mb-6 shadow-sm">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-slate-900 font-semibold text-lg mb-6 shadow-sm" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
           {number}
         </div>
-        <h3 className="text-3xl font-serif font-bold text-slate-900 mb-4">{title}</h3>
-        <p className="text-slate-500 text-lg leading-relaxed font-light">{description}</p>
+        <h3 className="text-3xl font-bold text-slate-900 mb-4" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{title}</h3>
+        <p className="text-slate-500 text-lg leading-relaxed font-light" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{description}</p>
       </div>
 
       <div className="flex-1 w-full flex justify-center md:justify-end select-none">{visual}</div>
@@ -1047,7 +1047,7 @@ export default function HowItWorksHero() {
                   </span>
                 </div>
                 <div className={`phraze-bento-reveal ${headerRevealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: headerRevealActive ? '90ms' : '0ms' }}>
-                  <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">From chat to shared insights.</h2>
+                  <h2 className="mt-4 text-3xl md:text-4xl font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>From chat to shared insights.</h2>
                 </div>
                 <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
                   <div

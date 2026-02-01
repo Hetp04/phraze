@@ -621,7 +621,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '12px',
                   textAlign: 'center'
@@ -633,7 +633,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -644,7 +644,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',
@@ -693,7 +693,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '12px',
                   textAlign: 'center'
@@ -705,7 +705,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -716,7 +716,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',
@@ -1541,7 +1541,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '12px',
                   textAlign: 'center'
@@ -1553,7 +1553,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -1564,7 +1564,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',
@@ -2186,7 +2186,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '12px',
                   textAlign: 'center'
@@ -2198,7 +2198,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -2209,7 +2209,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',
@@ -2926,7 +2926,7 @@ export default function Features() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                          fontFamily: '"Glacial Indifference", sans-serif',
                           fontSize: '14px',
                           fontWeight: '500',
                           color: '#374151'
@@ -3788,7 +3788,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '12px',
                   textAlign: 'center'
@@ -3800,7 +3800,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -3811,7 +3811,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',
@@ -4568,7 +4568,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '12px',
                   textAlign: 'center'
@@ -4580,7 +4580,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -4591,7 +4591,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',
@@ -4899,7 +4899,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '8px',
                   textAlign: 'center'
@@ -4911,7 +4911,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -4922,7 +4922,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',
@@ -5505,7 +5505,7 @@ export default function Features() {
                 <h3 style={{
                   fontSize: '24px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#1a1a1a',
                   marginBottom: '8px',
                   textAlign: 'center'
@@ -5517,7 +5517,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   margin: '0',
@@ -5528,7 +5528,7 @@ export default function Features() {
                 <p style={{
                   fontSize: '16px',
                   fontWeight: '500',
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   color: '#666',
                   lineHeight: '1.5',
                   marginTop: '8px',

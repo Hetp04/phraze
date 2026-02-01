@@ -85,7 +85,7 @@ export default function CookiePolicy() {
             color: '#1a1a1a',
             marginBottom: '1rem',
             marginTop: 0,
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             textAlign: 'left'
           }}>Cookie Policy</h1>
           <p style={{
@@ -132,14 +132,14 @@ export default function CookiePolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>Introduction</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 This Cookie Policy explains how Phraze uses cookies and similar technologies when you visit our platform. Cookies help us provide you with a better experience and improve our Services.
               </p>
@@ -148,7 +148,7 @@ export default function CookiePolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 By using our Services, you consent to the use of cookies in accordance with this policy. You can control and manage cookies through your browser settings.
               </p>
@@ -162,14 +162,14 @@ export default function CookiePolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>1. What Are Cookies</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Cookies are small text files that are stored on your device when you visit a website. They help websites remember information about your visit, such as your preferred language and other settings.
               </p>
@@ -178,7 +178,7 @@ export default function CookiePolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Cookies can make your next visit easier and more useful. They help us understand how our Services are used and improve your experience.
               </p>
@@ -192,14 +192,14 @@ export default function CookiePolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>2. How We Use Cookies</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We use cookies for several purposes:
               </p>
@@ -209,7 +209,7 @@ export default function CookiePolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Remember your preferences and settings</li>
                 <li>Keep you signed in to your account</li>
@@ -227,14 +227,14 @@ export default function CookiePolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>3. Types of Cookies</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>Essential Cookies:</strong> These are necessary for the website to function properly. They enable basic functions like page navigation and access to secure areas.
               </p>
@@ -243,7 +243,7 @@ export default function CookiePolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>Performance Cookies:</strong> These help us understand how visitors interact with our website by collecting information anonymously.
               </p>
@@ -252,7 +252,7 @@ export default function CookiePolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>Functionality Cookies:</strong> These allow the website to remember choices you make and provide enhanced features.
               </p>
@@ -266,14 +266,14 @@ export default function CookiePolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4. Third-Party Cookies</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Some cookies on our platform are set by third-party services that we use, such as:
               </p>
@@ -283,7 +283,7 @@ export default function CookiePolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Google Analytics for website analytics</li>
                 <li>AI language model services for processing</li>
@@ -294,7 +294,7 @@ export default function CookiePolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 These third-party cookies are subject to their respective privacy policies.
               </p>
@@ -308,14 +308,14 @@ export default function CookiePolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>5. Managing Cookies</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 You can control and manage cookies in several ways:
               </p>
@@ -325,7 +325,7 @@ export default function CookiePolicy() {
                 lineHeight: '1.7',
                 marginBottom: '1rem',
                 paddingLeft: '2rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <li>Browser settings to block or delete cookies</li>
                 <li>Browser extensions for cookie management</li>
@@ -336,7 +336,7 @@ export default function CookiePolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Please note that disabling certain cookies may affect the functionality of our Services.
               </p>
@@ -350,14 +350,14 @@ export default function CookiePolicy() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>6. Contact Us</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 If you have questions about our use of cookies, please contact us:
               </p>
@@ -366,7 +366,7 @@ export default function CookiePolicy() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>Phraze — Human-Centered Computing Group</strong><br />
                 <strong>Western University</strong><br />
@@ -393,7 +393,7 @@ export default function CookiePolicy() {
               color: '#111827',
               marginBottom: '1.25rem',
               marginTop: 0,
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               borderBottom: '2px solid #e5e7eb',
               paddingBottom: '0.75rem'
             }}>Contents</h3>
@@ -409,7 +409,7 @@ export default function CookiePolicy() {
                       fontWeight: activeSection === section.id ? '600' : '400',
                       textAlign: 'left',
                       width: '100%',
-                      fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       transition: 'color 0.2s ease',
                       padding: '0.25rem 0'
                     }}
@@ -442,28 +442,28 @@ export default function CookiePolicy() {
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Terms of Service</Link>
           <Link to="/privacy" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Privacy Policy</Link>
           <Link to="/cookies" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Cookie Policy</Link>
           <Link to="/contact" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Contact</Link>
         </div>

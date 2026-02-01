@@ -53,7 +53,7 @@ export default function Navbar() {
       style={{
         backgroundColor: 'white',
         transition: 'background-color 0.3s ease',
-        fontFamily: 'Times New Roman, Times, serif'
+        fontFamily: '"Glacial Indifference", sans-serif'
       }}
     >
       <div className="nav-container">
@@ -65,9 +65,9 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="nav-center">
-          <Link to="/" className="nav-link" style={{ fontSize: '18px' }}>Home</Link>
-          <Link to="/about" className="nav-link" style={{ fontSize: '18px' }}>About</Link>
-          <Link to="/contact" className="nav-link" style={{ fontSize: '18px' }}>Contact</Link>
+          <Link to="/" className="nav-link" style={{ fontSize: '18px', fontFamily: '"Glacial Indifference", sans-serif' }}>Home</Link>
+          <Link to="/about" className="nav-link" style={{ fontSize: '18px', fontFamily: '"Glacial Indifference", sans-serif' }}>About</Link>
+          <Link to="/contact" className="nav-link" style={{ fontSize: '18px', fontFamily: '"Glacial Indifference", sans-serif' }}>Contact</Link>
         </div>
         <div className="nav-right" style={{
           display: 'flex',
@@ -96,7 +96,7 @@ export default function Navbar() {
                   display: 'inline-block',
                   border: 'none',
                   cursor: 'pointer',
-                  fontFamily: 'Times New Roman, Times, serif'
+                  fontFamily: '"Glacial Indifference", sans-serif'
                 }}
               >
                 Login
@@ -110,7 +110,8 @@ export default function Navbar() {
                 textDecoration: 'none',
                 fontWeight: '500',
                 transition: 'all 0.2s ease',
-                display: 'inline-block'
+                display: 'inline-block',
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Login
               </Link>

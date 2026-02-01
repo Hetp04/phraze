@@ -136,7 +136,7 @@ const FeatureShowcase = () => {
             style={{
               borderRadius: '12px',
               padding: '24px 20px',
-              fontFamily: '"Inter", "Inter Fallback", system-ui, sans-serif',
+              fontFamily: '"Glacial Indifference", system-ui, sans-serif',
               backgroundColor: hoveredCard === card.id ? '#ffffff' : '#f8f8f6',
               border: hoveredCard === card.id ? '2px solid #e5e5e5' : '2px solid transparent',
               transition: 'all 0.3s ease',
@@ -150,7 +150,8 @@ const FeatureShowcase = () => {
               fontWeight: '600',
               color: '#1a1a1a',
               margin: '0 0 12px 0',
-              lineHeight: '1.5'
+              lineHeight: '1.5',
+              fontFamily: '"Glacial Indifference", sans-serif'
             }}>
               {card.title}
             </h3>
@@ -159,7 +160,8 @@ const FeatureShowcase = () => {
               fontWeight: '400',
               color: '#666666',
               margin: '0',
-              lineHeight: '1.6'
+              lineHeight: '1.6',
+              fontFamily: '"Glacial Indifference", sans-serif'
             }}>
               {card.description}
             </p>
@@ -183,7 +185,7 @@ const FeatureShowcase = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: '"Inter", "Inter Fallback", system-ui, sans-serif',
+          fontFamily: '"Glacial Indifference", system-ui, sans-serif',
           overflow: 'hidden',
           position: 'relative',
           cursor: 'pointer'

@@ -547,7 +547,7 @@ export default function Onboarding() {
       background: '#fbfbfb',
       position: 'relative',
       overflow: 'hidden',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+      fontFamily: 'Glacial Indifference, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
     }}>
       {/* Background Rings Effect */}
       <div style={{

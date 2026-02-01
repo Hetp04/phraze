@@ -246,16 +246,16 @@ const ScrollHero: React.FC = () => {
                 pointerEvents: headlineOpacity < 0.1 ? 'none' : 'auto'
             }}
           >
-             <div className="text-stone-500 font-semibold tracking-[0.2em] text-[10px] md:text-xs mb-6 uppercase">
+             <div className="text-stone-500 font-semibold tracking-[0.2em] text-[10px] md:text-xs mb-6 uppercase" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 2015 is over...
              </div>
              
-             <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl text-stone-900 tracking-tight leading-[1.05]">
+             <h1 className="text-5xl md:text-7xl lg:text-8xl text-stone-900 tracking-tight leading-[1.05]" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 You Don't Need<br/>
                 <span className="text-stone-600">7+ Tools and Tabs</span>
              </h1>
              
-             <div className="mt-8 text-stone-500 text-lg md:text-xl font-light max-w-md mx-auto leading-relaxed">
+             <div className="mt-8 text-stone-500 text-lg md:text-xl font-light max-w-md mx-auto leading-relaxed" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 Fragmented workflows are costing you hours.<br/>
                 <span className="italic text-stone-400 text-base">It doesn't need to be like this.</span>
              </div>
@@ -300,10 +300,11 @@ const ScrollHero: React.FC = () => {
                     </div>
 
                     <span
-                      className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter"
+                      className="text-5xl md:text-7xl text-stone-900 tracking-tighter"
                       style={{
                         opacity: phrazeEnterProgress,
                         transform: `translateY(${mapRange(1 - phrazeEnterProgress, 0, 1, 0, 10)}px)`,
+                        fontFamily: '"Glacial Indifference", sans-serif'
                       }}
                     >
                       phraze

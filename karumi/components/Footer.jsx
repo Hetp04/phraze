@@ -79,7 +79,7 @@ export default function Footer(
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center px-6">
-          <h2 className="text-5xl md:text-7xl font-serif text-slate-900 mb-8 tracking-tight leading-[1.1]">
+          <h2 className="text-5xl md:text-7xl text-slate-900 mb-8 tracking-tight leading-[1.1]" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
             {headlineLine1} <br /> {headlineLine2}
           </h2>
           <button
@@ -125,10 +125,10 @@ export default function Footer(
             <div className="flex items-center justify-center md:justify-start -mb-2 md:-ml-4 md:-mt-2">
               <img src={phrazeLogo} alt="Phraze" className="h-[80px] w-auto object-contain" />
             </div>
-            <p className="text-sm text-slate-400 font-medium -mt-6">
+            <p className="text-sm text-slate-400 font-medium -mt-6" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
               © 2024 Phraze AI Inc.
             </p>
-            <p className="text-sm text-slate-500 font-medium leading-relaxed -mt-4">
+            <p className="text-sm text-slate-500 font-medium leading-relaxed -mt-4" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
               Collaborative AI workspace.
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3">
@@ -159,8 +159,8 @@ export default function Footer(
 
           <div className="flex flex-wrap justify-center md:justify-end gap-16 lg:gap-32">
             <div className="flex flex-col gap-4 text-center md:text-left">
-              <h4 className="font-bold text-slate-900 text-sm">Company</h4>
-              <ul className="space-y-3 text-sm text-slate-500 font-medium">
+              <h4 className="font-bold text-slate-900 text-sm" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Company</h4>
+              <ul className="space-y-3 text-sm text-slate-500 font-medium" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 <li>
                   <Link to="/about" className="hover:text-slate-900 transition-colors">
                     About
@@ -175,8 +175,8 @@ export default function Footer(
             </div>
 
             <div className="flex flex-col gap-4 text-center md:text-left">
-              <h4 className="font-bold text-slate-900 text-sm">Legal</h4>
-              <ul className="space-y-3 text-sm text-slate-500 font-medium">
+              <h4 className="font-bold text-slate-900 text-sm" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Legal</h4>
+              <ul className="space-y-3 text-sm text-slate-500 font-medium" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 <li>
                   <Link to="/privacy" className="hover:text-slate-900 transition-colors">
                     Privacy Policy
@@ -198,7 +198,7 @@ export default function Footer(
         </div>
 
         <div className="mt-16 pt-8 border-t border-gray-50 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-medium pb-8">
-          <p style={{ visibility: showTypography ? 'hidden' : 'visible' }}>
+          <p style={{ visibility: showTypography ? 'hidden' : 'visible', fontFamily: '"Glacial Indifference", sans-serif' }}>
             © 2024 Phraze AI Inc. All rights reserved.
           </p>
         </div>

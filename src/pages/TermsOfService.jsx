@@ -93,7 +93,7 @@ export default function TermsOfService() {
             color: '#1a1a1a',
             marginBottom: '1rem',
             marginTop: 0,
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             textAlign: 'left'
           }}>Terms of Service</h1>
           <p style={{
@@ -140,14 +140,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>Introduction</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Phraze is a research-driven project developed by the Human-Centered Computing Group in affiliation with Western University (London, Ontario, Canada). The Services are provided for academic, research, and educational purposes, and are governed by these Terms of Service (this "Agreement"). By accessing or using Phraze (the "Services"), you agree to these Terms.
               </p>
@@ -156,7 +156,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Phraze is an initiative under Western University's research activities and is subject to applicable university policies. The Services may incorporate third-party technologies, including large language models, governed in part by external terms such as the Google Terms of Service. By using Phraze, you acknowledge and agree to comply with such third-party terms where applicable.
               </p>
@@ -165,7 +165,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 If you use the Services on behalf of an institution or organization, you represent that you are authorized to bind that entity. If you do not agree to this Agreement, do not use the Services.
               </p>
@@ -179,14 +179,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>1. Definitions</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Account"</strong> means your registered profile to access the Services.
               </p>
@@ -195,7 +195,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Annotations"</strong> means labels, codes, notes, highlights, and metadata you or your users apply to messages or conversations within the Services.
               </p>
@@ -204,7 +204,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Customer Content"</strong> means any data, text, files, media, annotations, or other materials you submit to or generate in the Services (including conversation transcripts and any uploads).
               </p>
@@ -213,7 +213,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Documentation"</strong> means the user guides and help materials we make available.
               </p>
@@ -222,7 +222,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Free Services"</strong> means free access we make available at no charge.
               </p>
@@ -231,7 +231,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Output"</strong> means AI-generated responses, summaries, or other results produced by AI features in the Services.
               </p>
@@ -240,7 +240,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Platform"</strong> means our web app, extension(s), and related systems used to provide the Services.
               </p>
@@ -249,7 +249,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>"Usage Data"</strong> means de-identified technical, diagnostic, and usage information about how the Services perform and are used.
               </p>
@@ -263,7 +263,7 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>2. Accounts & Access</h2>
               <h3 style={{
                 fontSize: '1.5rem',
@@ -271,14 +271,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>2.1 Eligibility.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 You must be at least the age of majority in your jurisdiction and capable of forming a binding contract. If you are under 18, you may not use the Services.
               </p>
@@ -288,14 +288,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>2.2 Your Account.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Keep your login credentials confidential. You are responsible for all activities under your Account. Notify us promptly of any unauthorized access.
               </p>
@@ -305,14 +305,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>2.3 Authorized Users.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 If you grant others access (e.g., teammates or collaborators), you are responsible for their compliance with this Agreement.
               </p>
@@ -328,7 +328,7 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>3. Customer Content & Data</h2>
               <h3 style={{
                 fontSize: '1.5rem',
@@ -336,14 +336,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4.1 Ownership.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 You retain all rights to Customer Content. We do not claim ownership of your data.
               </p>
@@ -353,14 +353,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4.2 License to Operate.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 You grant us a worldwide, non-exclusive license to host, process, transmit, display, and adapt Customer Content as reasonably necessary to provide, secure, and improve the Services.
               </p>
@@ -370,14 +370,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4.3 AI Features.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 For research and free accounts, you grant us permission to use Customer Content (in de-identified form) to train and improve AI models.
               </p>
@@ -386,7 +386,7 @@ export default function TermsOfService() {
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 For enterprise or formal research agreements, we do not use Customer Content for training without explicit written consent.
               </p>
@@ -396,14 +396,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4.4 Usage Data.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We may collect and use Usage Data to improve the Services, provided it does not identify you or your users.
               </p>
@@ -413,14 +413,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4.5 Security.</h3>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We implement commercially reasonable measures to protect Customer Content, though no system is completely secure.
               </p>
@@ -436,14 +436,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>4. Third-Party Services</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 The Services may interoperate with third-party products you choose to enable. We do not control or endorse these and are not responsible for their availability, security, or content. You are responsible for complying with applicable third-party terms, including the Google Terms of Service where relevant.
               </p>
@@ -457,14 +457,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>5. Confidentiality</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Each party may access the other's non-public information marked confidential or that should reasonably be considered confidential. The receiving party will protect it using reasonable care and use it only to perform under this Agreement.
               </p>
@@ -478,14 +478,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>6. Intellectual Property</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We own the Services, software, Documentation, and related IP, including our domain name (phrazeapp.ai) which we purchased and own through Namecheap.com. Our service is deployed through GitHub Pages infrastructure. Except for the limited rights granted here, no rights are transferred. Feedback you provide may be used by us freely without attribution.
               </p>
@@ -501,14 +501,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>7. Indemnification</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 You agree to indemnify and hold Phraze, the Human-Centered Computing Group, and Western University harmless from claims, damages, or losses arising from (a) Customer Content; (b) your use of the Services in violation of this Agreement or law; or (c) your use of third-party services.
               </p>
@@ -522,14 +522,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>8. Limitation of Liability</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 To the fullest extent permitted by law, Phraze, Western University, and affiliated researchers will not be liable for indirect, incidental, or consequential damages, or for lost data or goodwill arising out of or related to the use of the Services.
               </p>
@@ -543,14 +543,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>9. Termination</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We may suspend or terminate your access immediately if you breach this Agreement, use the Services unlawfully, or pose a security risk. You may stop using the Services at any time. Upon termination, your rights end and we may delete your data after a reasonable period.
               </p>
@@ -566,14 +566,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>10. Changes to these Terms</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 We may update these Terms from time to time. Changes take effect upon posting. Continued use of the Services after changes indicates acceptance.
               </p>
@@ -589,14 +589,14 @@ export default function TermsOfService() {
                 color: '#1a1a1a',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>11. Contact Us</h2>
               <p style={{
                 fontSize: '16px',
                 color: '#374151',
                 lineHeight: '1.7',
                 marginBottom: '1rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 <strong>Phraze — Human-Centered Computing Group</strong><br />
                 <strong>Western University</strong><br />
@@ -623,7 +623,7 @@ export default function TermsOfService() {
               color: '#111827',
               marginBottom: '1.25rem',
               marginTop: 0,
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               borderBottom: '2px solid #e5e7eb',
               paddingBottom: '0.75rem'
             }}>Contents</h3>
@@ -639,7 +639,7 @@ export default function TermsOfService() {
                       fontWeight: activeSection === section.id ? '600' : '400',
                       textAlign: 'left',
                       width: '100%',
-                      fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       transition: 'color 0.2s ease',
                       padding: '0.25rem 0'
                     }}
@@ -674,28 +674,28 @@ export default function TermsOfService() {
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Terms of Service</Link>
           <Link to="/privacy" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Privacy Policy</Link>
           <Link to="/cookies" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Cookie Policy</Link>
           <Link to="/contact" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Contact</Link>
         </div>

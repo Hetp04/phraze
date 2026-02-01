@@ -1050,7 +1050,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
             fontWeight: '500',
             color: '#6b7280',
             marginBottom: '1.2rem',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             letterSpacing: '0.02em'
           }}>
             Supported by the generous contributions of
@@ -1152,7 +1152,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 fontSize: '0.8rem',
                 fontWeight: '600',
                 color: '#6b7280',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 whiteSpace: 'nowrap',
                 letterSpacing: '-0.01em'
               }}>
@@ -1187,7 +1187,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
             margin: '0 auto',
             lineHeight: '1.6',
             marginBottom: '1rem',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif'
+            fontFamily: '"Glacial Indifference", sans-serif'
           }}>Experience how Phraze transforms conversations with AI through intelligent highlighting and annotation</p>
         </div>
         
@@ -1198,7 +1198,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
               <div className="control-dot yellow"></div>
               <div className="control-dot green"></div>
             </div>
-            <div className="chat-demo-title" style={{ fontFamily: '"Inter", "Inter Fallback", sans-serif' }}>
+            <div className="chat-demo-title" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '6px' }}>
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
               </svg>
@@ -1757,7 +1757,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
               color: '#6b7280',
               marginBottom: '0',
               marginTop: '2rem',
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               letterSpacing: '0.02em'
             }}>
               See What's Possible
@@ -1826,7 +1826,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
               margin: '0 auto',
               lineHeight: '1.6',
               marginBottom: '2.5rem',
-              fontFamily: '"Inter", "Inter Fallback", sans-serif'
+              fontFamily: '"Glacial Indifference", sans-serif'
             }}>Watch our demo to see how Phraze transforms AI conversations with intelligent highlighting and annotation</p>
           </div>
           
@@ -1896,7 +1896,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: 0,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 letterSpacing: '-0.02em',
                 lineHeight: '1.2'
               }}>Annotate your chats</h2>
@@ -1904,7 +1904,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 fontSize: '18px',
                 color: '#6b7280',
                 lineHeight: '1.6',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 marginBottom: '2rem'
               }}>Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.</p>
               
@@ -2113,7 +2113,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: 0,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 letterSpacing: '-0.02em',
                 lineHeight: '1.2'
               }}>Collaborate in real time</h2>
@@ -2121,7 +2121,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 fontSize: '18px',
                 color: '#6b7280',
                 lineHeight: '1.6',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 marginBottom: '2rem'
               }}>Collaborate directly within your conversations. Add meaning, context, and ideas all in one place.</p>
               
@@ -2190,7 +2190,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
               color: '#1a1a1a',
               marginBottom: '1rem',
               marginTop: 0,
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               letterSpacing: '-0.025em'
             }}>Want to know more?</h2>
             <p style={{
@@ -2198,7 +2198,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
               color: '#6b7280',
               marginBottom: '0',
               lineHeight: '1.6',
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               maxWidth: '600px',
               margin: '0 auto'
             }}>Here's a list of FAQs to help you get started!</p>
@@ -2280,14 +2280,14 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 color: '#1a1a1a',
                 marginBottom: '1rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>Need more support?</h3>
               <p style={{
                 fontSize: '0.95rem',
                 color: '#6b7280',
                 marginBottom: '2rem',
                 lineHeight: '1.5',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>Can't find what you're looking for? Get in touch with our team.</p>
               
               <form style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '0' }}>
@@ -2299,7 +2299,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '0.9rem',
-                    fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}
                 />
                 <input
@@ -2310,7 +2310,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '0.9rem',
-                    fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}
                 />
                 <input
@@ -2321,7 +2321,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '0.9rem',
-                    fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}
                 />
                 <textarea
@@ -2332,7 +2332,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '0.9rem',
-                    fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                    fontFamily: '"Glacial Indifference", sans-serif',
                     resize: 'vertical'
                   }}
                 />
@@ -2346,7 +2346,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                     borderRadius: '6px',
                     fontSize: '0.875rem',
                     fontWeight: '500',
-                    fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                    fontFamily: '"Glacial Indifference", sans-serif',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     marginBottom: '0',
@@ -2416,7 +2416,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 fontSize: '0.875rem',
                 fontWeight: '500',
                 marginBottom: '1.5rem',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 border: '1px solid rgba(3, 105, 161, 0.1)'
               }}>
                 ✨ Start collaborating today
@@ -2428,7 +2428,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 color: '#111827',
                 marginBottom: '1.5rem',
                 marginTop: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 letterSpacing: '-0.02em',
                 lineHeight: '1.2'
               }}>
@@ -2440,7 +2440,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 color: '#6b7280',
                 marginBottom: '2.5rem',
                 lineHeight: '1.6',
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Collaborate on AI conversations with your team.<br />
                 Organize and annotate everything in one place.
@@ -2461,7 +2461,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                   padding: '16px 32px',
                   fontSize: '1rem',
                   fontWeight: '600',
-                  fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                  fontFamily: '"Glacial Indifference", sans-serif',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   boxShadow: '0 4px 12px rgba(17, 24, 39, 0.15)',
@@ -2489,7 +2489,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                   padding: '16px 32px',
                   fontSize: '1rem',
                   fontWeight: '500',
-                  fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                  fontFamily: '"Glacial Indifference", sans-serif',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   textDecoration: 'none',
@@ -2516,7 +2516,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
                 color: '#9ca3af',
                 marginTop: '1.5rem',
                 marginBottom: 0,
-                fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 No credit card required • Free to start
               </p>
@@ -2542,28 +2542,28 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Terms of Service</Link>
             <Link to="/privacy" style={{
               fontSize: '14px',
               color: '#6b7280',
               textDecoration: 'none',
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               transition: 'color 0.2s ease'
             }}>Privacy Policy</Link>
             <Link to="/cookies" style={{
               fontSize: '14px',
               color: '#6b7280',
               textDecoration: 'none',
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               transition: 'color 0.2s ease'
             }}>Cookie Policy</Link>
             <Link to="/contact" style={{
               fontSize: '14px',
               color: '#6b7280',
               textDecoration: 'none',
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               transition: 'color 0.2s ease'
             }}>Contact</Link>
           </div>
@@ -2571,7 +2571,7 @@ export default function ChatDemo({ disableNegativeMargin = false } = {}) {
             fontSize: '14px',
             color: '#6b7280',
             margin: '0',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif'
+            fontFamily: '"Glacial Indifference", sans-serif'
           }}>
             © 2025 Phraze. All rights reserved. Affiliated with Human-Centered Computing Group (HCCG).
           </p>
@@ -2612,7 +2612,7 @@ function FAQItem({ question, answer, isFirst, isLast }) {
         }}>
           <h3 style={{
             fontSize: '1.125rem',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             fontWeight: '500',
             color: '#111827',
             margin: '0',
@@ -2629,7 +2629,7 @@ function FAQItem({ question, answer, isFirst, isLast }) {
               color: '#6b7280',
               lineHeight: '1.6',
               fontSize: '0.95rem',
-              fontFamily: '"Inter", "Inter Fallback", sans-serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               fontWeight: '400',
               margin: '0',
               paddingTop: '0.5rem'

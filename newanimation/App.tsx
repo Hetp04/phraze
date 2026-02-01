@@ -10,7 +10,7 @@ function App() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 flex justify-between items-center pointer-events-none">
          <div className="font-serif font-bold text-xl tracking-tight pointer-events-auto cursor-pointer text-stone-900">phraze.</div>
-         <div className="flex gap-6 text-sm font-medium pointer-events-auto text-stone-600">
+         <div className="flex gap-6 text-sm font-medium pointer-events-auto text-stone-600" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
              <a href="#" className="hover:text-stone-900 transition-colors">Product</a>
              <a href="#" className="hover:text-stone-900 transition-colors">Pricing</a>
              <a href="#" className="hover:text-stone-900 transition-colors">Login</a>

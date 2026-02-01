@@ -1075,8 +1075,8 @@ const EmptyBentoPage = ({ revealActive = false }) => {
           style={{ transitionDelay: '140ms' }}
         >
           <div className="mb-4">
-            <h3 className="text-lg font-serif font-bold text-slate-900">Annotation History</h3>
-            <p className="text-slate-500 text-sm font-light mt-1">A running log of saved highlights, labels, and quick notes.</p>
+            <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Annotation History</h3>
+            <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>A running log of saved highlights, labels, and quick notes.</p>
           </div>
 
           <div className="flex-1 min-h-0" style={{ width: '100%' }}>
@@ -1144,8 +1144,8 @@ const EmptyBentoPage = ({ revealActive = false }) => {
           style={{ transitionDelay: '280ms' }}
         >
           <div className="mb-4">
-            <h3 className="text-lg font-serif font-bold text-slate-900">Contact</h3>
-            <p className="text-slate-500 text-sm font-light mt-1">Choose a teammate, preview their latest message, and jump into the thread instantly.</p>
+            <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Contact</h3>
+            <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Choose a teammate, preview their latest message, and jump into the thread instantly.</p>
           </div>
 
           <div className="flex-1 min-h-0">
@@ -1158,8 +1158,8 @@ const EmptyBentoPage = ({ revealActive = false }) => {
           style={{ transitionDelay: '420ms' }}
         >
           <div className="mb-4">
-            <h3 className="text-lg font-serif font-bold text-slate-900">Import & Export</h3>
-            <p className="text-slate-500 text-sm font-light mt-1">Export your annotations for backup or sharing, or import previously exported data.</p>
+            <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Import & Export</h3>
+            <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Export your annotations for backup or sharing, or import previously exported data.</p>
           </div>
 
           <div className="bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 flex flex-col flex-1 min-h-0">
@@ -1392,8 +1392,8 @@ const EmptyBentoPage = ({ revealActive = false }) => {
           style={{ transitionDelay: '560ms' }}
         >
           <div className="mb-4">
-            <h3 className="text-lg font-serif font-bold text-slate-900">RBAC</h3>
-            <p className="text-slate-500 text-sm font-light mt-1">
+            <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>RBAC</h3>
+            <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
               Give the right access to the right people. Owners manage, editors collaborate, viewers observe.
             </p>
           </div>
@@ -2489,7 +2489,7 @@ const ToolsAndAnalyticsSection = () => {
           </span>
         </div>
         <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '90ms' : '0ms' }}>
-          <h2 className="mt-4 text-3xl md:text-4xl font-serif font-bold text-slate-900">Annotate your chats.</h2>
+          <h2 className="mt-4 text-3xl md:text-4xl font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Annotate your chats.</h2>
         </div>
         <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
           <div
@@ -2529,8 +2529,8 @@ const ToolsAndAnalyticsSection = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                           <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '0ms' }}>
                             <div className="mb-6">
-                              <h3 className="text-lg font-serif font-bold text-slate-900">Annotate your chats</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1">Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.</p>
+                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Annotate your chats</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.</p>
                             </div>
 
                             <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 w-full max-w-md mx-auto mt-auto">
@@ -2556,8 +2556,8 @@ const ToolsAndAnalyticsSection = () => {
 
                           <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '140ms' }}>
                             <div className="mb-6">
-                              <h3 className="text-lg font-serif font-bold text-slate-900">Project Organization</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1">Keep every thread, tag, and decision structured in one place.</p>
+                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Project Organization</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Keep every thread, tag, and decision structured in one place.</p>
                             </div>
                             <div className="flex-1 min-h-0 flex items-center justify-center">
                               <div className="w-full">
@@ -2568,8 +2568,8 @@ const ToolsAndAnalyticsSection = () => {
 
                           <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '280ms' }}>
                             <div className="mb-4">
-                              <h3 className="text-lg font-serif font-bold text-slate-900">{pageIndex % 2 === 0 ? 'Chat annotation' : 'Exports'}</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1">
+                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{pageIndex % 2 === 0 ? 'Chat annotation' : 'Exports'}</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                                 {pageIndex % 2 === 0
                                   ? 'Highlight key phrases in the conversation and label them instantly.'
                                   : 'Share insights with a clean export your team can trust.'}
@@ -2599,8 +2599,8 @@ const ToolsAndAnalyticsSection = () => {
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 mt-10">
                           <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-7 flex flex-col phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '420ms' }}>
                             <div className="mb-4">
-                              <h3 className="text-lg font-serif font-bold text-slate-900">Live collaboration</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1">See changes merge in real time as your team annotates.</p>
+                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Live collaboration</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>See changes merge in real time as your team annotates.</p>
                             </div>
                             <div className="flex-1 w-full">
                               <LiveCollaborationCard />
@@ -2608,8 +2608,8 @@ const ToolsAndAnalyticsSection = () => {
                           </div>
                           <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-5 flex flex-col phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '560ms' }}>
                             <div className="mb-4">
-                              <h3 className="text-lg font-serif font-bold text-slate-900">Analyze your data</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1">Visualize trends and uncover insights in your conversations with analytics tools.</p>
+                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Analyze your data</h3>
+                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Visualize trends and uncover insights in your conversations with analytics tools.</p>
                             </div>
                             <div className="flex-1 flex items-center justify-center overflow-visible">
                               <AnalyticsVisual />

@@ -148,7 +148,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
                     fontSize: '0.8rem',
                     fontWeight: '600',
                     color: '#6b7280',
-                    fontFamily: '"Inter", "Inter Fallback", sans-serif',
+                    fontFamily: '"Glacial Indifference", sans-serif',
                     whiteSpace: 'nowrap',
                     letterSpacing: '-0.01em'
                   }}>
