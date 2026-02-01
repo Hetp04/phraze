@@ -54,26 +54,26 @@ const ScrollHero: React.FC = () => {
   // We inverse the glow: a bright spot that focuses
   const bgGlowScale = mapRange(progress, 0, 0.5, 1, 0.4); 
 
-  const meetEnterProgress = smoothStep(0.5, 0.58, progress);
-  const logoEnterProgress = smoothStep(0.56, 0.64, progress);
-  const phrazeEnterProgress = smoothStep(0.62, 0.7, progress);
+  const meetEnterProgress = smoothStep(0.42, 0.50, progress);
+  const logoEnterProgress = smoothStep(0.48, 0.56, progress);
+  const phrazeEnterProgress = smoothStep(0.54, 0.62, progress);
 
-  const iconsExitProgress = smoothStep(0.56, 0.86, progress);
+  const iconsExitProgress = smoothStep(0.48, 0.78, progress);
   const flareBoost = smoothStep(0.7, 1, iconsExitProgress);
   
-  const headlineOpacity = 1 - smoothStep(0.24, 0.41, progress);
-  const headlineScale = mapRange(smoothStep(0, 0.41, progress), 0, 1, 1, 0.95);
-  const headlineBlur = mapRange(smoothStep(0.26, 0.41, progress), 0, 1, 0, 10);
+  const headlineOpacity = 1 - smoothStep(0.35, 0.45, progress);
+  const headlineScale = mapRange(smoothStep(0, 0.45, progress), 0, 1, 1, 0.95);
+  const headlineBlur = mapRange(smoothStep(0.37, 0.45, progress), 0, 1, 0, 10);
 
-  const iconGlobalOpacity = 1 - smoothStep(0.56, 0.88, progress);
-  const iconBlur = mapRange(smoothStep(0.62, 0.88, progress), 0, 1, 0, 4);
+  const iconGlobalOpacity = 1 - smoothStep(0.48, 0.80, progress);
+  const iconBlur = mapRange(smoothStep(0.54, 0.80, progress), 0, 1, 0, 4);
 
-  const lockupEnterProgress = smoothStep(0.5, 0.75, progress);
+  const lockupEnterProgress = smoothStep(0.42, 0.58, progress);
   const lockupOpacity = lockupEnterProgress;
   const lockupScale = mapRange(lockupEnterProgress, 0, 1, 1.1, 1);
   const lockupY = mapRange(lockupEnterProgress, 0, 1, 30, 0);
 
-  const subtextProgress = smoothStep(0.75, 0.9, progress);
+  const subtextProgress = smoothStep(0.58, 0.73, progress);
   const subtextOpacity = subtextProgress;
   const subtextY = mapRange(subtextProgress, 0, 1, 20, 0);
 
@@ -272,10 +272,11 @@ const ScrollHero: React.FC = () => {
           >
               <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 mb-4">
                   <span
-                    className="font-serif text-5xl md:text-7xl text-stone-900 tracking-tighter"
+                    className="text-5xl md:text-7xl text-stone-900 tracking-tighter"
                     style={{
                       opacity: meetEnterProgress,
                       transform: `translateY(${mapRange(1 - meetEnterProgress, 0, 1, 0, 10)}px)`,
+                      fontFamily: '"Glacial Indifference", sans-serif'
                     }}
                   >
                     Meet
