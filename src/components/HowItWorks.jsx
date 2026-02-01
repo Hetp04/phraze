@@ -3534,7 +3534,7 @@ export default function HowItWorks() {
           color: 'rgb(26, 26, 26)',
           marginBottom: '1rem',
           marginTop: 0,
-          fontFamily: 'Inter, "Inter Fallback", sans-serif',
+          fontFamily: '"Glacial Indifference", sans-serif',
           letterSpacing: '-0.025em'
         }}>
           Scroll to preview the flow

@@ -103,7 +103,7 @@ export default function PrivacyPolicy() {
             maxWidth: '600px',
             textAlign: 'left',
             lineHeight: '1.6',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif'
+            fontFamily: '"Glacial Indifference", sans-serif'
           }}>
             Learn how we protect and handle your personal information
           </p>
@@ -733,7 +733,7 @@ export default function PrivacyPolicy() {
           fontSize: '14px',
           color: '#6b7280',
           margin: '0',
-          fontFamily: '"Inter", "Inter Fallback", sans-serif'
+          fontFamily: '"Glacial Indifference", sans-serif'
         }}>
           © 2025 Phraze. Developed by the Human-Centered Computing Group in affiliation with Western University. All rights reserved.
         </p>

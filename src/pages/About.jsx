@@ -42,7 +42,7 @@ export default function About() {
         <div className="relative overflow-hidden">
           <div className="max-w-6xl mx-auto px-6 pt-24 pb-24 relative">
             <div className="max-w-3xl">
-              <h1 className="mt-5 text-4xl md:text-6xl font-serif font-bold text-slate-900 tracking-tight leading-[1.05]">
+              <h1 className="mt-5 text-4xl md:text-6xl font-bold text-slate-900 tracking-tight leading-[1.05]" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 Building infrastructure for
                 <span
                   className="block"
@@ -62,7 +62,7 @@ export default function About() {
                   durable AI work.
                 </span>
               </h1>
-              <p className="mt-6 text-lg md:text-xl text-slate-500 font-light leading-relaxed">
+              <p className="mt-6 text-lg md:text-xl text-slate-500 font-light leading-relaxed" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 Phraze turns conversations into a shared workspace, so teams can capture rationale, preserve context, and build
                 compounding insight over time.
               </p>
@@ -116,8 +116,8 @@ export default function About() {
                       </div>
 
                       <div className="min-w-0">
-                        <h2 className="text-xl font-serif font-bold text-slate-900 truncate">{person.name}</h2>
-                        <p className="mt-1 text-sm text-slate-500 font-medium leading-relaxed">{person.title}</p>
+                        <h2 className="text-xl font-bold text-slate-900 truncate" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{person.name}</h2>
+                        <p className="mt-1 text-sm text-slate-500 font-medium leading-relaxed" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{person.title}</p>
 
                         <div className="mt-4 flex items-center gap-3 text-cyan-700">
                           {person.name === 'Dr. Umair Rehman' && (
@@ -162,7 +162,7 @@ export default function About() {
                       </div>
                     </div>
 
-                    <div className="mt-6 text-slate-600 text-[15px] leading-relaxed font-light">
+                    <div className="mt-6 text-slate-600 text-[15px] leading-relaxed font-light" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                       {person.bioParts.map((paragraph, idx) => {
                         const isUmairQuote = person.name === 'Dr. Umair Rehman' && idx === 1;
 
@@ -172,7 +172,7 @@ export default function About() {
                               key={paragraph.slice(0, 24)}
                               className="mt-0 mb-5 last:mb-0 rounded-2xl border border-gray-100 bg-slate-50/60 px-5 py-4"
                             >
-                              <div className="border-l-2 border-slate-300 pl-4 italic text-slate-600">
+                              <div className="border-l-2 border-slate-300 pl-4 italic text-slate-600" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                                 {paragraph}
                               </div>
                             </div>
@@ -180,7 +180,7 @@ export default function About() {
                         }
 
                         return (
-                          <p key={paragraph.slice(0, 24)} className="mt-0 mb-5 last:mb-0">
+                          <p key={paragraph.slice(0, 24)} className="mt-0 mb-5 last:mb-0" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                             {paragraph}
                           </p>
                         );

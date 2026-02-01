@@ -50,7 +50,7 @@ export default function Contact() {
             fontWeight: '600',
             color: '#202123',
             margin: '0 0 8px 0',
-            fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+            fontFamily: '"Glacial Indifference", sans-serif'
           }}>
             Request a Demo
           </h2>
@@ -58,7 +58,7 @@ export default function Contact() {
             fontSize: '16px',
             color: '#6e6e80',
             margin: '0',
-            fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+            fontFamily: '"Glacial Indifference", sans-serif'
           }}>
             See how Phraze can transform your LLM development workflow
           </p>
@@ -91,7 +91,7 @@ export default function Contact() {
                     fontWeight: '600',
                     color: '#000000',
                     margin: '0 0 16px 0',
-                    fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Thank you!
                   </h3>
@@ -99,7 +99,7 @@ export default function Contact() {
                     fontSize: '16px',
                     color: '#6c757d',
                     margin: '0 0 24px 0',
-                    fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Your demo request has been submitted successfully. We'll get back to you within 24 hours.
                   </p>
@@ -113,7 +113,7 @@ export default function Contact() {
                       padding: '12px 24px',
                       fontSize: '16px',
                       fontWeight: '500',
-                      fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       cursor: 'pointer'
                     }}
                   >
@@ -138,7 +138,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     First name
                   </label>
@@ -152,7 +152,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       color: '#202123',
@@ -178,7 +178,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Last name
                   </label>
@@ -192,7 +192,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       color: '#202123',
@@ -218,7 +218,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Work email
                   </label>
@@ -232,7 +232,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       color: '#202123',
@@ -258,7 +258,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Job title
                   </label>
@@ -272,7 +272,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       color: '#202123',
@@ -298,7 +298,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Company name (optional)
                   </label>
@@ -311,7 +311,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       color: '#202123',
@@ -337,7 +337,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Company size (optional)
                   </label>
@@ -348,7 +348,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       cursor: 'pointer',
@@ -395,7 +395,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Reason for contact
                   </label>
@@ -407,7 +407,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       cursor: 'pointer',
@@ -453,7 +453,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#6e6e80',
                     marginBottom: '8px',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Provide more details (optional)
                   </label>
@@ -466,7 +466,7 @@ export default function Contact() {
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '16px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       outline: 'none',
                       backgroundColor: '#f9fafb',
                       resize: 'vertical',
@@ -499,7 +499,7 @@ export default function Contact() {
                       padding: '12px 24px',
                       fontSize: '16px',
                       fontWeight: '500',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+                      fontFamily: '"Glacial Indifference", sans-serif',
                       cursor: 'pointer',
                       width: '100%',
                       transition: 'background-color 0.2s ease'
@@ -529,7 +529,7 @@ export default function Contact() {
               color: '#6e6e80',
               margin: '0 0 16px 0',
               letterSpacing: '0.01em',
-              fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+              fontFamily: '"Glacial Indifference", sans-serif'
             }}>
               Learn more about Phraze
             </h3>
@@ -554,7 +554,7 @@ export default function Contact() {
                   color: '#202123',
                   borderRadius: '6px',
                   transition: 'background-color 0.15s ease',
-                  fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                  fontFamily: '"Glacial Indifference", sans-serif'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f7f7f8';
@@ -589,7 +589,7 @@ export default function Contact() {
                   color: '#202123',
                   borderRadius: '6px',
                   transition: 'background-color 0.15s ease',
-                  fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                  fontFamily: '"Glacial Indifference", sans-serif'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f7f7f8';
@@ -623,7 +623,7 @@ export default function Contact() {
                   color: '#202123',
                   borderRadius: '6px',
                   transition: 'background-color 0.15s ease',
-                  fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                  fontFamily: '"Glacial Indifference", sans-serif'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f7f7f8';
@@ -660,7 +660,7 @@ export default function Contact() {
                 color: '#6e6e80',
                 margin: '0 0 16px 0',
                 letterSpacing: '0.01em',
-                fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                fontFamily: '"Glacial Indifference", sans-serif'
               }}>
                 Quick links
               </h4>
@@ -680,7 +680,7 @@ export default function Contact() {
                     color: '#202123',
                     borderRadius: '6px',
                     transition: 'background-color 0.15s ease',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#f7f7f8';
@@ -732,7 +732,7 @@ export default function Contact() {
                     fontWeight: '500',
                     color: '#202123',
                     margin: '0 0 4px 0',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Need help?
                   </h5>
@@ -741,7 +741,7 @@ export default function Contact() {
                     color: '#6e6e80',
                     margin: '0 0 12px 0',
                     lineHeight: '1.5',
-                    fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                    fontFamily: '"Glacial Indifference", sans-serif'
                   }}>
                     Our team is here to answer your questions.
                   </p>
@@ -755,7 +755,7 @@ export default function Contact() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      fontFamily: 'Söhne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+                      fontFamily: '"Glacial Indifference", sans-serif'
                     }}
                   >
                     Get in touch
@@ -789,28 +789,28 @@ export default function Contact() {
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Terms of Service</Link>
           <Link to="/privacy" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Privacy Policy</Link>
           <Link to="/cookies" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Cookie Policy</Link>
           <Link to="/contact" style={{
             fontSize: '14px',
             color: '#6b7280',
             textDecoration: 'none',
-            fontFamily: '"Inter", "Inter Fallback", sans-serif',
+            fontFamily: '"Glacial Indifference", sans-serif',
             transition: 'color 0.2s ease'
           }}>Contact</Link>
         </div>
@@ -818,7 +818,7 @@ export default function Contact() {
           fontSize: '14px',
           color: '#6b7280',
           margin: '0',
-          fontFamily: '"Inter", "Inter Fallback", sans-serif'
+          fontFamily: '"Glacial Indifference", sans-serif'
         }}>
           © 2025 Phraze. All rights reserved. Affiliated with Human-Centered Computing Group (HCCG).
         </p>

@@ -3098,7 +3098,7 @@ export default function Features() {
                             outline: 'none',
                             background: '#fff',
                             fontSize: '14px',
-                            fontFamily: '"Inter", "Inter Fallback", sans-serif'
+                            fontFamily: '"Glacial Indifference", sans-serif'
                           }} placeholder="Write a message..." disabled></textarea>
                           <button type="button" style={{
                             background: 'none',

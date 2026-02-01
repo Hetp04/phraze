@@ -53,13 +53,13 @@ const FAQItem = ({ question, answer, revealActive = false, delayMs = 0 }) => {
       style={{ transitionDelay: revealActive ? `${delayMs}ms` : '0ms' }}
     >
       <button onClick={() => setIsOpen(!isOpen)} className="w-full py-4 flex items-start justify-between text-left group">
-        <span className={`text-[15px] font-serif text-slate-800 transition-colors ${isOpen ? 'text-teal-700' : ''}`}>{question}</span>
+        <span className={`text-[15px] text-slate-800 transition-colors ${isOpen ? 'text-teal-700' : ''}`} style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{question}</span>
         <span className={`ml-4 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`}>
           <Plus className={`w-4 h-4 ${isOpen ? 'text-teal-600' : 'text-slate-400'}`} />
         </span>
       </button>
       <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-48 opacity-100 mb-4' : 'max-h-0 opacity-0'}`}>
-        <p className="text-slate-500 leading-relaxed pr-8 font-light text-sm">{answer}</p>
+        <p className="text-slate-500 leading-relaxed pr-8 font-light text-sm" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{answer}</p>
       </div>
     </div>
   );
@@ -175,7 +175,7 @@ const FAQPartSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
           <div>
             <div className={`phraze-reveal-apple ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: revealActive ? '220ms' : '0ms' }}>
-              <h3 className="text-xl font-serif font-semibold text-slate-800 mb-6">Common Questions</h3>
+              <h3 className="text-xl font-semibold text-slate-800 mb-6" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Common Questions</h3>
             </div>
             <div className="space-y-0">
               {faqs.map((faq, index) => (
@@ -190,43 +190,47 @@ const FAQPartSection = () => {
               style={{ transitionDelay: revealActive ? '460ms' : '0ms' }}
             >
               <div className="mb-8">
-                <h3 className="text-xl font-serif font-semibold text-slate-800 mb-2">Need more support?</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">Can't find what you're looking for? Get in touch with our team.</p>
+                <h3 className="text-xl font-semibold text-slate-800 mb-2" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Need more support?</h3>
+                <p className="text-slate-500 text-sm leading-relaxed" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Can't find what you're looking for? Get in touch with our team.</p>
               </div>
 
-              <form className="space-y-4">
+              <form className="space-y-4" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Your name</label>
+                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Your name</label>
                   <input
                     type="text"
                     className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
                     placeholder="John Doe"
+                    style={{ fontFamily: '"Glacial Indifference", sans-serif' }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Your email</label>
+                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Your email</label>
                   <input
                     type="email"
                     className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
                     placeholder="john@company.com"
+                    style={{ fontFamily: '"Glacial Indifference", sans-serif' }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Subject</label>
+                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Subject</label>
                   <input
                     type="text"
                     className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 transition-all"
                     placeholder="How can we help?"
+                    style={{ fontFamily: '"Glacial Indifference", sans-serif' }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Message</label>
+                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Message</label>
                   <textarea
                     className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/10 placeholder:text-gray-300 min-h-[120px] resize-none transition-all"
                     placeholder="Tell us more about your inquiry..."
+                    style={{ fontFamily: '"Glacial Indifference", sans-serif' }}
                   />
                 </div>
-                <button className="w-full bg-slate-900 text-white py-3.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2">
+                <button className="w-full bg-slate-900 text-white py-3.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
                   Send Message
                   <Send className="w-3.5 h-3.5" />
                 </button>

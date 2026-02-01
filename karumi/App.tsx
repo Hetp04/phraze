@@ -50,7 +50,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
                 fontWeight: '500',
                 color: '#6b7280',
                 marginBottom: '1.2rem',
-                fontFamily: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+                fontFamily: '"Glacial Indifference", sans-serif',
                 letterSpacing: '0.02em'
               }}>
                 Supported by the generous contributions of

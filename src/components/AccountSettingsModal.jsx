@@ -26,7 +26,7 @@ const colors = {
 };
 
 // Font family matching website
-const fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+const fontFamily = "'Glacial Indifference', sans-serif";
 
 // Settings Tab Enum
 const SettingsTab = {

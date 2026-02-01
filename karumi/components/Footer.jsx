@@ -99,7 +99,7 @@ export default function Footer(
             aria-hidden="true"
             className="absolute left-1/2 -translate-x-1/2 bottom-3 w-[120vw] text-center select-none pointer-events-none"
             style={{
-              fontFamily: 'Times New Roman, Times, serif',
+              fontFamily: '"Glacial Indifference", sans-serif',
               fontSize: 'clamp(100px, 18vw, 320px)',
               fontWeight: 700,
               letterSpacing: '-0.06em',
