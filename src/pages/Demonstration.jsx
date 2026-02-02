@@ -3617,21 +3617,6 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   );
 }
 
-// Separate component for disclaimer
-const DisclaimerMessage = () => (
-  <p style={{
-    marginTop: '1.5rem',
-    textAlign: 'center',
-    fontSize: '0.75rem',
-    color: '#9ca3af',
-    fontWeight: '300',
-    letterSpacing: '0.025em',
-    opacity: 0.8
-  }}>
-    Phraze can make mistakes. Consider checking important information.
-  </p>
-);
-
 export default function Demonstration({ currentProject, onProjectChange, setCurrentProject }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -9338,7 +9323,190 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             />
           )}
 
+          <div style={{
+            position: 'absolute',
+            top: '12px',
+            left: '12px',
+            right: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            zIndex: 1500,
+            pointerEvents: 'none'
+          }}>
+            {!isInsideExtension && (
+              <div style={{ position: 'relative', pointerEvents: 'auto' }} className="model-dropdown-container">
+                <button
+                  onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                  style={{
+                    background: 'white',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '12px',
+                    padding: '0.625rem 1rem',
+                    fontSize: '0.875rem',
+                    color: '#1f2937',
+                    cursor: 'pointer',
+                    minWidth: '140px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    outline: 'none',
+                    fontWeight: '500'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = 'rgba(0,0,0,0.15)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = 'rgba(0,0,0,0.08)';
+                    e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                  title="Select AI model"
+                >
+                  <span style={{ fontWeight: '500' }}>
+                    {availableModels.find(m => m.value === selectedModel)?.label}
+                  </span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{
+                      transform: isModelDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      opacity: '0.6'
+                    }}
+                  >
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                  </svg>
+                </button>
+
+                {isModelDropdownOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '0',
+                    right: '0',
+                    marginTop: '0.5rem',
+                    background: 'white',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    overflow: 'hidden',
+                    zIndex: 1501,
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    width: '320px'
+                  }}>
+                    {availableModels.map((model, index) => (
+                      <button
+                        key={model.value}
+                        onClick={() => {
+                          setSelectedModel(model.value);
+                          setIsModelDropdownOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          background: selectedModel === model.value ? 'rgb(245, 243, 240)' : 'transparent',
+                          border: 'none',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                          borderBottom: index < availableModels.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.375rem'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedModel !== model.value) {
+                            e.target.style.background = 'rgb(249, 248, 246)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedModel !== model.value) {
+                            e.target.style.background = 'transparent';
+                          }
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%'
+                        }}>
+                          <span style={{
+                            fontWeight: selectedModel === model.value ? '600' : '500',
+                            color: selectedModel === model.value ? '#0f172a' : '#334155',
+                            fontSize: '0.875rem',
+                            letterSpacing: '-0.01em'
+                          }}>
+                            {model.label}
+                          </span>
+                          {selectedModel === model.value && (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#3b82f6' }}>
+                              <polyline points="20,6 9,17 4,12"></polyline>
+                            </svg>
+                          )}
+                        </div>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          lineHeight: '1.3',
+                          fontWeight: '400'
+                        }}>
+                          {model.description}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ pointerEvents: 'auto' }}>
+              <button
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.875rem',
+                  color: '#111827',
+                  cursor: 'pointer',
+                  minWidth: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  outline: 'none',
+                  fontWeight: '500'
+                }}
+                onClick={() => {
+                  setIsCustomSidebarVisible(v => !v);
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="9" y1="3" x2="9" y2="21"></line>
+                </svg>
+                <span style={{ fontWeight: '500' }}>Sidebar</span>
+              </button>
+            </div>
+          </div>
+
           {/* Header bar - always visible */}
+          {false && (
              <div style={{
             padding: '0.75rem 1rem 1rem 1rem',
                textAlign: 'center',
@@ -9346,7 +9514,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                flexDirection: 'column',
                justifyContent: 'center',
                alignItems: 'center',
-            position: 'relative',
+            position: 'sticky',
+            top: 0,
+            width: '100%',
+            flexShrink: 0,
+            minHeight: '72px',
+            background: 'rgb(249, 248, 246)',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: '0 6px 18px rgba(0, 0, 0, 0.04)',
+            zIndex: 2000,
             gap: '0.5rem'
           }} data-project-dropdown="header">
             {/* Title with conditional dropdown */}
@@ -9356,19 +9532,6 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               gap: '0.5rem',
                position: 'relative'
              }}>
-              <h1 style={{
-                fontSize: '1.125rem',
-                fontWeight: '400',
-                color: '#202123',
-                margin: 0,
-                padding: 0
-              }}>
-                {currentChat && currentChat.title 
-                  ? currentChat.title 
-                  : (currentProject === 'default' ? 'Default Project' : currentProject)
-                }
-              </h1>
-              
               {/* Dropdown arrow - only for shared projects and public chats (not private chats) */}
               {isProjectShared && auth.currentUser && (!currentChat || currentChat.isPublic !== false) && (
                 <button
@@ -12707,6 +12870,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                  </div>
              </div>
 
+          )}
           {/* Welcome Screen with Input at Top (shown when no messages) */}
 
           {/* Welcome Screen with Input at Top (shown when no messages) */}
@@ -12822,17 +12986,6 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     expandedQuotesPreview={expandedQuotesPreview}
                     setExpandedQuotesPreview={setExpandedQuotesPreview}
                   />
-                  <p style={{
-                    marginTop: '1.5rem',
-                    textAlign: 'center',
-                    fontSize: '0.75rem',
-                    color: '#9ca3af',
-                    fontWeight: '300',
-                    letterSpacing: '0.025em',
-                    opacity: 0.8
-                  }}>
-                    Phraze can make mistakes. Consider checking important information.
-                  </p>
                 </div>
 
                 <div style={{
@@ -12887,7 +13040,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               overflowY: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              background: 'rgb(249, 248, 246)'
+              background: 'rgb(249, 248, 246)',
+              paddingTop: '72px'
             }}
             ref={chatMessagesContainerRef}
           >
@@ -13845,7 +13999,6 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   expandedQuotesPreview={expandedQuotesPreview}
                   setExpandedQuotesPreview={setExpandedQuotesPreview}
                 />
-                <DisclaimerMessage />
               </div>
             )
           }
