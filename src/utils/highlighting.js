@@ -679,6 +679,14 @@ function getActivePinnedCardRects(excludeCard) {
     .map((c) => ({ el: c, rect: c.getBoundingClientRect() }))
     .filter(({ rect }) => rect && rect.width > 0 && rect.height > 0);
 }
+
+function getActiveUnifiedCardRects(excludeCard) {
+  const cards = Array.from(document.querySelectorAll('.phraze-unified-annotation-card.active'));
+  return cards
+    .filter((c) => c && c !== excludeCard && c.offsetParent !== null)
+    .map((c) => ({ el: c, rect: c.getBoundingClientRect() }))
+    .filter(({ rect }) => rect && rect.width > 0 && rect.height > 0);
+}
 /**
  * Updates the annotation card position to be above the highlight
  * @param {HTMLElement} annotationCard - The annotation card element
@@ -785,34 +793,81 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
   if (!isSticky) {
     top = Math.max(minTopPadding, Math.min(top, window.innerHeight - padding - cardRect.height));
 
-    // Collision avoidance: don't let a hover-open card overlap pinned cards.
-    // If it collides, try to shift it below/above the pinned card(s) while staying within the viewport.
-    const pinnedRects = getActivePinnedCardRects(annotationCard);
-    if (pinnedRects.length > 0) {
-      const maxIterations = 6;
+    // Collision avoidance: try to avoid overlapping other open unified cards,
+    // but never push the card an extreme distance away from its highlight.
+    // If avoiding collision would move it too far, prefer a small horizontal nudge or accept minimal overlap.
+    const baseTop = top;
+    const maxOffsetFromAnchor = 160;
+    const minAllowedTop = Math.max(minTopPadding, baseTop - maxOffsetFromAnchor);
+    const maxAllowedTop = Math.min(window.innerHeight - padding - cardRect.height, baseTop + maxOffsetFromAnchor);
+
+    const otherRects = getActiveUnifiedCardRects(annotationCard);
+    if (otherRects.length > 0) {
+      const minLeftCenter = padding + (cardRect.width / 2);
+      const maxLeftCenter = window.innerWidth - padding - (cardRect.width / 2);
+
+      const findCollisionAt = (candidateLeftCenter, candidateTop) => {
+        const candidate = getHoverCardCandidateRect(candidateLeftCenter, candidateTop, cardRect.width, cardRect.height);
+        return otherRects.find(({ rect }) => rectsOverlap(candidate, rect));
+      };
+
+      // First: try to keep the card at the anchor Y, and resolve collisions by moving sideways.
+      // This prevents the card from getting pushed far down when there is available side space.
+      const nudge = 28;
+      const leftCandidates = [
+        (anchorRect.left + anchorRect.right) / 2,
+        anchorRect.left + (cardRect.width / 2),
+        anchorRect.right - (cardRect.width / 2),
+        left + nudge,
+        left - nudge,
+        left + nudge * 2,
+        left - nudge * 2
+      ]
+        .map((x) => Math.max(minLeftCenter, Math.min(x, maxLeftCenter)))
+        .filter((x, idx, arr) => arr.indexOf(x) === idx);
+
+      for (const candLeft of leftCandidates) {
+        if (!findCollisionAt(candLeft, top)) {
+          left = candLeft;
+          break;
+        }
+      }
+
+      const maxIterations = 8;
       for (let i = 0; i < maxIterations; i++) {
         const candidate = getHoverCardCandidateRect(left, top, cardRect.width, cardRect.height);
-        const collision = pinnedRects.find(({ rect }) => rectsOverlap(candidate, rect));
+        const collision = otherRects.find(({ rect }) => rectsOverlap(candidate, rect));
         if (!collision) break;
 
         const belowTop = collision.rect.bottom + spacing;
         const aboveTop = collision.rect.top - cardRect.height - spacing;
 
-        const canPlaceBelow = belowTop + cardRect.height <= window.innerHeight - padding;
-        const canPlaceAbove = aboveTop >= minTopPadding;
+        const boundedBelowTop = Math.max(minAllowedTop, Math.min(belowTop, maxAllowedTop));
+        const boundedAboveTop = Math.max(minAllowedTop, Math.min(aboveTop, maxAllowedTop));
 
-        // Prefer the direction with more space.
-        const spaceBelow = window.innerHeight - padding - (collision.rect.bottom + spacing) - cardRect.height;
-        const spaceAbove = (collision.rect.top - spacing) - minTopPadding - cardRect.height;
+        const canGoDown = boundedBelowTop + cardRect.height <= window.innerHeight - padding;
+        const canGoUp = boundedAboveTop >= minTopPadding;
 
-        if (canPlaceBelow && (!canPlaceAbove || spaceBelow >= spaceAbove)) {
-          top = belowTop;
-        } else if (canPlaceAbove) {
-          top = aboveTop;
+        const distDown = Math.abs(boundedBelowTop - baseTop);
+        const distUp = Math.abs(boundedAboveTop - baseTop);
+
+        // Prefer the move that stays closer to the anchor.
+        if (canGoDown && (!canGoUp || distDown <= distUp)) {
+          top = boundedBelowTop;
+        } else if (canGoUp) {
+          top = boundedAboveTop;
         } else {
           // As a last resort, clamp to viewport edge.
           top = Math.max(minTopPadding, Math.min(top, window.innerHeight - padding - cardRect.height));
           break;
+        }
+
+        // After a vertical adjustment, re-try a small set of horizontal candidates at the new Y.
+        for (const candLeft of leftCandidates) {
+          if (!findCollisionAt(candLeft, top)) {
+            left = candLeft;
+            break;
+          }
         }
       }
 
