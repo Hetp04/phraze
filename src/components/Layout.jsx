@@ -9,6 +9,11 @@ export default function Layout({ children, currentProject, onProjectChange }) {
   const isDemonstrationRoute = location.pathname === '/demonstration';
 
   useEffect(() => {
+    // Toolbar (Selection/Note) must only exist on Demonstration – remove it on any other route
+    if (location.pathname !== '/demonstration') {
+      const toolbar = document.getElementById('phraze-top-toolbar');
+      if (toolbar) toolbar.remove();
+    }
     // Use a single, optimized scroll operation
     if (location.pathname === '/demonstration') {
       // For demonstration page, ensure we're at the top

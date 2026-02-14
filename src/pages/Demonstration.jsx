@@ -9,7 +9,7 @@ import { getFirebaseData, saveFirebaseData, isLoggedIn, showToast, getMainCompan
 import { useLocation, useNavigate } from 'react-router-dom';
 import { listenToUserPresence, getPresenceColor, getPresenceLabel } from '../utils/presence';
 import { reportTyping, stopTyping, initializeTypingForConversation, listenToTyping, formatTypingIndicator } from '../utils/typing';
-import { loadHighlights, setMainCompanyEmail, saveHighlight, clearHighlights, loadHighlightsForText, createUnifiedAnnotationCard } from '../utils/highlighting';
+import { loadHighlights, setMainCompanyEmail, saveHighlight, clearHighlights, loadHighlightsForText, createUnifiedAnnotationCard, phrazeHideAnyOtherPopups, phrazeShowPopupElement } from '../utils/highlighting';
 import { DEFAULT_PERMISSIONS } from '../utils/permissionConstants';
 // import { initContactsPanel, setMessagingUserEmail, setMessagingUserName, setMessagingCurrentProject, setFirebaseFunctions } from '../utils/messaging';
 import { useExtension } from "../context/ExtensionContext";
@@ -3707,6 +3707,229 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   const previousUserRoleRef = useRef(null); // Track previous role to detect changes
   const [showShareModal, setShowShareModal] = useState(false); // State for ShareModal
   const [shareModalProjectId, setShareModalProjectId] = useState(null); // Project ID for ShareModal
+
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined' || typeof document === 'undefined') return;
+      if (document.getElementById('phraze-top-toolbar')) return;
+
+      const toolbar = document.createElement('div');
+      toolbar.id = 'phraze-top-toolbar';
+      toolbar.className = 'phraze-top-toolbar';
+
+      const makeBtn = ({ tool, label, svg }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'phraze-top-toolbar-btn';
+        btn.setAttribute('data-tool', tool);
+        btn.setAttribute('aria-label', label);
+        btn.title = label;
+        btn.innerHTML = `${svg}<span class="phraze-top-toolbar-btn-label">${label}</span>`;
+        btn.addEventListener('click', (e) => {
+          try { e.preventDefault(); } catch (_) {}
+          try { e.stopPropagation(); } catch (_) {}
+          try {
+            const current = String(window.phrazeActiveTool || '');
+            const next = current === tool ? 'none' : tool;
+            window.phrazeActiveTool = next;
+          } catch (_) {}
+
+          try {
+            window.dispatchEvent(new CustomEvent('phraze:tool-changed', { detail: { tool: String(window.phrazeActiveTool || '') } }));
+          } catch (_) {}
+
+          try {
+            toolbar.querySelectorAll('.phraze-top-toolbar-btn').forEach((b) => {
+              if (!b) return;
+              const next = String(window.phrazeActiveTool || '');
+              b.classList.toggle('active', b.getAttribute('data-tool') === next);
+            });
+          } catch (_) {}
+        });
+        return btn;
+      };
+
+      const selectionSvg = `<svg class="phraze-top-toolbar-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 18 2-8 8-2L3 3z"/></svg>`;
+      const noteSvg = `<svg class="phraze-top-toolbar-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a2 2 0 0 1 2 2v14l-4-3H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>`;
+
+      toolbar.appendChild(makeBtn({ tool: 'selection', label: 'Selection', svg: selectionSvg }));
+      toolbar.appendChild(makeBtn({ tool: 'note', label: 'Note', svg: noteSvg }));
+
+      const highlightColorSwatch = document.createElement('button');
+      highlightColorSwatch.type = 'button';
+      highlightColorSwatch.className = 'phraze-top-toolbar-btn';
+      highlightColorSwatch.setAttribute('aria-label', 'Choose highlight color');
+      highlightColorSwatch.title = 'Highlight Color';
+      highlightColorSwatch.style.width = '36px';
+      highlightColorSwatch.style.height = '36px';
+      highlightColorSwatch.style.padding = '0';
+      highlightColorSwatch.style.display = 'inline-flex';
+      highlightColorSwatch.style.alignItems = 'center';
+      highlightColorSwatch.style.justifyContent = 'center';
+      highlightColorSwatch.style.gap = '0';
+
+      const swatchDot = document.createElement('div');
+      swatchDot.style.width = '16px';
+      swatchDot.style.height = '16px';
+      swatchDot.style.borderRadius = '50%';
+      swatchDot.style.border = '1px solid rgba(209, 213, 219, 1)';
+      swatchDot.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+      const DEFAULT_HIGHLIGHT_HEX = '#FFF176';
+      const initialHex = (() => {
+        // Always start yellow by default (user can change via the toolbar).
+        try {
+          localStorage.setItem('phrazeLastHighlightColorHex', DEFAULT_HIGHLIGHT_HEX);
+          localStorage.setItem('phrazeLastHighlightColorName', 'yellow');
+        } catch (_) {}
+        return DEFAULT_HIGHLIGHT_HEX;
+      })();
+      swatchDot.style.background = initialHex;
+      highlightColorSwatch.appendChild(swatchDot);
+
+      const setToolbarHighlightColor = (hex, name = null) => {
+        if (!hex) return;
+        try { swatchDot.style.background = String(hex); } catch (_) {}
+        try { window.phrazeHighlightColorHex = String(hex); } catch (_) {}
+        try { localStorage.setItem('phrazeLastHighlightColorHex', String(hex)); } catch (_) {}
+        if (name) {
+          try { localStorage.setItem('phrazeLastHighlightColorName', String(name)); } catch (_) {}
+        }
+      };
+
+      const setActiveHighlightId = (id) => {
+        try {
+          window.phrazeActiveHighlightId = id ? String(id) : null;
+        } catch (_) {}
+      };
+
+      try {
+        window.phrazeSetToolbarHighlightColor = setToolbarHighlightColor;
+        window.phrazeSetActiveHighlightId = setActiveHighlightId;
+      } catch (_) {}
+
+      const colorPalette = document.createElement('div');
+      colorPalette.style.position = 'absolute';
+      colorPalette.style.top = '48px';
+      colorPalette.style.left = '50%';
+      colorPalette.style.transform = 'translateX(-50%)';
+      colorPalette.style.background = '#ffffff';
+      colorPalette.style.border = '1px solid #e5e7eb';
+      colorPalette.style.borderRadius = '10px';
+      colorPalette.style.padding = '10px';
+      colorPalette.style.display = 'none';
+      colorPalette.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)';
+      colorPalette.style.zIndex = '1000000003';
+
+      const colorGrid = document.createElement('div');
+      colorGrid.style.display = 'grid';
+      colorGrid.style.gridTemplateColumns = 'repeat(6, 24px)';
+      colorGrid.style.gap = '8px';
+
+      const presets = [
+        { name: 'yellow', hex: '#FFF176' },
+        { name: 'blue', hex: '#90CAF9' },
+        { name: 'green', hex: '#A5D6A7' },
+        { name: 'red', hex: '#EF9A9A' },
+        { name: 'purple', hex: '#CE93D8' },
+        { name: 'orange', hex: '#FFCC80' }
+      ];
+
+      presets.forEach(({ name, hex }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.style.width = '24px';
+        btn.style.height = '24px';
+        btn.style.borderRadius = '50%';
+        btn.style.border = '1px solid #d1d5db';
+        btn.style.background = hex;
+        btn.style.cursor = 'pointer';
+        btn.setAttribute('aria-label', `Select ${name} highlight color`);
+        btn.addEventListener('mousedown', (e) => { try { e.preventDefault(); } catch (_) {} });
+        btn.addEventListener('click', (e) => {
+          try { e.preventDefault(); } catch (_) {}
+          try { e.stopPropagation(); } catch (_) {}
+          setToolbarHighlightColor(hex, name);
+
+          // If a highlight is currently "active", update that existing highlight color.
+          try {
+            const activeId = window.phrazeActiveHighlightId;
+            if (activeId) {
+              document.dispatchEvent(new CustomEvent('phraze:request-highlight-color-change', {
+                detail: { highlightId: String(activeId), hex, name }
+              }));
+            }
+          } catch (_) {}
+          colorPalette.style.display = 'none';
+        });
+        colorGrid.appendChild(btn);
+      });
+
+      colorPalette.appendChild(colorGrid);
+
+      const togglePalette = () => {
+        colorPalette.style.display = colorPalette.style.display === 'none' ? 'block' : 'none';
+      };
+
+      highlightColorSwatch.addEventListener('mousedown', (e) => {
+        try { e.preventDefault(); } catch (_) {}
+        try { e.stopPropagation(); } catch (_) {}
+      });
+      highlightColorSwatch.addEventListener('click', (e) => {
+        try { e.preventDefault(); } catch (_) {}
+        try { e.stopPropagation(); } catch (_) {}
+        togglePalette();
+      });
+
+      const onDocClick = (e) => {
+        try {
+          if (!toolbar.contains(e.target)) {
+            colorPalette.style.display = 'none';
+          }
+        } catch (_) {}
+      };
+      document.addEventListener('click', onDocClick);
+
+      const onActiveHighlightChanged = (e) => {
+        try {
+          const detail = e && e.detail ? e.detail : null;
+          if (!detail) return;
+          if (detail.highlightId) setActiveHighlightId(detail.highlightId);
+          if (detail.hex) setToolbarHighlightColor(detail.hex, detail.name || null);
+        } catch (_) {}
+      };
+      document.addEventListener('phraze:active-highlight-changed', onActiveHighlightChanged);
+
+      toolbar.appendChild(highlightColorSwatch);
+      toolbar.appendChild(colorPalette);
+
+      document.body.appendChild(toolbar);
+
+      if (!window.phrazeActiveTool) {
+        window.phrazeActiveTool = 'none';
+      }
+      try {
+        window.phrazeHighlightColorHex = initialHex;
+      } catch (_) {}
+      try {
+        const initial = String(window.phrazeActiveTool || 'none');
+        toolbar.querySelectorAll('.phraze-top-toolbar-btn').forEach((b) => {
+          b.classList.toggle('active', b.getAttribute('data-tool') === initial);
+        });
+      } catch (_) {}
+
+      return () => {
+        try { toolbar.remove(); } catch (_) {}
+        try { document.removeEventListener('click', onDocClick); } catch (_) {}
+        try { document.removeEventListener('phraze:active-highlight-changed', onActiveHighlightChanged); } catch (_) {}
+        try {
+          if (window.phrazeSetToolbarHighlightColor === setToolbarHighlightColor) delete window.phrazeSetToolbarHighlightColor;
+          if (window.phrazeSetActiveHighlightId === setActiveHighlightId) delete window.phrazeSetActiveHighlightId;
+        } catch (_) {}
+      };
+    } catch (_) {
+      return undefined;
+    }
+  }, []);
   const [showAccountSettingsModal, setShowAccountSettingsModal] = useState(false); // State for AccountSettingsModal
   const [canShare, setCanShare] = useState(false); // Track if current user can share project
   const [sharePermissionLoading, setSharePermissionLoading] = useState(true); // Track loading state for share permission
@@ -3793,6 +4016,331 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
   const location = useLocation(); // Use useLocation hook
   const navigate = useNavigate(); // Use useNavigate hook
+
+  const [selectionModeEnabled, setSelectionModeEnabled] = useState(false);
+  const [selectionBoxes, setSelectionBoxes] = useState([]);
+  const [selectionInteraction, setSelectionInteraction] = useState({ type: 'idle' });
+  const [selectedSelectionBoxId, setSelectedSelectionBoxId] = useState(null);
+  const selectionOverlayRef = useRef(null);
+  const selectionPrevUserSelectRef = useRef(null);
+  const selectionHydratingRef = useRef(false);
+  const selectionBoxesPathRef = useRef(null);
+  const SELECTION_MIN_SIZE = 8;
+
+  const selectionDisableUserSelect = () => {
+    try {
+      if (selectionPrevUserSelectRef.current === null) {
+        selectionPrevUserSelectRef.current = document.body.style.userSelect || '';
+      }
+      document.body.style.userSelect = 'none';
+    } catch (_) {}
+    try {
+      const sel = window.getSelection?.();
+      sel?.removeAllRanges?.();
+    } catch (_) {}
+  };
+
+  const selectionRestoreUserSelect = () => {
+    try {
+      if (selectionPrevUserSelectRef.current !== null) {
+        document.body.style.userSelect = selectionPrevUserSelectRef.current;
+        selectionPrevUserSelectRef.current = null;
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    const syncFromGlobalTool = () => {
+      const active = (() => {
+        try { return String(window.phrazeActiveTool || ''); } catch (_) { return ''; }
+      })();
+      const enabled = active === 'selection';
+      setSelectionModeEnabled(enabled);
+      if (!enabled) {
+        setSelectionInteraction({ type: 'idle' });
+        setSelectedSelectionBoxId(null);
+        selectionRestoreUserSelect();
+      }
+    };
+
+    syncFromGlobalTool();
+    window.addEventListener('phraze:tool-changed', syncFromGlobalTool);
+    return () => {
+      window.removeEventListener('phraze:tool-changed', syncFromGlobalTool);
+      selectionRestoreUserSelect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const companyEmailPath = (() => {
+      try {
+        const shared = localStorage.getItem('sharedCompanyEmail');
+        const normal = localStorage.getItem('companyEmail');
+        return shared || normal;
+      } catch (_) {
+        return null;
+      }
+    })();
+
+    if (!currentChat?.id || !currentProject || !companyEmailPath) {
+      selectionBoxesPathRef.current = null;
+      selectionHydratingRef.current = false;
+      setSelectionBoxes([]);
+      setSelectedSelectionBoxId(null);
+      return;
+    }
+
+    const isPrivate = currentChat && currentChat.isPublic === false && !currentChat.isShared;
+    const chatId = currentChat.originalId || currentChat.id;
+    const chatBasePath = getChatBasePath(companyEmailPath, currentProject, chatId, isPrivate, auth.currentUser?.email);
+    const path = `${chatBasePath}/selectionBoxes`;
+    selectionBoxesPathRef.current = path;
+
+    selectionHydratingRef.current = true;
+    setSelectionBoxes([]);
+    setSelectedSelectionBoxId(null);
+
+    const fbRef = ref(database, path);
+    const handle = (snapshot) => {
+      try {
+        const val = snapshot.val();
+        const next = Array.isArray(val)
+          ? val
+          : val
+            ? Object.values(val)
+            : [];
+        setSelectionBoxes(next);
+      } finally {
+        selectionHydratingRef.current = false;
+      }
+    };
+
+    onValue(fbRef, handle);
+    return () => {
+      try { off(fbRef, 'value', handle); } catch (_) {}
+      selectionHydratingRef.current = false;
+    };
+  }, [currentChat?.id, currentChat?.originalId, currentChat?.isPublic, currentChat?.isShared, currentProject]);
+
+  useEffect(() => {
+    const path = selectionBoxesPathRef.current;
+    if (!path) return;
+    if (selectionHydratingRef.current) return;
+    try {
+      saveFirebaseData(path, selectionBoxes);
+    } catch (_) {
+      // Best-effort
+    }
+  }, [selectionBoxes]);
+
+  const getSelectionLocalPoint = (evt) => {
+    const overlay = selectionOverlayRef.current;
+    if (!overlay) return null;
+    const rect = overlay.getBoundingClientRect();
+    return {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top,
+    };
+  };
+
+  const normalizeRect = (x1, y1, x2, y2) => {
+    const x = Math.min(x1, x2);
+    const y = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1);
+    const height = Math.abs(y2 - y1);
+    return { x, y, width, height };
+  };
+
+  const clampRectToMinSize = (rect, handle) => {
+    let { x, y, width, height } = rect;
+
+    if (width < SELECTION_MIN_SIZE) {
+      const diff = SELECTION_MIN_SIZE - width;
+      if (String(handle).includes('w')) x -= diff;
+      width = SELECTION_MIN_SIZE;
+    }
+    if (height < SELECTION_MIN_SIZE) {
+      const diff = SELECTION_MIN_SIZE - height;
+      if (String(handle).includes('n')) y -= diff;
+      height = SELECTION_MIN_SIZE;
+    }
+
+    return { x, y, width, height };
+  };
+
+  const computeResizedRect = ({ startBox, handle, startPointer, currentPointer }) => {
+    const dx = currentPointer.x - startPointer.x;
+    const dy = currentPointer.y - startPointer.y;
+
+    let x = startBox.x;
+    let y = startBox.y;
+    let width = startBox.width;
+    let height = startBox.height;
+
+    const h = String(handle || '');
+
+    if (h.includes('e')) width = startBox.width + dx;
+    if (h.includes('s')) height = startBox.height + dy;
+    if (h.includes('w')) {
+      x = startBox.x + dx;
+      width = startBox.width - dx;
+    }
+    if (h.includes('n')) {
+      y = startBox.y + dy;
+      height = startBox.height - dy;
+    }
+
+    const next = clampRectToMinSize({ x, y, width, height }, handle);
+    return next;
+  };
+
+  const handleSelectionOverlayPointerDown = (e) => {
+    if (!selectionModeEnabled) return;
+    if (e.button !== 0) return;
+    if (e.target !== e.currentTarget) return;
+    const p = getSelectionLocalPoint(e);
+    if (!p) return;
+    e.preventDefault();
+    e.stopPropagation();
+    selectionDisableUserSelect();
+    setSelectedSelectionBoxId(null);
+    selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
+    setSelectionInteraction({
+      type: 'drawing',
+      pointerId: e.pointerId,
+      startX: p.x,
+      startY: p.y,
+      currentX: p.x,
+      currentY: p.y,
+    });
+  };
+
+  const handleSelectionOverlayPointerMove = (e) => {
+    if (!selectionModeEnabled) return;
+    const p = getSelectionLocalPoint(e);
+    if (!p) return;
+
+    if (selectionInteraction.type === 'drawing') {
+      if (selectionInteraction.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      setSelectionInteraction((prev) => ({
+        ...prev,
+        currentX: p.x,
+        currentY: p.y,
+      }));
+      return;
+    }
+
+    if (selectionInteraction.type === 'moving') {
+      if (selectionInteraction.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      const nextX = p.x - selectionInteraction.grabOffsetX;
+      const nextY = p.y - selectionInteraction.grabOffsetY;
+      setSelectionBoxes((prev) =>
+        prev.map((b) => (b.id === selectionInteraction.boxId ? { ...b, x: nextX, y: nextY } : b))
+      );
+      return;
+    }
+
+    if (selectionInteraction.type === 'resizing') {
+      if (selectionInteraction.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      const nextRect = computeResizedRect({
+        startBox: selectionInteraction.startBox,
+        handle: selectionInteraction.handle,
+        startPointer: selectionInteraction.startPointer,
+        currentPointer: p,
+      });
+      setSelectionBoxes((prev) =>
+        prev.map((b) => (b.id === selectionInteraction.boxId ? { ...b, ...nextRect } : b))
+      );
+    }
+  };
+
+  const handleSelectionOverlayPointerUpOrCancel = (e) => {
+    if (!selectionModeEnabled) return;
+    if (selectionInteraction.type === 'drawing') {
+      if (selectionInteraction.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      const rect = normalizeRect(
+        selectionInteraction.startX,
+        selectionInteraction.startY,
+        selectionInteraction.currentX,
+        selectionInteraction.currentY
+      );
+
+      if (rect.width >= SELECTION_MIN_SIZE && rect.height >= SELECTION_MIN_SIZE) {
+        const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        setSelectionBoxes((prev) => [...prev, { id, ...rect }]);
+      }
+      setSelectionInteraction({ type: 'idle' });
+      selectionRestoreUserSelect();
+      return;
+    }
+
+    if (selectionInteraction.type === 'moving') {
+      if (selectionInteraction.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      setSelectionInteraction({ type: 'idle' });
+      selectionRestoreUserSelect();
+      return;
+    }
+
+    if (selectionInteraction.type === 'resizing') {
+      if (selectionInteraction.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      setSelectionInteraction({ type: 'idle' });
+      selectionRestoreUserSelect();
+    }
+  };
+
+  const handleSelectionBoxPointerDown = (boxId) => (e) => {
+    if (!selectionModeEnabled) return;
+    if (e.button !== 0) return;
+    const p = getSelectionLocalPoint(e);
+    if (!p) return;
+    e.preventDefault();
+    e.stopPropagation();
+    selectionDisableUserSelect();
+
+    const box = selectionBoxes.find((b) => b.id === boxId);
+    if (!box) return;
+
+    setSelectedSelectionBoxId(boxId);
+
+    selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
+    setSelectionInteraction({
+      type: 'moving',
+      pointerId: e.pointerId,
+      boxId,
+      grabOffsetX: p.x - box.x,
+      grabOffsetY: p.y - box.y,
+    });
+  };
+
+  const handleSelectionBoxResizeHandlePointerDown = (boxId, handle) => (e) => {
+    if (!selectionModeEnabled) return;
+    if (e.button !== 0) return;
+    const p = getSelectionLocalPoint(e);
+    if (!p) return;
+    e.preventDefault();
+    e.stopPropagation();
+    selectionDisableUserSelect();
+
+    const box = selectionBoxes.find((b) => b.id === boxId);
+    if (!box) return;
+
+    setSelectedSelectionBoxId(boxId);
+    selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
+    setSelectionInteraction({
+      type: 'resizing',
+      pointerId: e.pointerId,
+      boxId,
+      handle,
+      startPointer: p,
+      startBox: { x: box.x, y: box.y, width: box.width, height: box.height },
+    });
+  };
 
   // Available models
   const availableModels = [
@@ -7785,97 +8333,6 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           toolbar.addEventListener('mousedown', (e) => { window.phrazeToolbarInteracting = true; e.preventDefault(); });
           toolbar.addEventListener('mouseup', () => { setTimeout(() => { window.phrazeToolbarInteracting = false; }, 100); });
 
-          // Color swatch (toggles palette)
-          const swatch = document.createElement('div');
-          swatch.style.width = '18px';
-          swatch.style.height = '18px';
-          swatch.style.borderRadius = '50%';
-          swatch.style.border = '1px solid #d1d5db';
-          swatch.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
-          const lastHex = localStorage.getItem('phrazeLastHighlightColorHex') || '#FFF176';
-          swatch.style.background = lastHex;
-          swatch.title = 'Choose highlight color';
-
-          const palette = document.createElement('div');
-          palette.style.position = 'absolute';
-          palette.style.top = '36px';
-          palette.style.left = '0px';
-          palette.style.background = '#ffffff';
-          palette.style.border = '1px solid #e5e7eb';
-          palette.style.borderRadius = '8px';
-          palette.style.padding = '8px';
-          palette.style.display = 'none';
-          palette.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)';
-
-          const grid = document.createElement('div');
-          grid.style.display = 'grid';
-          grid.style.gridTemplateColumns = 'repeat(6, 24px)';
-          grid.style.gap = '8px';
-          const presets = [
-            { name: 'yellow', hex: '#FFF176' },
-            { name: 'blue', hex: '#90CAF9' },
-            { name: 'green', hex: '#A5D6A7' },
-            { name: 'red', hex: '#EF9A9A' },
-            { name: 'purple', hex: '#CE93D8' },
-            { name: 'orange', hex: '#FFCC80' }
-          ];
-          presets.forEach(({ name, hex }) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.style.width = '24px';
-            btn.style.height = '24px';
-            btn.style.borderRadius = '50%';
-            btn.style.border = '1px solid #d1d5db';
-            btn.style.background = hex;
-            btn.style.cursor = 'pointer';
-            btn.setAttribute('aria-label', `Select ${name} highlight color`);
-            // Prevent selection collapse while clicking palette
-            btn.addEventListener('mousedown', (e) => { e.preventDefault(); });
-            btn.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              try {
-                localStorage.setItem('phrazeLastHighlightColorHex', hex);
-                localStorage.setItem('phrazeLastHighlightColorName', name);
-              } catch (_) {}
-              swatch.style.background = hex;
-              palette.style.display = 'none';
-              // Restore the selection so user doesn't have to re-select text
-              try {
-                const sel = window.getSelection();
-                if (window.phrazeSavedSelectionRange && sel) {
-                  sel.removeAllRanges();
-                  sel.addRange(window.phrazeSavedSelectionRange);
-                }
-              } catch (_) {}
-            });
-            grid.appendChild(btn);
-          });
-          palette.appendChild(grid);
-
-          function togglePalette() {
-            palette.style.display = palette.style.display === 'none' ? 'block' : 'none';
-          }
-          swatch.addEventListener('mousedown', (e) => { e.preventDefault(); });
-          swatch.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            togglePalette();
-            // Restore the selection so user doesn't have to re-select text
-            try {
-              const sel = window.getSelection();
-              if (window.phrazeSavedSelectionRange && sel) {
-                sel.removeAllRanges();
-                sel.addRange(window.phrazeSavedSelectionRange);
-              }
-            } catch (_) {}
-          });
-          document.addEventListener('click', (e) => {
-            if (!toolbar.contains(e.target)) {
-              palette.style.display = 'none';
-            }
-          });
-
           // Pen button (create highlight with current color)
           const penBtn = document.createElement('button');
           penBtn.style.width = '30px';
@@ -7894,6 +8351,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 sel.addRange(window.phrazeSavedSelectionRange);
               }
             } catch (_) {}
+
+            // Ensure current highlight color is synced from global toolbar choice
+            try {
+              if (window.phrazeHighlightColorHex) {
+                localStorage.setItem('phrazeLastHighlightColorHex', String(window.phrazeHighlightColorHex));
+              }
+            } catch (_) {}
+
             const globalID = Date.now();
             localStorage.setItem('globalHighlightID', globalID);
             localStorage.setItem('currentUrl', window.location.href);
@@ -7902,10 +8367,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             await saveHighlight(currentChatID || currentChat?.id);
             removeAllHighlightButtons();
           });
-
-          toolbar.appendChild(swatch);
           toolbar.appendChild(penBtn);
-          toolbar.appendChild(palette);
 
           // Get selection range for positioning - handle both forward and backward selections
           try {
@@ -7955,7 +8417,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               };
             }
             
-            const toolbarWidth = 120; // width for color swatch and pen button
+            const toolbarWidth = 44; // width for pen button only
             
             // Calculate center position - works for both directions
             const centerX = rect.left + (rect.width / 2);
@@ -9239,8 +9701,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         var companyEmail = await getMainCompanyEmail();
         var project = currentProject;
         var images = await getFirebaseData(`Companies/${companyEmail}/projects/${project}/categoriesImages`);
-        var categories = Object.keys(images);
+        if (!images || typeof images !== 'object') return;
+        var categories = Object.keys(images || {});
         var div = document.getElementById("library-div");
+        if (!div) return;
         for (let category of categories) {
           var inlineDiv = document.createElement("div");
           // inlineDiv.style.display = "inline-block";
@@ -9255,7 +9719,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           // inlineDiv.append(header);
           inlineDiv.append(break_);
 
-          var imageValues = Object.values(images[category]["images"]);
+          var imageValues = Object.values((images[category] && images[category]["images"]) ? images[category]["images"] : {});
           for (let image of imageValues) {
             if (!image.data)
               continue;
@@ -12894,9 +13358,86 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 flexDirection: 'column',
                 gap: '1.5rem',
                 zoom: chatCanvasScale,
-                transformOrigin: 'top center'
+                transformOrigin: 'top center',
+                position: 'relative'
               }}
             >
+              <div
+                ref={selectionOverlayRef}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  pointerEvents: selectionModeEnabled ? 'auto' : 'none',
+                  zIndex: 5,
+                  touchAction: 'none',
+                }}
+                onPointerDown={handleSelectionOverlayPointerDown}
+                onPointerMove={handleSelectionOverlayPointerMove}
+                onPointerUp={handleSelectionOverlayPointerUpOrCancel}
+                onPointerCancel={handleSelectionOverlayPointerUpOrCancel}
+              >
+                {selectionBoxes.map((b) => (
+                  <div
+                    key={b.id}
+                    style={{
+                      position: 'absolute',
+                      left: `${b.x}px`,
+                      top: `${b.y}px`,
+                      width: `${b.width}px`,
+                      height: `${b.height}px`,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div
+                      onPointerDown={handleSelectionBoxPointerDown(b.id)}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        border: selectedSelectionBoxId === b.id
+                          ? '2px solid rgba(37, 99, 235, 1)'
+                          : '2px solid rgba(37, 99, 235, 0.95)',
+                        background: 'transparent',
+                        boxSizing: 'border-box',
+                        cursor: 'move',
+                      }}
+                    />
+                    {selectedSelectionBoxId === b.id && (
+                      <>
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'nw')} style={{ position: 'absolute', left: -5, top: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nwse-resize' }} />
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'n')} style={{ position: 'absolute', left: '50%', top: -5, transform: 'translateX(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ns-resize' }} />
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'ne')} style={{ position: 'absolute', right: -5, top: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nesw-resize' }} />
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'e')} style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ew-resize' }} />
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'se')} style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nwse-resize' }} />
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 's')} style={{ position: 'absolute', left: '50%', bottom: -5, transform: 'translateX(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ns-resize' }} />
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'sw')} style={{ position: 'absolute', left: -5, bottom: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nesw-resize' }} />
+                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'w')} style={{ position: 'absolute', left: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ew-resize' }} />
+                      </>
+                    )}
+                  </div>
+                ))}
+                {selectionInteraction.type === 'drawing' && (() => {
+                  const rect = normalizeRect(
+                    selectionInteraction.startX,
+                    selectionInteraction.startY,
+                    selectionInteraction.currentX,
+                    selectionInteraction.currentY
+                  );
+                  return (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: `${rect.x}px`,
+                        top: `${rect.y}px`,
+                        width: `${rect.width}px`,
+                        height: `${rect.height}px`,
+                        border: '2px dashed rgba(37, 99, 235, 0.9)',
+                        background: 'transparent',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  );
+                })()}
+              </div>
               {messages.map((message, index) => (
                                 <div
                     key={message?.messageId || message?.id || index}

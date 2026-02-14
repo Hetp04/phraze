@@ -35,6 +35,127 @@ function getCurrentUserMeta() {
   }
 }
 
+export async function loadRegionAnnotations() {
+  const projectName = await getCurrentProject();
+  const localKey = `phraze_regionAnnotations__${String(projectName || 'default')}`;
+
+  const readLocal = () => {
+    try {
+      const raw = localStorage.getItem(localKey);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object') return Object.values(parsed);
+      return [];
+    } catch (_) {
+      return [];
+    }
+  };
+
+  const normalizeRemote = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object') return Object.values(data);
+    return [];
+  };
+
+  try {
+    const companyEmail = await getResolvedCompanyEmail();
+    if (!companyEmail) {
+      return readLocal();
+    }
+    const path = `Companies/${companyEmail}/projects/${projectName}/regionAnnotations`;
+    const data = await getFirebaseData(path);
+    const normalized = normalizeRemote(data);
+    // Cache a local copy as a fallback (helps if auth is flaky).
+    try { localStorage.setItem(localKey, JSON.stringify(normalized)); } catch (_) {}
+    return normalized;
+  } catch (_) {
+    return readLocal();
+  }
+}
+
+async function saveRegionAnnotationsList(list) {
+  const safe = Array.isArray(list) ? list : [];
+  try {
+    const projectName = await getCurrentProject();
+    const localKey = `phraze_regionAnnotations__${String(projectName || 'default')}`;
+    try { localStorage.setItem(localKey, JSON.stringify(safe)); } catch (_) {}
+  } catch (_) {}
+  await saveRegionFunc(safe);
+  return safe;
+}
+
+export async function upsertRegionAnnotation(region) {
+  if (!region || !region.id) return null;
+  const id = String(region.id);
+  let list = await loadRegionAnnotations();
+  const idx = list.findIndex(r => r && String(r.id) === id);
+  if (idx >= 0) list[idx] = { ...list[idx], ...region, id };
+  else list.push({ ...region, id });
+  await saveRegionAnnotationsList(list);
+  return list.find(r => r && String(r.id) === id) || null;
+}
+
+export async function updateRegionAnnotation(regionId, patch) {
+  if (!regionId) return null;
+  const id = String(regionId);
+  let list = await loadRegionAnnotations();
+  const idx = list.findIndex(r => r && String(r.id) === id);
+  if (idx < 0) return null;
+  const next = { ...list[idx], ...(patch || {}), id };
+  list[idx] = next;
+  await saveRegionAnnotationsList(list);
+  return next;
+}
+
+async function addNoteToRegionStorage(regionId, noteHtml) {
+  if (!regionId || !noteHtml) return;
+  const id = String(regionId);
+  const region = await updateRegionAnnotation(id, {});
+  if (!region) throw new Error(`Region annotation with id "${id}" not found.`);
+  const notes = Array.isArray(region.notes) ? region.notes.slice() : [];
+  notes.push(noteHtml);
+  await updateRegionAnnotation(id, { notes, updatedAt: new Date().toISOString() });
+}
+
+async function removeNoteFromRegionStorage(regionId, noteHtml) {
+  if (!regionId || !noteHtml) return;
+  const id = String(regionId);
+  const list = await loadRegionAnnotations();
+  const region = list.find(r => r && String(r.id) === id);
+  if (!region) throw new Error(`Region annotation with id "${id}" not found.`);
+  const notes = Array.isArray(region.notes) ? region.notes.slice() : [];
+  const idx = notes.indexOf(noteHtml);
+  if (idx > -1) notes.splice(idx, 1);
+  await updateRegionAnnotation(id, { notes, updatedAt: new Date().toISOString() });
+}
+
+async function saveRegionFunc(value) {
+  const companyEmail = await getResolvedCompanyEmail();
+  const projectName = getCurrentProject();
+  if (!companyEmail) {
+    // Local fallback already handled by saveRegionAnnotationsList.
+    return true;
+  }
+  const path = `Companies/${companyEmail}/projects/${projectName}/regionAnnotations`;
+  try {
+    await saveFirebaseData(path, value);
+    return true;
+  } catch (error) {
+    console.error('[saveRegionFunc] Failed to save region annotations:', error);
+    // Local fallback already handled by saveRegionAnnotationsList.
+    try {
+      const isPermissionError = error?.message?.includes('Permission denied') || error?.code === 'PERMISSION_DENIED';
+      if (isPermissionError) {
+        showToast('Unable to save region annotation - you may not have permission for this project', 'error');
+      } else {
+        showToast('Failed to save region annotation - please try again', 'error');
+      }
+    } catch (_) {}
+    return false;
+  }
+}
+
 function upsertModifiedBy(entryArr, userMeta) {
   if (!Array.isArray(entryArr) || !userMeta || !userMeta.email) return;
   const email = String(userMeta.email).toLowerCase();
@@ -639,6 +760,90 @@ function getPhrazeHighlightScrollContainer(container) {
   return null;
 }
 
+// --- Popup/Card state helpers (single source of truth) ---
+function phrazeEnsureGlobalSet(key) {
+  try {
+    if (typeof window === 'undefined') return null;
+    if (!window[key]) window[key] = new Set();
+    return window[key];
+  } catch (_) {
+    return null;
+  }
+}
+
+function phrazeNormalizeHighlightId(id) {
+  try { return String(id); } catch (_) { return id; }
+}
+
+function phrazeSetKeepPopupOpen(highlightId) {
+  const set = phrazeEnsureGlobalSet('phrazeKeepPopupOpenIds');
+  if (!set) return;
+  set.add(phrazeNormalizeHighlightId(highlightId));
+}
+
+function phrazeClearKeepPopupOpen(highlightId) {
+  try {
+    if (window.phrazeKeepPopupOpenIds) window.phrazeKeepPopupOpenIds.delete(phrazeNormalizeHighlightId(highlightId));
+  } catch (_) {}
+}
+
+function phrazeSetPermanentlyClosed(highlightId, popupEl = null) {
+  const set = phrazeEnsureGlobalSet('phrazePermanentlyClosedPopups');
+  if (set) set.add(phrazeNormalizeHighlightId(highlightId));
+  try { if (popupEl && popupEl.dataset) popupEl.dataset.permanentlyClosed = 'true'; } catch (_) {}
+}
+
+function phrazeClearPermanentlyClosed(highlightId, popupEl = null) {
+  try {
+    if (window.phrazePermanentlyClosedPopups) window.phrazePermanentlyClosedPopups.delete(phrazeNormalizeHighlightId(highlightId));
+  } catch (_) {}
+  try { if (popupEl && popupEl.dataset) popupEl.dataset.permanentlyClosed = 'false'; } catch (_) {}
+}
+
+function phrazeRemoveFromActiveIds(highlightId) {
+  try {
+    if (!window.phrazeActiveAnnotationCardIds) return;
+    const idx = window.phrazeActiveAnnotationCardIds.indexOf(phrazeNormalizeHighlightId(highlightId));
+    if (idx > -1) window.phrazeActiveAnnotationCardIds.splice(idx, 1);
+  } catch (_) {}
+}
+
+function phrazeHidePopupElement(popupEl) {
+  if (!popupEl) return;
+  // Reset any nested UI state (eg labels dropdown) before hiding so it doesn't "remember" open state.
+  try {
+    if (typeof popupEl._phrazeResetLabelsDropdown === 'function') {
+      popupEl._phrazeResetLabelsDropdown();
+    }
+  } catch (_) {}
+  popupEl.style.display = 'none';
+  popupEl.style.visibility = 'hidden';
+  popupEl.style.opacity = '0';
+  popupEl.style.pointerEvents = 'none';
+}
+
+export function phrazeHideAnyOtherPopups(exceptPopupEl = null) {
+  try {
+    const popups = document.querySelectorAll('.annotation-popup');
+    popups.forEach(p => {
+      if (!p || p === exceptPopupEl) return;
+      if (p.style.display === 'none') return;
+      try { p.classList.remove('sticky'); } catch (_) {}
+      try { p.classList.remove('active'); } catch (_) {}
+      phrazeHidePopupElement(p);
+    });
+  } catch (_) {}
+}
+
+export function phrazeShowPopupElement(popupEl) {
+  if (!popupEl) return;
+  popupEl.style.display = 'block';
+  popupEl.style.visibility = 'visible';
+  popupEl.style.opacity = '1';
+  popupEl.style.pointerEvents = 'auto';
+  try { popupEl.setAttribute('aria-hidden', 'false'); } catch (_) {}
+}
+
 function setPinnedCardPlacement(annotationCard, container, anchorRect, cardRect, yOffset = 0) {
   try {
     if (!annotationCard || !container) return;
@@ -673,7 +878,7 @@ function getHoverCardCandidateRect(leftCenter, top, width, height) {
 }
 
 function getActivePinnedCardRects(excludeCard) {
-  const cards = Array.from(document.querySelectorAll('.phraze-unified-annotation-card.sticky.active'));
+  const cards = Array.from(document.querySelectorAll('.annotation-popup.sticky, .phraze-unified-annotation-card.sticky.active'));
   return cards
     .filter((c) => c && c !== excludeCard && c.offsetParent !== null)
     .map((c) => ({ el: c, rect: c.getBoundingClientRect() }))
@@ -681,7 +886,7 @@ function getActivePinnedCardRects(excludeCard) {
 }
 
 function getActiveUnifiedCardRects(excludeCard) {
-  const cards = Array.from(document.querySelectorAll('.phraze-unified-annotation-card.active'));
+  const cards = Array.from(document.querySelectorAll('.annotation-popup, .phraze-unified-annotation-card.active'));
   return cards
     .filter((c) => c && c !== excludeCard && c.offsetParent !== null)
     .map((c) => ({ el: c, rect: c.getBoundingClientRect() }))
@@ -759,7 +964,7 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
 
   const cardRect = annotationCard.getBoundingClientRect();
   const padding = 12;
-  const spacing = 8;
+  const spacing = 6;
   const headerBottom = getPhrazeHeaderBottomOffset();
   const minTopPadding = Math.max(padding, headerBottom + padding);
 
@@ -781,11 +986,17 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
   if (isSticky && (pinnedPlacement === 'below' || pinnedPlacement === 'above')) {
     top = pinnedPlacement === 'below' ? topBelow : topAbove;
   } else {
-    // Hover behavior: prefer above, flip below if needed.
-    if (top < minTopPadding) {
-      top = topBelow;
-    }
-    top = Math.max(minTopPadding, Math.min(top, window.innerHeight - padding - cardRect.height));
+    // Hover behavior: choose above/below based on which ends up closest after viewport clamping.
+    const clampTop = (t) => Math.max(minTopPadding, Math.min(t, window.innerHeight - padding - cardRect.height));
+    const aboveClamped = clampTop(topAbove);
+    const belowClamped = clampTop(topBelow);
+
+    // Distances to anchor after clamping (smaller = closer)
+    const distAbove = Math.abs((aboveClamped + cardRect.height) - anchorRect.top);
+    const distBelow = Math.abs(belowClamped - anchorRect.bottom);
+
+    // If above would be forced down a lot (eg header), below is often closer and feels better.
+    top = distBelow < distAbove ? belowClamped : aboveClamped;
   }
 
   // Hover-open cards should stay visible within the viewport.
@@ -797,7 +1008,7 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
     // but never push the card an extreme distance away from its highlight.
     // If avoiding collision would move it too far, prefer a small horizontal nudge or accept minimal overlap.
     const baseTop = top;
-    const maxOffsetFromAnchor = 160;
+    const maxOffsetFromAnchor = 90;
     const minAllowedTop = Math.max(minTopPadding, baseTop - maxOffsetFromAnchor);
     const maxAllowedTop = Math.min(window.innerHeight - padding - cardRect.height, baseTop + maxOffsetFromAnchor);
 
@@ -894,32 +1105,66 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
         }
       } catch (_) {}
 
+      const clampPinned = (l, t) => {
+        const sr = scrollContainer;
+        const sl = sr.scrollLeft || 0;
+        const st = sr.scrollTop || 0;
+        const pad = 12;
+        const rectNow = annotationCard.getBoundingClientRect();
+        const w = rectNow.width || cardRect.width || 400;
+        const h = rectNow.height || cardRect.height || 300;
+        const maxL = Math.max(pad, (sr.clientWidth || 0) - w - pad) + sl;
+        const maxT = Math.max(pad, (sr.clientHeight || 0) - h - pad) + st;
+        return {
+          left: Math.max(pad + sl, Math.min(l, maxL)),
+          top: Math.max(pad + st, Math.min(t, maxT))
+        };
+      };
+
+      // If pinned position was already computed, keep it fixed relative to the scroll container.
+      try {
+        if (annotationCard._phrazePinnedStaticPos && annotationCard._phrazePinnedStaticPos.container === scrollContainer) {
+          const clamped = clampPinned(annotationCard._phrazePinnedStaticPos.left, annotationCard._phrazePinnedStaticPos.top);
+          annotationCard.style.left = `${clamped.left}px`;
+          annotationCard.style.top = `${clamped.top}px`;
+          annotationCard._phrazePinnedStaticPos = { container: scrollContainer, left: clamped.left, top: clamped.top };
+          return;
+        }
+      } catch (_) {}
+
+      // Apply one-time freeze captured at pin-time.
       try {
         if (annotationCard._phrazePinFreeze && annotationCard._phrazePinFreeze.container === scrollContainer) {
-          annotationCard.style.left = `${annotationCard._phrazePinFreeze.left}px`;
-          annotationCard.style.top = `${annotationCard._phrazePinFreeze.top}px`;
+          const clamped = clampPinned(annotationCard._phrazePinFreeze.left, annotationCard._phrazePinFreeze.top);
+          annotationCard.style.left = `${clamped.left}px`;
+          annotationCard.style.top = `${clamped.top}px`;
+          annotationCard._phrazePinnedStaticPos = { container: scrollContainer, left: clamped.left, top: clamped.top };
           annotationCard._phrazePinFreeze = null;
           return;
         }
       } catch (_) {}
 
-      // If this card was pinned from a hover preview, keep its container-relative position fixed.
-      // This avoids scroll-driven jitter/repositioning; the card will naturally scroll with the chat.
-      try {
-        if (annotationCard._phrazePinnedStaticPos && annotationCard._phrazePinnedStaticPos.container === scrollContainer) {
-          annotationCard.style.left = `${annotationCard._phrazePinnedStaticPos.left}px`;
-          annotationCard.style.top = `${annotationCard._phrazePinnedStaticPos.top}px`;
-          return;
-        }
-      } catch (_) {}
-
+      // Fallback: convert the computed viewport position to scroll-container coordinates once.
       const containerRect = scrollContainer.getBoundingClientRect();
+      const rawLocalLeft = left - containerRect.left + (scrollContainer.scrollLeft || 0);
+      const rawLocalTop = top - containerRect.top + (scrollContainer.scrollTop || 0);
 
-      // Convert viewport coords to scroll-container coords.
-      const localLeft = left - containerRect.left + (scrollContainer.scrollLeft || 0);
-      const localTop = top - containerRect.top + (scrollContainer.scrollTop || 0);
+      // Clamp within the scroll container so the card never ends up behind sidebars/offscreen.
+      // (This can happen when `left` is viewport-clamped but the scroll container is not full-width.)
+      const cardRectNow = annotationCard.getBoundingClientRect();
+      const cardW = cardRectNow.width || cardRect.width || 400;
+      const cardH = cardRectNow.height || cardRect.height || 300;
+      const pad = 12;
+      const maxLeft = Math.max(pad, (scrollContainer.clientWidth || 0) - cardW - pad) + (scrollContainer.scrollLeft || 0);
+      const maxTop = Math.max(pad, (scrollContainer.clientHeight || 0) - cardH - pad) + (scrollContainer.scrollTop || 0);
+      const localLeft = Math.max(pad + (scrollContainer.scrollLeft || 0), Math.min(rawLocalLeft, maxLeft));
+      const localTop = Math.max(pad + (scrollContainer.scrollTop || 0), Math.min(rawLocalTop, maxTop));
+
       annotationCard.style.left = `${localLeft}px`;
       annotationCard.style.top = `${localTop}px`;
+      try {
+        annotationCard._phrazePinnedStaticPos = { container: scrollContainer, left: localLeft, top: localTop };
+      } catch (_) {}
     } else {
       // Fallback: position relative to the document.
       const docLeft = left + window.scrollX;
@@ -1433,6 +1678,42 @@ function applyHighlightColorToMarks(highlightId, colorHex) {
   }
 }
 
+// Listen once for toolbar-driven highlight color updates (existing highlights)
+let phrazeHighlightColorChangeListenerBound = false;
+function bindPhrazeHighlightColorChangeListener() {
+  if (phrazeHighlightColorChangeListenerBound) return;
+  phrazeHighlightColorChangeListenerBound = true;
+  try {
+    document.addEventListener('phraze:request-highlight-color-change', async (e) => {
+      try {
+        const detail = e && e.detail ? e.detail : null;
+        if (!detail || !detail.highlightId || !detail.hex) return;
+
+        const highlightId = String(detail.highlightId);
+        const hex = String(detail.hex);
+        const name = detail.name ? String(detail.name) : null;
+
+        // Update UI immediately
+        applyHighlightColorToMarks(highlightId, hex);
+
+        // Persist to stored highlights
+        let highlights = await loadFunc() || [];
+        let updated = false;
+        highlights = highlights.map(h => {
+          if (h && String(h.id) === highlightId) {
+            updated = true;
+            return { ...h, color: hex, colorName: name || h.colorName || 'yellow' };
+          }
+          return h;
+        });
+        if (updated) {
+          await saveFunc(highlights);
+        }
+      } catch (_) {}
+    });
+  } catch (_) {}
+}
+
 export async function saveHighlight(chatID = null) {
   // Check if user is a viewer - viewers cannot create highlights
   const currentUserRole = typeof window !== 'undefined' ? window.currentUserRole : null;
@@ -1498,18 +1779,16 @@ export async function saveHighlight(chatID = null) {
   // console.log('🆕 Creating new highlight with ID:', globalHighlightID);
   // Keep the annotation popup open for this new highlight until user closes or saves annotation
   try {
-    if (!window.phrazeKeepPopupOpenIds) window.phrazeKeepPopupOpenIds = new Set();
-    window.phrazeKeepPopupOpenIds.add(highlightIdStr);
+    phrazeSetKeepPopupOpen(highlightIdStr);
   } catch (_) {}
   
   // Ensure this new highlight is NOT in the permanently closed set
   if (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlightIdStr)) {
-    console.log('⚠️ Removing new highlight from permanently closed set:', highlightIdStr);
-    window.phrazePermanentlyClosedPopups.delete(highlightIdStr);
+    phrazeClearPermanentlyClosed(highlightIdStr);
   }
   
   // Load highlights to render the new highlight and show the annotation popup
-  loadHighlights(false, highlightIdStr);
+  await loadHighlights(false, highlightIdStr);
 }
 
 export function clearHighlights() {
@@ -1519,16 +1798,14 @@ export function clearHighlights() {
   // Store active annotation card IDs AND visible popup IDs before clearing
   const activeCardIds = [];
   
-  // Check for active unified cards - BUT skip cards whose popups are permanently closed
-  const annotationCards = document.querySelectorAll('.phraze-unified-annotation-card.active');
-  annotationCards.forEach(card => {
-    const highlightId = card.dataset.highlightId;
-    if (highlightId) {
-      // Skip if this highlight's popup is permanently closed (user clicked "Add Annotation")
-      const isPermanentlyClosed = window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlightId);
-      if (!isPermanentlyClosed) {
-      activeCardIds.push(highlightId);
-      }
+  // Capture visible popups/cards (so loadHighlights can restore them after refresh)
+  const visiblePopups = document.querySelectorAll('.annotation-popup[data-highlight-id]');
+  visiblePopups.forEach(popup => {
+    const highlightId = popup.dataset.highlightId;
+    const isPermanentlyClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlightId)) ||
+                               popup.dataset.permanentlyClosed === 'true';
+    if (highlightId && popup.style.display !== 'none' && !isPermanentlyClosed) {
+      if (!activeCardIds.includes(highlightId)) activeCardIds.push(highlightId);
     }
   });
   
@@ -1558,20 +1835,8 @@ export function clearHighlights() {
     parent.normalize();
   });
 
-  const allAnnotationCards = document.querySelectorAll('.phraze-unified-annotation-card');
-  allAnnotationCards.forEach(card => {
-    // Cleanup scroll listener before removing
-    if (card._scrollCleanup) {
-      card._scrollCleanup();
-    }
-    card.remove();
-  });
-  
-  // Also remove all annotation popups
   const allAnnotationPopups = document.querySelectorAll('.annotation-popup');
-  allAnnotationPopups.forEach(popup => {
-    popup.remove();
-  });
+  allAnnotationPopups.forEach(popup => popup.remove());
 }
 
 
@@ -1860,25 +2125,47 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
     richTextDiv.innerHTML = '';
   }
   
-  // Load labels and codes from window.highlightsToAnnotationsMap
-  if (window.highlightsToAnnotationsMap && window.highlightsToAnnotationsMap[highlight.id]) {
-    const annotations = window.highlightsToAnnotationsMap[highlight.id];
-    for (var annotation of annotations) {
-      const type = annotation.find(item => item.type)?.type || '';
-      const key = annotation.find(item => item.key)?.key || '';
-      const options = annotation.find(item => item.options)?.options || [];
-      
-      if (type.toLowerCase() === "label" && selectedLabelsContainer) {
-        options.forEach(option => {
-          // Add as pill with format "Key: Value"
-          addSelectedLabel(option, key, selectedLabelsContainer, false);
-        });
+  const isRegion = Boolean(highlight && highlight._phrazeAnnotationSource === 'region');
+  const regionId = isRegion ? String(highlight._phrazeRegionId || highlight.id || '') : '';
+
+  // Region-backed labels
+  if (isRegion && regionId && selectedLabelsContainer) {
+    try {
+      const regions = await loadRegionAnnotations();
+      const region = Array.isArray(regions) ? regions.find(r => r && String(r.id) === regionId) : null;
+      const labels = region && Array.isArray(region.labels) ? region.labels : [];
+      labels.forEach((labelObj) => {
+        try {
+          const type = labelObj && labelObj.type ? String(labelObj.type) : '';
+          const value = labelObj && labelObj.value ? String(labelObj.value) : '';
+          if (type && value) addSelectedLabel(value, type, selectedLabelsContainer, false);
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  // Highlight-backed labels
+  if (!isRegion) {
+    // Load labels and codes from window.highlightsToAnnotationsMap
+    if (window.highlightsToAnnotationsMap && window.highlightsToAnnotationsMap[highlight.id]) {
+      const annotations = window.highlightsToAnnotationsMap[highlight.id];
+      for (var annotation of annotations) {
+        const type = annotation.find(item => item.type)?.type || '';
+        const key = annotation.find(item => item.key)?.key || '';
+        const options = annotation.find(item => item.options)?.options || [];
+        
+        if (type.toLowerCase() === "label" && selectedLabelsContainer) {
+          options.forEach(option => {
+            // Add as pill with format "Key: Value"
+            addSelectedLabel(option, key, selectedLabelsContainer, false);
+          });
+        }
       }
     }
   }
   
   // Load notes from highlight.notes array
-  if (highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0) {
+  if (!isRegion && highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0) {
     // Reload highlight from storage to get latest notes
     try {
       const highlights = await loadFunc() || [];
@@ -1896,9 +2183,11 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
           }
         });
         
-        // Load text notes into rich text editor
-        if (textNotes.length > 0 && richTextDiv) {
-          richTextDiv.innerHTML = textNotes.join('<br><br>');
+        // Do NOT pre-fill the rich text editor with existing notes.
+        // We want the editor to always start empty when the popup opens,
+        // so users can add a fresh note instead of editing old ones.
+        if (richTextDiv) {
+          richTextDiv.innerHTML = '';
         }
         
         // Load canvas image into canvas (load the most recent one)
@@ -1935,9 +2224,10 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
           }
         });
         
-        // Load text notes
-        if (textNotes.length > 0 && richTextDiv) {
-          richTextDiv.innerHTML = textNotes.join('<br><br>');
+        // Do NOT pre-fill the rich text editor with existing notes.
+        // We want the editor to always start empty when the popup opens.
+        if (richTextDiv) {
+          richTextDiv.innerHTML = '';
         }
         
         // Load canvas
@@ -1962,25 +2252,67 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
   }
 }
 
-export async function createUnifiedAnnotationCard(highlight, containerSpan) {
-  // Create the unified card container
-  const annotationCard = document.createElement('div');
-  annotationCard.className = 'phraze-unified-annotation-card PhrazeMark';
-  annotationCard.style.position = 'fixed';
-  annotationCard.style.zIndex = '1200';
-  annotationCard.dataset.highlightId = highlight.id; // Add data attribute for easy lookup
-  annotationCard.setAttribute('role', 'dialog');
-  annotationCard.setAttribute('aria-label', 'Annotation card');
-  annotationCard.setAttribute('aria-hidden', 'true');
-  annotationCard.tabIndex = -1;
+export async function createUnifiedAnnotationCard(highlight, containerSpan, opts = {}) {
+  const annotationSource = (opts && opts.type === 'region') ? 'region' : 'highlight';
+  try {
+    if (highlight && typeof highlight === 'object') {
+      highlight._phrazeAnnotationSource = annotationSource;
+      if (annotationSource === 'region') {
+        highlight._phrazeRegionId = String(opts.regionId || highlight.id || '');
+      }
+    }
+  } catch (_) {}
 
-  // Create the annotation popup for adding new notes
+  // Create the unified annotation popup (single interface, no separate card)
   const annotationPopup = document.createElement('div');
-  annotationPopup.className = 'annotation-popup PhrazeMark';
+  annotationPopup.className = 'annotation-popup PhrazeMark anno-update-ui';
   annotationPopup.style.display = 'none';
   annotationPopup.style.position = 'fixed';
   annotationPopup.style.zIndex = '1300';
   annotationPopup.dataset.highlightId = highlight.id; // Add data attribute to link popup to highlight
+  try {
+    annotationPopup.dataset.annotationType = annotationSource;
+    if (annotationSource === 'region') annotationPopup.dataset.regionId = String(opts.regionId || highlight.id || '');
+  } catch (_) {}
+
+  // Interaction guard for hover-previews:
+  // when user is scrolling/clicking inside the popup (esp. labels dropdown), do not allow hover-close timers to hide it.
+  annotationPopup._phrazePreventHoverCloseUntil = 0;
+  annotationPopup._phrazeLabelsDropdownOpen = false;
+  annotationPopup._phrazeIgnoreScrollHideUntil = 0;
+  const phrazeMarkInteracting = (ms = 800) => {
+    try {
+      annotationPopup._phrazePreventHoverCloseUntil = Date.now() + ms;
+    } catch (_) {}
+  };
+  const phrazeIgnoreScrollHideBriefly = (ms = 250) => {
+    try {
+      annotationPopup._phrazeIgnoreScrollHideUntil = Date.now() + ms;
+    } catch (_) {}
+  };
+  annotationPopup.addEventListener('pointerdown', () => phrazeMarkInteracting(1200), true);
+  annotationPopup.addEventListener('focusin', () => phrazeMarkInteracting(1500), true);
+  // Wheel-lock: while hovering a non-pinned popup, block underlying page/chat scroll
+  // so the hover card doesn't "follow" the viewport. Allow the labels dropdown itself to scroll.
+  annotationPopup.addEventListener('wheel', (e) => {
+    phrazeMarkInteracting(1500);
+    // If pinned, allow normal page/chat scroll behavior.
+    if (annotationPopup.classList.contains('sticky')) return;
+    // If the wheel event is inside the dropdown and it can scroll, allow it.
+    const dropdown = annotationPopup.querySelector('.labels-dropdown');
+    if (dropdown && dropdown.style.display !== 'none' && dropdown.contains(e.target)) {
+      try {
+        const canScroll = dropdown.scrollHeight > dropdown.clientHeight;
+        if (canScroll) {
+          return; // allow dropdown scrolling
+        }
+      } catch (_) {}
+    }
+    // Otherwise, prevent the underlying container from scrolling while hovering the popup.
+    phrazeIgnoreScrollHideBriefly(250);
+    try { e.preventDefault(); } catch (_) {}
+    try { e.stopPropagation(); } catch (_) {}
+  }, { capture: true, passive: false });
   
   // Check if this popup should be permanently closed from the start
   if (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id)) {
@@ -1996,29 +2328,17 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
   closeButton.className = 'annotation-close-btn';
   closeButton.innerHTML = '&times;';
   closeButton.title = 'Close';
-  closeButton.style.position = 'absolute';
-  closeButton.style.top = '16px';
-  closeButton.style.right = '16px';
   closeButton.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation(); // Prevent other handlers from firing
     
-    // Mark as permanently closed
-    annotationPopup.dataset.permanentlyClosed = 'true';
-    if (!window.phrazePermanentlyClosedPopups) {
-      window.phrazePermanentlyClosedPopups = new Set();
-    }
-    window.phrazePermanentlyClosedPopups.add(highlight.id);
-    if (window.phrazeKeepPopupOpenIds) {
-      window.phrazeKeepPopupOpenIds.delete(highlight.id);
-    }
+    // Close (do NOT permanently close; allow hover/click to reopen)
+    phrazeClearPermanentlyClosed(highlight.id, annotationPopup);
+    phrazeClearKeepPopupOpen(highlight.id);
     
     // Close popup
-    annotationPopup.style.display = 'none';
-    annotationPopup.style.visibility = 'hidden';
-    annotationPopup.style.opacity = '0';
-    annotationPopup.style.pointerEvents = 'none';
+    phrazeHidePopupElement(annotationPopup);
     
     // Enable hover behavior on the container span after popup closes
     if (window.phrazeEnableHoverForHighlightId && window.phrazeEnableHoverForHighlightId[highlight.id]) {
@@ -2028,263 +2348,54 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
     }
     
     // Remove this highlight ID from the active list to prevent reopening
-    if (window.phrazeActiveAnnotationCardIds) {
-      const index = window.phrazeActiveAnnotationCardIds.indexOf(highlight.id);
-      if (index > -1) {
-        window.phrazeActiveAnnotationCardIds.splice(index, 1);
-      }
-    }
+    phrazeRemoveFromActiveIds(highlight.id);
   });
-  
-  annotationPopup.appendChild(closeButton);
 
-  // Create header section
+  // Create header section - simplified Zotero-style
   const headerSection = document.createElement('div');
-  headerSection.style.display = 'flex';
-  headerSection.style.alignItems = 'center';
-  headerSection.style.justifyContent = 'flex-start';
-  headerSection.style.gap = '10px';
-  headerSection.style.marginTop = '-8px';
-  headerSection.style.marginBottom = '24px';
-  headerSection.style.paddingBottom = '16px';
-  headerSection.style.borderBottom = '2px solid #e5e7eb';
-  headerSection.style.fontSize = '14px';
-  headerSection.style.fontWeight = '500';
-  headerSection.style.color = '#6b7280';
+  headerSection.className = 'modal-header';
   
-  // Create annotation icon
-  const annotationIcon = document.createElement('span');
-  annotationIcon.style.display = 'flex';
-  annotationIcon.style.alignItems = 'center';
-  annotationIcon.style.justifyContent = 'center';
-  annotationIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="currentColor"><path d="m14.6 20.474l-6.966 1.293c-1.336.248-2.004.372-2.389-.012c-.384-.385-.26-1.053-.012-2.39L6.526 12.4c.208-1.117.311-1.675.68-2.013c.368-.337 1.041-.403 2.388-.535C10.892 9.725 12.12 9.28 13.4 8l5.6 5.6c-1.28 1.28-1.725 2.508-1.853 3.806c-.131 1.347-.197 2.02-.535 2.389c-.337.368-.896.471-2.012.679"/><path d="M13 16.21a2.66 2.66 0 0 1-1.474-.736m0 0A2.66 2.66 0 0 1 10.79 14m.736 1.474L6 21m7.5-13c.633-.934 1.99-2.839 3.261-2.99c.868-.104 1.586.615 3.023 2.052l.154.154c1.437 1.437 2.156 2.155 2.052 3.023c-.151 1.27-2.056 2.628-2.99 3.261M5 8V2M2 5h6"/></g></svg>';
-  
-  // Create header text - check if highlight has existing annotations
-  const hasExistingAnnotations = window.highlightsToAnnotationsMap && 
-    window.highlightsToAnnotationsMap[highlight.id] && 
-    window.highlightsToAnnotationsMap[highlight.id].length > 0;
   const headerText = document.createElement('span');
-  headerText.textContent = hasExistingAnnotations ? 'Update Annotations' : 'Add Annotation';
-  headerText.style.letterSpacing = '-0.025em';
-  headerText.style.marginTop = '2px';
-  
-  headerSection.appendChild(annotationIcon);
-  headerSection.appendChild(headerText);
+  headerText.className = 'modal-title';
 
-  // Spacer to push color control to the right
-  const headerSpacer = document.createElement('div');
-  headerSpacer.style.flex = '1';
-  headerSection.appendChild(headerSpacer);
-
-  // Color picker (compact swatch + expandable palette)
-  const colorWrapper = document.createElement('div');
-  colorWrapper.style.position = 'relative';
-  colorWrapper.style.display = 'inline-block';
-  colorWrapper.style.userSelect = 'none';
-  colorWrapper.setAttribute('role', 'button');
-  colorWrapper.setAttribute('tabindex', '0');
-  colorWrapper.setAttribute('aria-label', 'Select highlight color');
-
-  const currentColor = (highlight && highlight.color) ? highlight.color : getDefaultHighlightColor().hex;
-  const currentColorName = (highlight && highlight.colorName) ? highlight.colorName : getDefaultHighlightColor().name;
-
-  const swatch = document.createElement('div');
-  swatch.style.width = '18px';
-  swatch.style.height = '18px';
-  swatch.style.borderRadius = '50%';
-  swatch.style.border = '1px solid #d1d5db';
-  swatch.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
-  swatch.style.background = currentColor;
-  swatch.title = `Highlight color: ${currentColorName}`;
-
-  const palette = document.createElement('div');
-  palette.style.position = 'static';
-  palette.style.background = '#ffffff';
-  palette.style.border = '1px solid #e5e7eb';
-  palette.style.borderRadius = '8px';
-  palette.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)';
-  palette.style.padding = '8px';
-  palette.style.display = 'none';
-  palette.style.width = '100%';
-  palette.style.boxSizing = 'border-box';
-  palette.style.marginTop = '8px';
-  palette.setAttribute('role', 'menu');
-
-  const presets = [
-    { name: 'yellow', hex: '#FFF176' },
-    { name: 'blue', hex: '#90CAF9' },
-    { name: 'green', hex: '#A5D6A7' },
-    { name: 'red', hex: '#EF9A9A' },
-    { name: 'purple', hex: '#CE93D8' },
-    { name: 'orange', hex: '#FFCC80' }
-  ];
-
-  function selectColor(hex, name) {
-    // Check if user is a viewer - viewers cannot change default highlight color
-    const currentUserRole = typeof window !== 'undefined' ? window.currentUserRole : null;
-    if (currentUserRole === 'viewer') {
-      if (typeof showToast === 'function') {
-        showToast('Viewers cannot change default highlight color', 'error');
-      }
-      return;
-    }
-    
+  const hasExistingAnnotations = () => {
     try {
-      // Update in-memory object
-      highlight.color = hex;
-      highlight.colorName = name;
-
-      // Update swatch
-      swatch.style.background = hex;
-      swatch.title = `Highlight color: ${name}`;
-
-      // Apply to DOM marks
-      applyHighlightColorToMarks(highlight.id, hex);
-
-      // Persist last selected color
-      try {
-        localStorage.setItem('phrazeLastHighlightColorHex', hex);
-        localStorage.setItem('phrazeLastHighlightColorName', name);
-      } catch (_) { /* ignore */ }
-
-      // Save preference to Firebase for cross-device persistence
-      (async () => {
-        try {
-          await callSetItem('defaultHighlightColor', { hex, name }, true);
-        } catch (e) { /* ignore */ }
-      })();
-
-      // Persist to Firebase (update the highlight entry)
-      (async () => {
-        try {
-          let all = await loadFunc() || [];
-          const idx = all.findIndex(h => h && h.id === highlight.id);
-          if (idx >= 0) {
-            all[idx].color = hex;
-            all[idx].colorName = name;
-            await saveFunc(all);
-          }
-        } catch (err) {
-          console.warn('Failed saving color to Firebase', err);
-        }
-      })();
-    } finally {
-      palette.style.display = 'none';
+      if (annotationSource === 'region') {
+        const cached = annotationPopup._phrazeRegionCached;
+        const hasLabels = Boolean(cached && Array.isArray(cached.labels) && cached.labels.length > 0);
+        const hasNotes = Boolean(cached && Array.isArray(cached.notes) && cached.notes.length > 0);
+        return hasLabels || hasNotes;
+      }
+      const hasLabels = Boolean(
+        window.highlightsToAnnotationsMap &&
+          window.highlightsToAnnotationsMap[highlight.id] &&
+          window.highlightsToAnnotationsMap[highlight.id].length > 0
+      );
+      const hasNotes = Boolean(Array.isArray(highlight.notes) && highlight.notes.length > 0);
+      return hasLabels || hasNotes;
+    } catch (_) {
+      return false;
     }
-  }
+  };
 
-  // Build grid
-  const grid = document.createElement('div');
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = 'repeat(6, 24px)';
-  grid.style.gap = '8px';
-  grid.style.justifyContent = 'end';
+  const updateHeaderTitle = () => {
+    try {
+      headerText.textContent = hasExistingAnnotations() ? 'Update Annotations' : 'Add Annotations';
+    } catch (_) {}
+  };
 
-  presets.forEach(({ name, hex }) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.style.width = '24px';
-    btn.style.height = '24px';
-    btn.style.borderRadius = '50%';
-    btn.style.border = '1px solid #d1d5db';
-    btn.style.background = hex;
-    btn.style.cursor = 'pointer';
-    btn.setAttribute('aria-label', `Select ${name} highlight color`);
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      selectColor(hex, name);
-    });
-    grid.appendChild(btn);
-  });
-
-  palette.appendChild(grid);
-  colorWrapper.appendChild(swatch);
-  headerSection.appendChild(palette);
-
-  function togglePalette() {
-    palette.style.display = palette.style.display === 'none' ? 'block' : 'none';
-  }
-  colorWrapper.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    togglePalette();
-  });
-  colorWrapper.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      togglePalette();
-    }
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!colorWrapper.contains(e.target)) {
-      palette.style.display = 'none';
-    }
-  });
-
-  headerSection.appendChild(colorWrapper);
-
+  annotationPopup._phrazeUpdateHeaderTitle = updateHeaderTitle;
+  updateHeaderTitle();
+  
+  headerSection.appendChild(headerText);
+  // Put the close button INSIDE the header (prevents duplicate X / weird absolute positioning)
+  headerSection.appendChild(closeButton);
   annotationPopup.appendChild(headerSection);
 
-  // Create selected text preview section
-  const selectedTextSection = document.createElement('div');
-  selectedTextSection.style.marginBottom = '16px';
-  
-  const selectedTextLabel = document.createElement('div');
-  selectedTextLabel.textContent = 'Selected text:';
-  selectedTextLabel.style.fontSize = '14px';
-  selectedTextLabel.style.fontWeight = '500';
-  selectedTextLabel.style.color = '#6b7280';
-  selectedTextLabel.style.marginBottom = '8px';
-  selectedTextSection.appendChild(selectedTextLabel);
-  
-  const selectedTextPreview = document.createElement('div');
-  selectedTextPreview.style.padding = '12px';
-  selectedTextPreview.style.backgroundColor = '#f8f9fa';
-  selectedTextPreview.style.border = '1px solid #e9ecef';
-  selectedTextPreview.style.borderRadius = '8px';
-  selectedTextPreview.style.fontSize = '14px';
-  selectedTextPreview.style.color = '#495057';
-  selectedTextPreview.style.lineHeight = '1.4';
-  selectedTextPreview.style.maxHeight = '100px';
-  selectedTextPreview.style.overflowY = 'auto';
-  selectedTextPreview.style.wordWrap = 'break-word';
-  selectedTextPreview.style.fontStyle = 'italic';
-  selectedTextPreview.style.width = '100%';
-  selectedTextPreview.style.boxSizing = 'border-box';
-  selectedTextPreview.style.overflowWrap = 'break-word';
-  selectedTextPreview.style.wordBreak = 'break-word';
-  
-  // Get the highlighted text from the highlight object
-  let highlightedText = '';
-  if (highlight && highlight.textNodes && highlight.textNodes.length > 0) {
-    // Extract text from the first text node's highlighted ranges
-    const firstTextNode = highlight.textNodes[0];
-    if (firstTextNode.wholeText && firstTextNode.highlightedRanges && firstTextNode.highlightedRanges.length > 0) {
-      const range = firstTextNode.highlightedRanges[0];
-      if (range.length >= 3) {
-        const start = range[1];
-        const end = range[2];
-        highlightedText = firstTextNode.wholeText.substring(start, end);
-      }
-    }
-  }
-  
-  // Fallback: try to get from DOM if highlight object doesn't have the text
-  if (!highlightedText) {
-    const mark = containerSpan.querySelector('mark[id="PhrazeHighlight"]');
-    if (mark) {
-      highlightedText = mark.textContent;
-    } else {
-      // Last resort: try to get text from the container itself
-      highlightedText = containerSpan.textContent || containerSpan.innerText || '';
-    }
-  }
-  
-  selectedTextPreview.textContent = highlightedText;
-  selectedTextSection.appendChild(selectedTextPreview);
-  annotationPopup.appendChild(selectedTextSection);
+  // Body wrapper (matches `anno-update-folder/styles.css`)
+  // Create this early so sub-sections (labels/editor/etc) can append immediately without leaking vars.
+  const modalBody = document.createElement('div');
+  modalBody.className = 'modal-body';
 
   // Always create labels section for all highlights (enables editing)
   let selectedLabelsContainer = null;
@@ -2309,6 +2420,16 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
     const labelsDropdown = document.createElement('div');
     labelsDropdown.className = 'labels-dropdown';
     labelsDropdown.style.display = 'none';
+
+    // Helper to reset dropdown UI state so it doesn't persist across open/close cycles.
+    annotationPopup._phrazeResetLabelsDropdown = () => {
+      try { labelsDropdown.style.display = 'none'; } catch (_) {}
+      try { labelsDropdown.style.left = ''; } catch (_) {}
+      try { labelsDropdown.style.right = ''; } catch (_) {}
+      try { labelsDropdown.style.top = ''; } catch (_) {}
+      try { annotationPopup._phrazeLabelsDropdownOpen = false; } catch (_) {}
+      try { labelsToggleBtn.innerHTML = 'Add Label <span>&#9662;</span>'; } catch (_) {}
+    };
     
     // Populate dropdown with labels from labelMap (top 4 categories only)
     const labelMap = {
@@ -2330,8 +2451,11 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
         optionDiv.textContent = option;
         optionDiv.addEventListener('click', () => {
           addSelectedLabel(option, labelType, selectedLabelsContainer);
-          labelsDropdown.style.display = 'none';
-          labelsToggleBtn.innerHTML = 'Add Label <span>&#9662;</span>';
+          try { annotationPopup._phrazeResetLabelsDropdown(); } catch (_) {
+            labelsDropdown.style.display = 'none';
+            labelsToggleBtn.innerHTML = 'Add Label <span>&#9662;</span>';
+            annotationPopup._phrazeLabelsDropdownOpen = false;
+          }
         });
         labelsDropdown.appendChild(optionDiv);
       });
@@ -2370,28 +2494,80 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
       const isVisible = labelsDropdown.style.display !== 'none';
       labelsDropdown.style.display = isVisible ? 'none' : 'block';
       labelsToggleBtn.innerHTML = isVisible ? 'Add Label <span>&#9662;</span>' : 'Add Label <span>&#9652;</span>';
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!popupLabelsSection.contains(e.target)) {
-        labelsDropdown.style.display = 'none';
-        labelsToggleBtn.innerHTML = 'Add Label <span>&#9662;</span>';
+      annotationPopup._phrazeLabelsDropdownOpen = !isVisible;
+      phrazeMarkInteracting(!isVisible ? 4000 : 1200);
+      if (!isVisible) phrazeIgnoreScrollHideBriefly(600);
+
+      // If the dropdown is opened, flip it to the left if it would overflow off-screen.
+      if (!isVisible) {
+        try {
+          labelsDropdown.style.right = '';
+          labelsDropdown.style.left = '';
+          // Force layout so we can measure
+          const dropdownRect = labelsDropdown.getBoundingClientRect();
+          const popupRect = annotationPopup.getBoundingClientRect();
+          const gap = 18;
+          const yOffset = -14;
+          const desiredLeft = popupRect.right + gap;
+          const overflowRight = desiredLeft + dropdownRect.width > window.innerWidth - 8;
+          if (overflowRight) {
+            // open to the left
+            labelsDropdown.style.left = 'auto';
+            labelsDropdown.style.right = `calc(100% + ${gap}px)`;
+            labelsDropdown.style.top = `${yOffset}px`;
+          } else {
+            // open to the right
+            labelsDropdown.style.right = 'auto';
+            labelsDropdown.style.left = `calc(100% + ${gap}px)`;
+            labelsDropdown.style.top = `${yOffset}px`;
+          }
+        } catch (_) {}
       }
     });
     
-    annotationPopup.appendChild(popupLabelsSection);
-  }
+    // Global (single) outside-click handler to close any open labels dropdowns.
+    // Avoids registering one `document.click` listener per highlight/popup (memory/perf leak).
+    if (typeof window !== 'undefined' && !window._phrazeLabelsDropdownOutsideClickBound) {
+      window._phrazeLabelsDropdownOutsideClickBound = true;
+      document.addEventListener('click', (e) => {
+        try {
+          const popups = document.querySelectorAll('.annotation-popup');
+          popups.forEach(popup => {
+            if (!popup || popup.style.display === 'none') return;
+            if (typeof popup._phrazeResetLabelsDropdown !== 'function') return;
+            const dropdown = popup.querySelector('.labels-dropdown');
+            if (!dropdown || dropdown.style.display === 'none') return;
+            const labelsSection = popup.querySelector('.labels-section');
+            if (labelsSection && labelsSection.contains(e.target)) return; // click inside labels area
+            popup._phrazeResetLabelsDropdown();
+          });
+        } catch (_) {}
+      }, true);
+    }
+    
+    // Prevent scroll chaining: when user scrolls the dropdown, NEVER let the chat/page scroll,
+    // otherwise the hover-preview scroll handler will hide the card.
+    labelsDropdown.addEventListener('wheel', (e) => {
+      phrazeMarkInteracting(2500);
+      phrazeIgnoreScrollHideBriefly(300);
+      try { e.stopPropagation(); } catch (_) {}
 
-  // Create annotation header below selected text
-  const annotationHeader = document.createElement('div');
-  annotationHeader.textContent = 'Annotation:';
-  annotationHeader.style.fontSize = '14px';
-  annotationHeader.style.fontWeight = '500';
-  annotationHeader.style.color = '#6b7280';
-  annotationHeader.style.marginBottom = '8px';
-  
-  annotationPopup.appendChild(annotationHeader);
+      // If pinned, allow normal scrolling behavior.
+      if (annotationPopup.classList.contains('sticky')) return;
+
+      // Always prevent default and manually scroll the dropdown to avoid momentum scroll chaining.
+      try { e.preventDefault(); } catch (_) {}
+
+      try {
+        // deltaMode: 0=pixel, 1=line, 2=page
+        const multiplier = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? labelsDropdown.clientHeight : 1;
+        labelsDropdown.scrollTop += (e.deltaY * multiplier);
+      } catch (_) {}
+    }, { capture: true, passive: false });
+
+    // Append into modal body now (avoids `popupLabelsSection` scope bugs)
+    modalBody.appendChild(popupLabelsSection);
+  }
 
   // Create rich text toolbar
   const toolbar = document.createElement('div');
@@ -2586,85 +2762,44 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
       btn.style.borderColor = '#d1d5db';
     });
   });
-  
-  // Mode toggle (Text/Canvas)
-  let annotationMode = 'text'; // 'text' or 'canvas'
-  const modeRef = { current: 'text' }; // Reference object for mode sharing
-  const modeToggleContainer = document.createElement('div');
-  modeToggleContainer.style.cssText = `
-    display: flex;
-    gap: 4px;
-    margin-bottom: 12px;
-    align-items: center;
-  `;
-  
-  const textModeBtn = document.createElement('button');
-  textModeBtn.type = 'button';
-  textModeBtn.textContent = 'Text';
-  textModeBtn.style.cssText = `
-    padding: 6px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    border: 1px solid #e5e7eb;
-    background: #f3f4f6;
-    color: #374151;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  `;
-  
-  const canvasModeBtn = document.createElement('button');
-  canvasModeBtn.type = 'button';
-  canvasModeBtn.textContent = 'Canvas';
-  canvasModeBtn.style.cssText = `
-    padding: 6px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    border: 1px solid #e5e7eb;
-    background: white;
-    color: #9ca3af;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  `;
-  
-  const updateModeButtons = () => {
-    if (annotationMode === 'text' || modeRef.current === 'text') {
-      textModeBtn.style.background = '#f3f4f6';
-      textModeBtn.style.color = '#374151';
-      canvasModeBtn.style.background = 'white';
-      canvasModeBtn.style.color = '#9ca3af';
-    } else {
-      textModeBtn.style.background = 'white';
-      textModeBtn.style.color = '#9ca3af';
-      canvasModeBtn.style.background = '#f3f4f6';
-      canvasModeBtn.style.color = '#374151';
+
+  let addNoteToolbarButton = null;
+
+  const setNotesToolbarEnabled = (enabled) => {
+    try {
+      [boldBtn, italicBtn, colorBtn, imageBtn].forEach(btn => {
+        btn.disabled = !enabled;
+        btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+      });
+      if (addNoteToolbarButton) {
+        addNoteToolbarButton.disabled = !enabled;
+        addNoteToolbarButton.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+      }
+    } catch (_) {}
+  };
+
+  const richTextHasContent = () => {
+    try {
+      const html = String(richTextDiv.innerHTML || '').trim();
+      if (!html) return false;
+      const text = String(richTextDiv.textContent || '').replace(/\s+/g, '').trim();
+      const hasImg = richTextDiv.querySelector && richTextDiv.querySelector('img');
+      return Boolean(text) || Boolean(hasImg);
+    } catch (_) {
+      return false;
     }
   };
-  
-  textModeBtn.addEventListener('click', () => {
-    annotationMode = 'text';
-    modeRef.current = 'text';
-    canvas.dataset.annotationMode = 'text';
-    updateModeButtons();
-    richTextDiv.style.display = 'block';
-    toolbar.style.display = 'flex';
-    canvasContainer.style.display = 'none';
-    richTextDiv.focus();
+
+  // Default to disabled for simplicity; enable once user starts typing.
+  setNotesToolbarEnabled(false);
+  richTextDiv.addEventListener('input', () => {
+    setNotesToolbarEnabled(richTextHasContent());
   });
   
-  canvasModeBtn.addEventListener('click', () => {
-    annotationMode = 'canvas';
-    modeRef.current = 'canvas';
-    canvas.dataset.annotationMode = 'canvas';
-    updateModeButtons();
-    richTextDiv.style.display = 'none';
-    toolbar.style.display = 'none';
-    canvasContainer.style.display = 'block';
-  });
-  
-  modeToggleContainer.appendChild(textModeBtn);
-  modeToggleContainer.appendChild(canvasModeBtn);
+  // Text-only mode (no Text/Canvas toggle)
+  const modeRef = { current: 'text' }; // kept for compatibility with shared loader signature
+  const textModeBtn = null;
+  const canvasModeBtn = null;
   
   // Create canvas container
   const canvasContainer = document.createElement('div');
@@ -2802,19 +2937,154 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
   canvasContainer.appendChild(canvasToolbar);
   canvasContainer.appendChild(canvas);
 
-  // Add mode toggle, toolbar, rich text div, and canvas container to popup
-  annotationPopup.appendChild(modeToggleContainer);
-  annotationPopup.appendChild(toolbar);
-  annotationPopup.appendChild(richTextDiv);
-  annotationPopup.appendChild(canvasContainer);
+  // Editor container (matches anno-update-folder design)
+  const editorContainer = document.createElement('div');
+  editorContainer.className = 'editor-container';
+  editorContainer.appendChild(richTextDiv);
+  editorContainer.appendChild(toolbar);
+  modalBody.appendChild(editorContainer);
 
-  // Create button container
+  const popupNotesSection = document.createElement('div');
+  popupNotesSection.className = 'notes-section';
+
+  const popupNotesList = document.createElement('ul');
+  popupNotesList.className = 'phraze-note-list PhrazeMark';
+
+  const renderPopupNotes = async () => {
+    try {
+      popupNotesList.innerHTML = '';
+
+      let notes = [];
+      if (annotationSource === 'region') {
+        const regionId = String(opts.regionId || highlight.id || '');
+        const regions = await loadRegionAnnotations();
+        const region = Array.isArray(regions) ? regions.find(r => r && String(r.id) === regionId) : null;
+        try { annotationPopup._phrazeRegionCached = region; } catch (_) {}
+        notes = (region && Array.isArray(region.notes)) ? region.notes : [];
+      } else {
+        const highlights = await loadFunc() || [];
+        const current = highlights.find(h => h.id === highlight.id);
+        notes = (current && Array.isArray(current.notes)) ? current.notes : (Array.isArray(highlight.notes) ? highlight.notes : []);
+      }
+
+      const createListItem = (noteText) => {
+        const listItem = document.createElement('li');
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'phraze-note-text PhrazeMark';
+        textSpan.innerHTML = noteText;
+        listItem.appendChild(textSpan);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'phraze-note-delete-btn PhrazeMark';
+        deleteButton.innerHTML = '&times;';
+        deleteButton.title = 'Delete note';
+        listItem.appendChild(deleteButton);
+
+        deleteButton.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            if (annotationSource === 'region') {
+              await removeNoteFromRegionStorage(String(opts.regionId || highlight.id || ''), noteText);
+            } else {
+              await removeNoteFromStorage(highlight.id, noteText);
+            }
+            try {
+              if (Array.isArray(highlight.notes)) {
+                const noteIndex = highlight.notes.indexOf(noteText);
+                if (noteIndex > -1) highlight.notes.splice(noteIndex, 1);
+              }
+            } catch (_) {}
+            await renderPopupNotes();
+            try {
+              if (annotationPopup && typeof annotationPopup._phrazeUpdateHeaderTitle === 'function') {
+                annotationPopup._phrazeUpdateHeaderTitle();
+              }
+            } catch (_) {}
+          } catch (error) {
+            console.error('Failed to delete note:', error);
+            if (typeof showToast === 'function') {
+              showToast(`Failed to delete note: ${error.message}`, 'error');
+            }
+          }
+        });
+
+        return listItem;
+      };
+
+      notes
+        .filter(n => typeof n === 'string' && n.trim() && !n.includes('data:image/'))
+        .forEach(noteText => {
+          popupNotesList.appendChild(createListItem(noteText));
+        });
+    } catch (error) {
+      console.error('Error rendering popup notes:', error);
+    }
+  };
+
+  addNoteToolbarButton = document.createElement('button');
+  addNoteToolbarButton.type = 'button';
+  addNoteToolbarButton.className = 'toolbar-note-btn';
+  addNoteToolbarButton.textContent = 'Add note';
+  addNoteToolbarButton.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const noteHtml = (richTextDiv && typeof richTextDiv.innerHTML === 'string') ? richTextDiv.innerHTML.trim() : '';
+    if (!noteHtml) return;
+
+    try {
+      if (annotationSource === 'region') {
+        await addNoteToRegionStorage(String(opts.regionId || highlight.id || ''), noteHtml);
+      } else {
+        await addNoteToStorage(highlight.id, noteHtml);
+      }
+      try {
+        if (!Array.isArray(highlight.notes)) highlight.notes = [];
+        highlight.notes.push(noteHtml);
+      } catch (_) {}
+      try { richTextDiv.innerHTML = ''; } catch (_) {}
+      try { setNotesToolbarEnabled(false); } catch (_) {}
+      await renderPopupNotes();
+      try {
+        if (annotationPopup && typeof annotationPopup._phrazeUpdateHeaderTitle === 'function') {
+          annotationPopup._phrazeUpdateHeaderTitle();
+        }
+      } catch (_) {}
+      document.dispatchEvent(new Event('annotationUpdated'));
+    } catch (error) {
+      console.error('Failed to add note:', error);
+      if (typeof showToast === 'function') {
+        showToast(`Failed to add note: ${error.message}`, 'error');
+      }
+    }
+  });
+
+  toolbar.insertBefore(addNoteToolbarButton, toolbar.firstChild);
+  setNotesToolbarEnabled(richTextHasContent());
+
+  // Expose a reset helper because the popup DOM persists across opens and there are multiple open paths.
+  annotationPopup._phrazeResetNotesUI = () => {
+    try { richTextDiv.innerHTML = ''; } catch (_) {}
+    try { setNotesToolbarEnabled(false); } catch (_) {}
+  };
+
+  popupNotesSection.appendChild(popupNotesList);
+  modalBody.appendChild(popupNotesSection);
+  // Keep canvas container in DOM (hidden) for backwards-compat notes, but no toggle to show it
+  modalBody.appendChild(canvasContainer);
+  annotationPopup.appendChild(modalBody);
+
+  await renderPopupNotes();
+
+  // (wheel handling is done above with a non-passive capture listener)
+
+  // Footer wrapper (matches `anno-update-folder/styles.css`)
   const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'button-container';
+  buttonContainer.className = 'modal-footer button-container';
 
   // Create Save button
   const addAnnotationButton = document.createElement('button');
-  addAnnotationButton.className = 'add-annotation-button';
+  addAnnotationButton.className = 'add-annotation-button update-btn';
   
   // Check permissions for creating/modifying annotations
   const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
@@ -2838,9 +3108,8 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
   saveIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 32 32"><path fill="currentColor" d="M5 7.5A2.5 2.5 0 0 1 7.5 5H9v4.5a2.5 2.5 0 0 0 2.5 2.5h8A2.5 2.5 0 0 0 22 9.5V5.04a2.5 2.5 0 0 1 1.318.692l2.95 2.95A2.5 2.5 0 0 1 27 10.45V24.5a2.5 2.5 0 0 1-2 2.45V18.5a2.5 2.5 0 0 0-2.5-2.5h-13A2.5 2.5 0 0 0 7 18.5v8.45a2.5 2.5 0 0 1-2-2.45zM9 27v-8.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5V27zM20 5v4.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5V5zM7.5 3A4.5 4.5 0 0 0 3 7.5v17A4.5 4.5 0 0 0 7.5 29h17a4.5 4.5 0 0 0 4.5-4.5V10.45a4.5 4.5 0 0 0-1.318-3.182l-2.95-2.95A4.5 4.5 0 0 0 21.55 3z"/></svg>';
   
   addAnnotationButton.appendChild(saveIcon);
-  // Use same check as header - show "Add" for new highlights, "Update" for existing
-  const buttonText = hasExistingAnnotations ? ' Update Annotations' : ' Add Annotation';
-  addAnnotationButton.appendChild(document.createTextNode(buttonText));
+  // Always show "Add Annotation" (simplified UI)
+  addAnnotationButton.appendChild(document.createTextNode(' Add Annotation'));
 
   // Add Annotation button click handler (handles notes, labels, and codes)
   addAnnotationButton.addEventListener('click', async (e) => {
@@ -2851,7 +3120,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
     // Double-check permission before processing annotation
     if (!canAnnotate) {
       if (typeof showToast === 'function') {
-        showToast('You do not have permission to ' + (hasExistingAnnotations ? 'modify' : 'create') + ' annotations', 'error');
+        showToast('You do not have permission to ' + (hasExistingAnnotations() ? 'modify' : 'create') + ' annotations', 'error');
       }
       return;
     }
@@ -2863,58 +3132,23 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
     }
     window.phrazeProcessingAnnotation = true;
     
-    console.log(hasExistingAnnotations ? 'Update Annotations button clicked' : 'Add Annotation button clicked');
-    
-    // IMMEDIATELY mark popup as permanently closed BEFORE any async operations
-    // This prevents the popup from reappearing when Firebase listeners fire
-    annotationPopup.dataset.permanentlyClosed = 'true';
-    if (!window.phrazePermanentlyClosedPopups) {
-      window.phrazePermanentlyClosedPopups = new Set();
-    }
-    window.phrazePermanentlyClosedPopups.add(highlight.id);
-    if (window.phrazeKeepPopupOpenIds) {
-      window.phrazeKeepPopupOpenIds.delete(highlight.id);
-    }
-    
-    // Also mark ALL popups with this highlight ID as permanently closed (in case they get recreated)
-    const allExistingPopups = document.querySelectorAll(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
-    allExistingPopups.forEach(popup => {
-      popup.dataset.permanentlyClosed = 'true';
-    });
-    
-    // Remove from active list immediately
-    if (window.phrazeActiveAnnotationCardIds) {
-      const index = window.phrazeActiveAnnotationCardIds.indexOf(highlight.id);
-      if (index > -1) {
-        window.phrazeActiveAnnotationCardIds.splice(index, 1);
-      }
-    }
-    
-    // CRITICAL: Remove from active card IDs to prevent popup from showing again
-    // This ensures that even if loadHighlights is called again, it won't treat this as a new highlight
-    // The active card IDs list is used to determine shouldBeActive, so removing it prevents popup from showing
-    if (window.phrazeActiveAnnotationCardIds) {
-      const prevIndex = window.phrazeActiveAnnotationCardIds.indexOf(highlight.id);
-      if (prevIndex > -1) {
-        window.phrazeActiveAnnotationCardIds.splice(prevIndex, 1);
-      }
-    }
-    
-    // Close popup immediately (visually)
-    annotationPopup.style.display = 'none';
-    annotationPopup.style.visibility = 'hidden';
-    annotationPopup.style.opacity = '0';
-    annotationPopup.style.pointerEvents = 'none';
-    
-    // Also close any popup with this highlight ID (in case it's been recreated)
-    const allPopups = document.querySelectorAll(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
-    allPopups.forEach(popup => {
-      popup.style.display = 'none';
-      popup.style.visibility = 'hidden';
-      popup.style.opacity = '0';
-      popup.style.pointerEvents = 'none';
-      popup.dataset.permanentlyClosed = 'true';
-    });
+    console.log(hasExistingAnnotations() ? 'Update Annotations button clicked' : 'Add Annotation button clicked');
+
+    // Close popup immediately (visually) to avoid flicker / duplicate opens while saving,
+    // but do NOT permanently close it (user must be able to reopen it later).
+    phrazeClearKeepPopupOpen(highlight.id);
+    phrazeClearPermanentlyClosed(highlight.id, annotationPopup);
+    phrazeRemoveFromActiveIds(highlight.id);
+    phrazeHidePopupElement(annotationPopup);
+
+    // Close any other popup elements for the same highlight ID (defensive)
+    try {
+      const allPopups = document.querySelectorAll(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
+      allPopups.forEach(popup => {
+        phrazeClearPermanentlyClosed(highlight.id, popup);
+        phrazeHidePopupElement(popup);
+      });
+    } catch (_) {}
     
     // Set highlight ID to ensure annotations are saved with correct ID
     localStorage.setItem('globalHighlightID', highlight.id);
@@ -2947,38 +3181,8 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
       return;
     }
 
-    // Get note content - collect both text and canvas
-    const notesToSave = [];
-    
-    // Add text note if it exists
-    const textContent = richTextDiv.innerHTML.trim();
-    if (textContent) {
-      notesToSave.push(textContent);
-    }
-    
-    // Add canvas drawing if it has content
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let hasDrawing = false;
-      
-      // Check if there are any non-white/non-transparent pixels
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        const a = imageData.data[i + 3];
-        if (a > 0) {
-          hasDrawing = true;
-          break;
-        }
-      }
-      
-      if (hasDrawing) {
-        const canvasDataUrl = canvas.toDataURL('image/png');
-        notesToSave.push(`<img src="${canvasDataUrl}" alt="Canvas drawing" style="max-width: 100%; height: auto;" />`);
-      }
-    }
-    
-    // Combine all notes
-    let noteText = notesToSave.join('<br><br>');
+    // Notes are saved via the toolbar "Add note" action, not via the Add Annotation button.
+    let noteText = '';
     
     const selectedLabels = [];
     
@@ -2996,297 +3200,86 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
     
     console.log('Updating annotations with:', { noteText, selectedLabels });
     
-    // FIRST: Handle deletions - remove annotations that were removed from popup
-    await handleAnnotationDeletions(highlightedText, highlight.id, selectedLabels);
-    
-    // Save new labels (only those that don't already exist)
-    if (selectedLabels.length > 0) {
+    if (annotationSource === 'region') {
       try {
-        // Get existing annotations to check for duplicates
-        const annotationHistory = await getAnnotationHistory();
-        const existingLabelKeys = new Set();
-        
-        annotationHistory.forEach(entry => {
-          if (!Array.isArray(entry)) return;
-          const entryUserText = entry.find(item => item.userText)?.userText || '';
-          const entryKey = entry.find(item => item.key)?.key || '';
-          const entryType = entry.find(item => item.type)?.type || '';
-          const entryUrl = entry.find(item => item.url)?.url || '';
-          const entryHighlightId = entry.find(item => item.highlightID)?.highlightID || '';
-          const entryOptions = entry.find(item => item.options)?.options || [];
-          
-          if (entryUserText === highlightedText && 
-              entryUrl === window.location.href && 
-              entryHighlightId === highlight.id &&
-              entryType.toLowerCase() === 'label') {
-            entryOptions.forEach(opt => {
-              existingLabelKeys.add(`${entryKey}: ${opt}`);
-            });
-          }
-        });
-        
-        // Save each label that doesn't already exist
-        for (const labelData of selectedLabels) {
-          const labelKey = `${labelData.type}: ${labelData.value}`;
-          if (!existingLabelKeys.has(labelKey)) {
-            await addSelectedTextEntry(highlightedText, labelData.type, 'label', labelData.value);
-            // console.log(`Label saved: ${labelData.type} - ${labelData.value}`);
-            } else {
-            // console.log(`Label already exists, skipping: ${labelKey}`);
-          }
-        }
+        const regionId = String(opts.regionId || highlight.id || '');
+        await updateRegionAnnotation(regionId, { labels: selectedLabels, updatedAt: new Date().toISOString() });
+        try {
+          const regions = await loadRegionAnnotations();
+          const region = Array.isArray(regions) ? regions.find(r => r && String(r.id) === regionId) : null;
+          annotationPopup._phrazeRegionCached = region;
+        } catch (_) {}
       } catch (error) {
-        console.error('Failed to save labels:', error);
+        console.error('Failed to save region labels:', error);
       }
-    }
-    
-    // Handle notes - replace all notes with the new content
-    try {
-      // Get current notes from storage
-      const highlights = await loadFunc() || [];
-      const currentHighlight = highlights.find(h => h.id === highlight.id);
+    } else {
+      // FIRST: Handle deletions - remove annotations that were removed from popup
+      await handleAnnotationDeletions(highlightedText, highlight.id, selectedLabels);
       
-      if (noteText) {
-        // If there's note text, save it as a single note (or split by <br><br> if multiple)
-        const noteParts = noteText.split('<br><br>').filter(part => part.trim());
-        if (noteParts.length > 0) {
-          // Delete all existing notes first
-          if (currentHighlight && currentHighlight.notes && Array.isArray(currentHighlight.notes)) {
-            for (const oldNote of currentHighlight.notes) {
-              try {
-                await removeNoteFromStorage(highlight.id, oldNote);
-              } catch (err) {
-                console.warn('Error removing old note:', err);
-              }
-            }
-          }
+      // Save new labels (only those that don't already exist)
+      if (selectedLabels.length > 0) {
+        try {
+          // Get existing annotations to check for duplicates
+          const annotationHistory = await getAnnotationHistory();
+          const existingLabelKeys = new Set();
           
-          // Add new notes
-          for (const notePart of noteParts) {
-            await addNoteToStorage(highlight.id, notePart.trim());
-          }
-        }
-      } else {
-        // If note text is empty, delete all existing notes
-        if (currentHighlight && currentHighlight.notes && Array.isArray(currentHighlight.notes)) {
-          for (const oldNote of currentHighlight.notes) {
-            try {
-              await removeNoteFromStorage(highlight.id, oldNote);
-            } catch (err) {
-              console.warn('Error removing note:', err);
-            }
-          }
-        }
-      }
-      // console.log('Notes updated successfully');
-    } catch (error) {
-      console.error('Failed to update notes:', error);
-    }
-    
-    // Note: Popup was already closed at the start of this handler to prevent race conditions
-    
-    // Update the card DOM directly and immediately with the new annotations
-    // This ensures the brief preview shows the UPDATED content, not old content
-    const labelsContainer = annotationCard.querySelector('.labels-container');
-    const notesList = annotationCard.querySelector('.phraze-note-list');
-    
-    if (labelsContainer) {
-      // Clear existing labels
-      labelsContainer.innerHTML = '';
-      
-      // Add updated label pills directly to DOM with delete arrows
-      selectedLabels.forEach(({ type, value }) => {
-        const labelPill = document.createElement('span');
-        labelPill.className = 'label-pill';
-        labelPill.style.position = 'relative';
-        labelPill.style.paddingRight = '18px';
-        applyUnifiedLabelPillStyle(labelPill, type);
-        
-        const textSpan = document.createElement('span');
-        textSpan.textContent = `${type}: ${value}`;
-        labelPill.appendChild(textSpan);
-        
-        const deleteArrow = document.createElement('button');
-        deleteArrow.innerHTML = '×';
-        deleteArrow.type = 'button';
-        deleteArrow.style.cssText = `
-          position: absolute;
-          right: 2px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: transparent;
-          border: none;
-          font-size: 10px;
-          cursor: pointer;
-          padding: 0;
-          width: 12px;
-          height: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #9ca3af;
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 0.15s ease, color 0.15s ease;
-        `;
-        
-        labelPill.addEventListener('mouseenter', () => {
-          deleteArrow.style.opacity = '1';
-          deleteArrow.style.visibility = 'visible';
-        });
-        labelPill.addEventListener('mouseleave', () => {
-          deleteArrow.style.opacity = '0';
-          deleteArrow.style.visibility = 'hidden';
-        });
-        deleteArrow.addEventListener('mouseenter', () => deleteArrow.style.color = '#dc2626');
-        deleteArrow.addEventListener('mouseleave', () => deleteArrow.style.color = '#9ca3af');
-        deleteArrow.addEventListener('click', async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (highlightedText) {
-            await deleteSingleAnnotationOption(highlightedText, highlight.id, type, value, 'label');
-            await updateAnnotationCard(highlight.id);
-          }
-        });
-        
-        labelPill.appendChild(deleteArrow);
-        labelsContainer.appendChild(labelPill);
-      });
-      
-      console.log('Card DOM updated directly with', selectedLabels.length, 'labels');
-    }
-    
-    // Update notes list directly if noteText was provided
-        if (notesList) {
-      notesList.innerHTML = '';
-      if (noteText) {
-        const noteParts = noteText.split('<br><br>').filter(part => part.trim());
-        noteParts.forEach(notePart => {
-          const listItem = document.createElement('li');
-          listItem.style.display = 'flex';
-
-          const textSpan = document.createElement('span');
-          textSpan.className = 'phraze-note-text PhrazeMark';
-          textSpan.innerHTML = notePart.trim();
-          listItem.appendChild(textSpan);
-
-          const deleteButton = document.createElement('button');
-          deleteButton.className = 'phraze-note-delete-btn PhrazeMark';
-          deleteButton.innerHTML = '&times;';
-          deleteButton.title = 'Delete note';
-          deleteButton.style.flexShrink = '0';
-          deleteButton.style.background = '#eee';
-          deleteButton.style.border = '1px solid #ccc';
-          deleteButton.style.color = '#777';
-          deleteButton.style.borderRadius = '50%';
-          deleteButton.style.width = '16px';
-          deleteButton.style.height = '16px';
-          deleteButton.style.fontSize = '10px';
-          deleteButton.style.lineHeight = '14px';
-          deleteButton.style.textAlign = 'center';
-          deleteButton.style.cursor = 'pointer';
-          deleteButton.style.padding = '0';
-          deleteButton.style.marginLeft = '5px';
-
-          deleteButton.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            try {
-              await removeNoteFromStorage(highlight.id, notePart.trim());
-              listItem.remove();
-              console.log('Note deleted successfully');
-            } catch (error) {
-              console.error('Failed to delete note:', error);
+          annotationHistory.forEach(entry => {
+            if (!Array.isArray(entry)) return;
+            const entryUserText = entry.find(item => item.userText)?.userText || '';
+            const entryKey = entry.find(item => item.key)?.key || '';
+            const entryType = entry.find(item => item.type)?.type || '';
+            const entryUrl = entry.find(item => item.url)?.url || '';
+            const entryHighlightId = entry.find(item => item.highlightID)?.highlightID || '';
+            const entryOptions = entry.find(item => item.options)?.options || [];
+            
+            if (entryUserText === highlightedText && 
+                entryUrl === window.location.href && 
+                entryHighlightId === highlight.id &&
+                entryType.toLowerCase() === 'label') {
+              entryOptions.forEach(opt => {
+                existingLabelKeys.add(`${entryKey}: ${opt}`);
+              });
             }
           });
-
-          listItem.appendChild(deleteButton);
-          notesList.appendChild(listItem);
-        });
+          
+          // Save each label that doesn't already exist
+          for (const labelData of selectedLabels) {
+            const labelKey = `${labelData.type}: ${labelData.value}`;
+            if (!existingLabelKeys.has(labelKey)) {
+              await addSelectedTextEntry(highlightedText, labelData.type, 'label', labelData.value);
+              // console.log(`Label saved: ${labelData.type} - ${labelData.value}`);
+              } else {
+              // console.log(`Label already exists, skipping: ${labelKey}`);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to save labels:', error);
+        }
+      }
+      
+      // Notes are intentionally not modified here.
+      
+      // Refresh annotations map so the next hover/click shows updated labels/notes.
+      try {
+        await refreshAnnotationsMap({ force: true });
+      } catch (err) {
+        console.warn('Error refreshing annotations map:', err);
       }
     }
-    
-    // Clear the form
-    richTextDiv.innerHTML = '';
-    if (selectedLabelsContainer) {
-      selectedLabelsContainer.innerHTML = '';
-    }
-    
-    // Mark this highlight to keep its card visible even through loadHighlights reloads
-    // This survives Firebase listener triggers
-    // We DON'T show the card immediately - let loadHighlights() show it after Firebase updates
-    // This prevents showing it twice (once without color, once with color)
-    if (!window.phrazeShowCardUntil) {
-      window.phrazeShowCardUntil = {};
-    }
-    // Keep the card visible for 4.5 seconds from now
-    // The extra 0.5s accounts for Firebase update delay, ensuring card stays visible for full 4s after it appears
-    window.phrazeShowCardUntil[highlight.id] = Date.now() + 4500;
-    
-    // Refresh annotations map in the background
-    // loadHighlights() will be triggered by Firebase and will show the card with updated color
-    refreshAnnotationsMap().then(() => {
-      // After refresh completes, update the card if it exists
-      updateAnnotationCard(highlight.id);
-      
-      // Ensure popup stays closed after annotation is saved (in case Firebase listeners tried to reopen it)
-      // This is a critical safeguard - mark ALL popups with this ID as permanently closed
-      const allPopups = document.querySelectorAll(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
-      allPopups.forEach(popup => {
-        popup.style.display = 'none';
-        popup.style.visibility = 'hidden';
-        popup.style.opacity = '0';
-        popup.style.pointerEvents = 'none';
-        popup.dataset.permanentlyClosed = 'true';
-      });
-      
-      // Also ensure the Set tracking is updated
-      if (!window.phrazePermanentlyClosedPopups) {
-        window.phrazePermanentlyClosedPopups = new Set();
-      }
-      window.phrazePermanentlyClosedPopups.add(highlight.id);
-    }).catch(err => {
-      console.error('Error refreshing annotations map:', err);
-    });
     
     // Clear processing flag after a short delay
     setTimeout(() => {
       window.phrazeProcessingAnnotation = false;
-      
-      // Final safeguard: ensure popup is still closed
-      // Check both the Set and the DOM attribute to be thorough
-      const isInClosedSet = window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id);
-      const allPopups = document.querySelectorAll(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
-      allPopups.forEach(popup => {
-        // If it's in the Set OR marked in DOM, keep it closed
-        if (isInClosedSet || popup.dataset.permanentlyClosed === 'true') {
-          popup.style.display = 'none';
-          popup.style.visibility = 'hidden';
-          popup.style.opacity = '0';
-          popup.style.pointerEvents = 'none';
-          popup.dataset.permanentlyClosed = 'true';
-        }
-      });
     }, 500);
-    
-    // Auto-hide after 4.5 seconds (gives user time to see the changes)
-    // This timeout is a backup - loadHighlights() cleanup will also handle hiding expired cards
-    setTimeout(() => {
-      // Remove from the "show card" tracking
-      if (window.phrazeShowCardUntil) {
-        delete window.phrazeShowCardUntil[highlight.id];
+
+    // Re-enable hover immediately after save (some paths temporarily disable it for the "new highlight" flow)
+    try {
+      if (window.phrazeEnableHoverForHighlightId && window.phrazeEnableHoverForHighlightId[highlight.id]) {
+        window.phrazeEnableHoverForHighlightId[highlight.id]();
+      } else if (containerSpan && containerSpan._enableHover) {
+        containerSpan._enableHover();
       }
-      
-      // Find the card by highlight ID (it might have been recreated by loadHighlights)
-      const cardToHide = document.querySelector(`.phraze-unified-annotation-card[data-highlight-id="${highlight.id}"]`);
-      
-      // Auto-hide card after preview (only if not being hovered)
-      if (cardToHide && !cardToHide.matches(':hover')) {
-        cardToHide.classList.remove('active');
-        cardToHide.style.opacity = '0';
-        cardToHide.style.pointerEvents = 'none';
-        cardToHide.style.visibility = 'hidden';
-      }
-    }, 4500);
+    } catch (_) {}
   });
 
   buttonContainer.appendChild(addAnnotationButton);
@@ -3295,30 +3288,99 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
   // Add popup to body
   document.body.appendChild(annotationPopup);
 
-  // Store popup reference on card for easier access
-  annotationCard._annotationPopup = annotationPopup;
-  // Store container span reference for repositioning during resize
-  annotationCard._containerSpan = containerSpan;
+  // Store container span reference for repositioning
+  annotationPopup._containerSpan = containerSpan;
 
-  // Create the unified card content
-  // Header section with profile and username
-  const cardHeader = document.createElement('div');
-  cardHeader.className = 'annotation-card-header';
+  // Close popup when clicking outside
+  const handlePopupClick = (e) => {
+    // Only handle if popup is still open
+    if (annotationPopup.style.display === 'none') {
+      document.removeEventListener('click', handlePopupClick);
+      return;
+    }
+
+    // If the user pinned this card, don't close it on outside clicks.
+    if (annotationPopup.classList && annotationPopup.classList.contains('sticky')) {
+      return;
+    }
+
+    // Clicking the related highlight should NOT count as an outside click (it is used to pin).
+    const clickedOnThisHighlight = e.target && typeof e.target.closest === 'function'
+      ? e.target.closest(`.phraze-highlight-container[data-highlight-id="${highlight.id}"]`)
+      : null;
+    
+    const closestPopup = (e.target && typeof e.target.closest === 'function')
+      ? e.target.closest('.annotation-popup')
+      : null;
+
+    // If user clicked another highlight while this popup is open, the click can land on the popup
+    // (overlapping UI) and never reach the highlight. Detect the intended highlight and replay.
+    const clickedHighlightContainer = (e.target && typeof e.target.closest === 'function')
+      ? e.target.closest('.phraze-highlight-container[data-highlight-id]')
+      : null;
+    const clickedHighlightId = clickedHighlightContainer && clickedHighlightContainer.dataset
+      ? clickedHighlightContainer.dataset.highlightId
+      : null;
+    const isDifferentHighlightClick = !!(clickedHighlightId && clickedHighlightId !== String(highlight.id));
+
+    const isClickOnPopupSystem = annotationPopup.contains(e.target) ||
+                                closestPopup ||
+                                clickedOnThisHighlight;
+    
+    if (!isClickOnPopupSystem) {
+      // Close popup (do NOT permanently close; allow hover/click to reopen)
+      phrazeHidePopupElement(annotationPopup);
+
+      // Clear "keep open" (new highlight flow) and re-enable hover for this highlight.
+      try {
+        phrazeClearPermanentlyClosed(highlight.id, annotationPopup);
+      } catch (_) {}
+      try {
+        phrazeClearPermanentlyClosed(highlight.id, annotationPopup);
+      } catch (_) {}
+      try {
+        phrazeClearKeepPopupOpen(highlight.id);
+      } catch (_) {}
+      try {
+        if (window.phrazeEnableHoverForHighlightId && window.phrazeEnableHoverForHighlightId[highlight.id]) {
+          window.phrazeEnableHoverForHighlightId[highlight.id]();
+        } else if (containerSpan && containerSpan._enableHover) {
+          containerSpan._enableHover();
+        }
+      } catch (_) {}
+      
+      // Remove this highlight ID from the active list to prevent reopening
+      phrazeRemoveFromActiveIds(highlight.id);
+      
+      // Remove this event listener after closing
+      document.removeEventListener('click', handlePopupClick);
+
+      // If the user was trying to switch to another highlight, replay the click so the other
+      // highlight opens immediately (no extra "random click" needed).
+      if (isDifferentHighlightClick && clickedHighlightContainer && !window._phrazeReplayingHighlightClick) {
+        window._phrazeReplayingHighlightClick = true;
+        requestAnimationFrame(() => {
+          try {
+            clickedHighlightContainer.click();
+          } catch (_) {}
+          window._phrazeReplayingHighlightClick = false;
+        });
+      }
+    }
+  };
   
-  // Profile section
-  const profileSection = document.createElement('div');
-  profileSection.className = 'profile-section';
-  profileSection.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  `;
-  
-  // Profile image
-  const profileImg = document.createElement('img');
-  profileImg.alt = '';
-  profileImg.className = 'profile-image';
-  profileImg.style.cssText = `
+  // Use capture phase to handle before other handlers
+  document.addEventListener('click', handlePopupClick, true);
+
+  return annotationPopup;
+}
+
+function isNodeAHighlight(node) {
+  return node && node.classList && node.classList.contains("PhrazeMark");
+}
+
+/**
+ * Loads highlights into provided text and returns HTML with highlights applied
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -3690,9 +3752,32 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
     
     // Set global highlight ID to ensure annotations are saved with correct ID
     localStorage.setItem('globalHighlightID', highlight.id);
+
+    // Reset notes controls before hydrating (popup DOM persists across opens)
+    // Keep editor empty and disable toolbar + Add note until user types.
+    try {
+      if (annotationPopup && typeof annotationPopup._phrazeResetNotesUI === 'function') {
+        annotationPopup._phrazeResetNotesUI();
+      }
+    } catch (_) {}
     
     // Load existing annotations into the popup
     await loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContainer, richTextDiv, canvas, canvasContainer, toolbar, textModeBtn, canvasModeBtn, modeRef);
+
+    // Ensure header title reflects the latest stored labels/notes when opening.
+    try {
+      if (annotationPopup && typeof annotationPopup._phrazeUpdateHeaderTitle === 'function') {
+        annotationPopup._phrazeUpdateHeaderTitle();
+      }
+    } catch (_) {}
+
+    // Reset notes controls every time the popup opens (popup DOM persists across opens)
+    // Keep editor empty and disable toolbar + Add note until user types.
+    try {
+      if (annotationPopup && typeof annotationPopup._phrazeResetNotesUI === 'function') {
+        annotationPopup._phrazeResetNotesUI();
+      }
+    } catch (_) {}
     
     // Ensure unified card stays open
     annotationCard.classList.add('active');
@@ -4113,10 +4198,25 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
       return;
     }
     
-    const isClickOnPopupSystem = annotationPopup.contains(e.target) || 
+    const closestPopup = (e.target && typeof e.target.closest === 'function')
+      ? e.target.closest('.annotation-popup')
+      : null;
+    const closestAddNoteBtn = (e.target && typeof e.target.closest === 'function')
+      ? e.target.closest('.add-note-btn')
+      : null;
+
+    const clickedHighlightContainer = (e.target && typeof e.target.closest === 'function')
+      ? e.target.closest('.phraze-highlight-container[data-highlight-id]')
+      : null;
+    const clickedHighlightId = clickedHighlightContainer && clickedHighlightContainer.dataset
+      ? clickedHighlightContainer.dataset.highlightId
+      : null;
+    const isDifferentHighlightClick = !!(clickedHighlightId && clickedHighlightId !== String(highlight.id));
+
+    const isClickOnPopupSystem = annotationPopup.contains(e.target) ||
                                 addNoteButton.contains(e.target) ||
-                                e.target.closest('.annotation-popup') ||
-                                e.target.closest('.add-note-btn');
+                                closestPopup ||
+                                closestAddNoteBtn;
     
     if (!isClickOnPopupSystem) {
       // Mark as permanently closed
@@ -4149,6 +4249,18 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan) {
       
       // Remove this event listener after closing
       document.removeEventListener('click', handlePopupClick);
+
+      // If user was clicking another highlight while this popup was open, replay the click so
+      // the target highlight opens immediately (avoids the "click somewhere random" workaround).
+      if (isDifferentHighlightClick && clickedHighlightContainer && !window._phrazeReplayingHighlightClick) {
+        window._phrazeReplayingHighlightClick = true;
+        requestAnimationFrame(() => {
+          try {
+            clickedHighlightContainer.click();
+          } catch (_) {}
+          window._phrazeReplayingHighlightClick = false;
+        });
+      }
     }
   };
   
@@ -4241,8 +4353,15 @@ export async function loadHighlightsForText(text, chatId = null) {
 let isLoadingHighlights = false;
 
 export async function loadHighlights(showAllLabelsAndCodes = false, newHighlightId = null) {
+  try { bindPhrazeHighlightColorChangeListener(); } catch (_) {}
   // Prevent concurrent calls - if already loading, skip this call
   if (isLoadingHighlights) {
+    // Queue the latest request so new highlights / state changes aren't dropped.
+    // This commonly happens right after creating a highlight (saveHighlight -> loadHighlights)
+    // while a periodic refresh is already in progress.
+    try {
+      window._phrazePendingLoadHighlights = { showAllLabelsAndCodes, newHighlightId };
+    } catch (_) {}
     return;
   }
   
@@ -4253,13 +4372,12 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
       const now = Date.now();
       for (const [highlightId, expireTime] of Object.entries(window.phrazeShowCardUntil)) {
         if (now >= expireTime) {
-          // Time expired - hide the card and remove from tracking
-          const expiredCard = document.querySelector(`.phraze-unified-annotation-card[data-highlight-id="${highlightId}"]`);
+          // Time expired - hide the popup and remove from tracking
+          const expiredCard = document.querySelector(`.annotation-popup[data-highlight-id="${highlightId}"]`);
           if (expiredCard && !expiredCard.matches(':hover')) {
             expiredCard.classList.remove('active');
-            expiredCard.style.opacity = '0';
-            expiredCard.style.pointerEvents = 'none';
-            expiredCard.style.visibility = 'hidden';
+            expiredCard.classList.remove('sticky');
+            phrazeHidePopupElement(expiredCard);
           }
           delete window.phrazeShowCardUntil[highlightId];
         }
@@ -4425,35 +4543,13 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      const cards = document.querySelectorAll('.phraze-unified-annotation-card.active');
-      cards.forEach(card => {
-        if (card._annotationPopup) {
-          card._annotationPopup.style.display = 'none';
-          card._annotationPopup.style.visibility = 'hidden';
-          card._annotationPopup.style.opacity = '0';
-          card._annotationPopup.style.pointerEvents = 'none';
-        }
-        const trigger = card._lastTriggerEl;
-        hideInstantly(card);
-        if (trigger && trigger.focus) {
-          try { trigger.focus(); } catch (_) {}
-        }
-      });
-    }, true);
-
-    document.addEventListener('click', (e) => {
-      const t = e.target;
-      if (!t) return;
-      if (t.closest('.phraze-unified-annotation-card')) return;
-      if (t.closest('.annotation-popup')) return;
-      if (t.closest('.phraze-highlight-container')) return;
-      if (t.closest('.PhrazeHighlight')) return;
-
-      const cards = document.querySelectorAll('.phraze-unified-annotation-card.active');
-      cards.forEach(card => {
-        if (card.classList.contains('sticky')) return;
-        const trigger = card._lastTriggerEl;
-        hideInstantly(card);
+      const popups = document.querySelectorAll('.annotation-popup[data-highlight-id]');
+      popups.forEach(popup => {
+        if (popup.classList.contains('sticky')) return;
+        const trigger = popup._lastTriggerEl;
+        popup.classList.remove('active');
+        popup.classList.remove('sticky');
+        phrazeHidePopupElement(popup);
         if (trigger && trigger.focus) {
           try { trigger.focus(); } catch (_) {}
         }
@@ -4468,7 +4564,9 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
       var textNodeIndex = range[0];
       var start = range[1];
       var end = range[2];
-      var highlight = range[3]; //Temporarily packed in from above so that we can link each range to the highlight it came from
+      // IMPORTANT: must be block-scoped so event handlers close over the correct highlight
+      // (using `var` here can cause all hover/click handlers to reference the last highlight).
+      const highlight = range[3]; //Temporarily packed in from above so that we can link each range to the highlight it came from
 
       if (lastRange) {
         var lastTextNodeIndex = lastRange[0];
@@ -4619,10 +4717,13 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             overSegments: 0,
             overCard: false,
             hideTimeout: null,
-            hoverEnabled: (!shouldBeActive || shouldShowCard)
+            // Hover/click should always be able to open the unified popup.
+            // The "new highlight" flow is handled by `shouldBeActive` (auto-open), not by disabling hover.
+            hoverEnabled: true
           };
-          // If any fragment says hover should be disabled (new highlight popup flow), keep it disabled
-          hoverState.hoverEnabled = hoverState.hoverEnabled && (!shouldBeActive || shouldShowCard);
+          // If this hoverState object already existed from an earlier render, it may have hoverEnabled=false.
+          // Force it back on so highlights are immediately interactive after creating/saving.
+          hoverState.hoverEnabled = true;
           window.phrazeHoverStateByHighlightId[highlight.id] = hoverState;
 
           // Function to enable hover behavior (called when popup closes)
@@ -4639,6 +4740,25 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             hoverState.hoverEnabled = true;
           };
 
+          // Source-of-truth hover check across multi-line fragments.
+          // This avoids `overSegments` getting stuck > 0 due to missed mouseleave events.
+          const isAnyFragmentHovered = () => {
+            try {
+              return document.querySelectorAll(`.phraze-highlight-container[data-highlight-id="${highlight.id}"]:hover`).length > 0;
+            } catch (_) {
+              return false;
+            }
+          };
+
+          // Source-of-truth hover check for the popup itself (includes descendants like the labels dropdown).
+          const isCardHovered = () => {
+            try {
+              return !!(annotationCard && annotationCard.matches && annotationCard.matches(':hover'));
+            } catch (_) {
+              return false;
+            }
+          };
+
           const clearHideTimeout = () => {
             if (hoverState.hideTimeout) {
               clearTimeout(hoverState.hideTimeout);
@@ -4650,26 +4770,53 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             clearHideTimeout();
             hoverState.hideTimeout = setTimeout(() => {
               if (annotationCard.classList.contains('sticky')) return;
-              const popup = annotationCard._annotationPopup;
-              if (popup && popup.style.display !== 'none' && popup.style.pointerEvents !== 'none') {
-                return;
-              }
+              // If user is actively interacting with the popup (eg scrolling labels dropdown), do not auto-hide.
+              try {
+                if (annotationCard._phrazeLabelsDropdownOpen) return;
+                if (annotationCard._phrazePreventHoverCloseUntil && Date.now() < annotationCard._phrazePreventHoverCloseUntil) return;
+              } catch (_) {}
               const activeEl = document.activeElement;
-              if (activeEl && (annotationCard.contains(activeEl) || (popup && popup.contains(activeEl)))) {
+              if (activeEl && annotationCard.contains(activeEl)) {
                 return;
               }
-              if (hoverState.overSegments <= 0 && !hoverState.overCard) {
+              const segmentsHovered = isAnyFragmentHovered();
+              const cardHoveredNow = isCardHovered();
+              if (!segmentsHovered && !hoverState.overCard && !cardHoveredNow) {
                 annotationCard.classList.remove('active');
                 annotationCard.style.opacity = 0;
                 annotationCard.style.pointerEvents = "none";
                 annotationCard.style.visibility = 'hidden';
                 annotationCard.setAttribute('aria-hidden', 'true');
+                // If this hover preview temporarily hid a pinned card, restore it now.
+                try {
+                  const hiddenPinned = annotationCard._phrazeTempHiddenPinnedCards;
+                  if (hiddenPinned && Array.isArray(hiddenPinned) && hiddenPinned.length > 0) {
+                    hiddenPinned.forEach((pinnedCard) => {
+                      try {
+                        if (!pinnedCard) return;
+                        if (!pinnedCard.classList || !pinnedCard.classList.contains('sticky')) return;
+                        pinnedCard.classList.add('active');
+                        pinnedCard.style.display = '';
+                        pinnedCard.style.visibility = 'visible';
+                        pinnedCard.style.opacity = 1;
+                        pinnedCard.style.pointerEvents = 'auto';
+                        pinnedCard.setAttribute('aria-hidden', 'false');
+                      } catch (_) {}
+                    });
+                  }
+                } catch (_) {}
+                try { annotationCard._phrazeTempHiddenPinnedCards = []; } catch (_) {}
               }
             }, 220);
           };
 
           const hideCardInstantly = (card) => {
             if (!card) return;
+            try {
+              if (typeof card._phrazeResetLabelsDropdown === 'function') {
+                card._phrazeResetLabelsDropdown();
+              }
+            } catch (_) {}
             const prevTransition = card.style.transition;
             card.style.transition = 'none';
             card.classList.remove('active');
@@ -4683,150 +4830,296 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             });
           };
 
-          // Show annotation card on hover (sticky across multi-line segments)
-          containerSpan.addEventListener('mouseenter', () => {
-            if (!hoverState.hoverEnabled) return;
+          const hideCardSoftly = (card, durationMs = 120) => {
+            if (!card) return;
+            try {
+              if (typeof card._phrazeResetLabelsDropdown === 'function') {
+                card._phrazeResetLabelsDropdown();
+              }
+            } catch (_) {}
+            const token = (card._phrazeHideAnimToken = (card._phrazeHideAnimToken || 0) + 1);
+            const prevTransition = card.style.transition;
+            card.style.transition = `opacity ${durationMs}ms ease, transform ${durationMs}ms ease`;
+            card.style.opacity = 0;
+            card.style.pointerEvents = "none";
+            card.style.transform = 'translateY(-2px)';
+            window.setTimeout(() => {
+              if (!card) return;
+              if (card._phrazeHideAnimToken !== token) return; // cancelled by a re-open
+              card.classList.remove('active');
+              card.style.visibility = 'hidden';
+              card.setAttribute('aria-hidden', 'true');
+              // restore previous transition to avoid accumulating inline styles
+              card.style.transition = prevTransition;
+            }, durationMs);
+          };
 
-            if (window.phrazeIsResizingCard) {
+          const hydratePopupFromExistingData = async () => {
+            try {
+              if (annotationCard._phrazeHydratingExisting) return;
+              annotationCard._phrazeHydratingExisting = true;
+
+              const selectedLabelsContainer = annotationCard.querySelector('.selected-labels-container');
+              const richTextDiv = annotationCard.querySelector('[contenteditable="true"]');
+              const canvas = annotationCard.querySelector('canvas');
+              const canvasContainer = annotationCard.querySelector('.canvas-container');
+              const toolbar = annotationCard.querySelector('.annotation-toolbar');
+              const textModeBtn = annotationCard.querySelector('.text-mode-btn');
+              const canvasModeBtn = annotationCard.querySelector('.canvas-mode-btn');
+              const modeRef = { current: 'text' };
+
+              // Reset notes controls before hydrating (card DOM persists across opens)
+              try {
+                if (annotationCard && typeof annotationCard._phrazeResetNotesUI === 'function') {
+                  annotationCard._phrazeResetNotesUI();
+                }
+              } catch (_) {}
+
+              // Ensure the header reflects whether we are adding or updating.
+              try {
+                if (annotationCard && typeof annotationCard._phrazeUpdateHeaderTitle === 'function') {
+                  annotationCard._phrazeUpdateHeaderTitle();
+                }
+              } catch (_) {}
+
+              await loadExistingAnnotationsIntoPopup(
+                highlight,
+                selectedLabelsContainer,
+                richTextDiv,
+                canvas,
+                canvasContainer,
+                toolbar,
+                textModeBtn,
+                canvasModeBtn,
+                modeRef
+              );
+
+              // Reset notes controls on open (popup DOM persists across opens)
+              try {
+                if (annotationCard && typeof annotationCard._phrazeResetNotesUI === 'function') {
+                  annotationCard._phrazeResetNotesUI();
+                }
+              } catch (_) {}
+
+              // Re-evaluate after hydration in case labels/notes changed.
+              try {
+                if (annotationCard && typeof annotationCard._phrazeUpdateHeaderTitle === 'function') {
+                  annotationCard._phrazeUpdateHeaderTitle();
+                }
+              } catch (_) {}
+            } catch (err) {
+              console.warn('Failed to hydrate popup from existing annotations', err);
+            } finally {
+              try { annotationCard._phrazeHydratingExisting = false; } catch (_) {}
+            }
+          };
+
+          const showCardAsHover = () => {
+            if (!hoverState.hoverEnabled) return;
+            if (window.phrazeIsResizingCard) return;
+
+            // If this card is already pinned, just keep it visible.
+            if (annotationCard.classList.contains('sticky')) {
+              clearHideTimeout();
+              annotationCard.classList.add('active');
+              annotationCard.style.display = '';
+              annotationCard.style.visibility = 'visible';
+              annotationCard.style.opacity = 1;
+              annotationCard.style.pointerEvents = 'auto';
+              annotationCard.setAttribute('aria-hidden', 'false');
               return;
             }
 
-            const openCards = document.querySelectorAll('.phraze-unified-annotation-card.active');
-            openCards.forEach(card => {
-              if (card !== annotationCard) {
-                // Only close hover-open cards instantly; pinned cards should remain open.
-                if (!card.classList.contains('sticky')) {
-                  hideCardInstantly(card);
-                }
+            // If some other card is pinned, temporarily hide it while this hover preview is visible.
+            try {
+              const pinnedVisible = Array.from(document.querySelectorAll('.annotation-popup.sticky'))
+                .filter((el) => el && el !== annotationCard)
+                .filter((el) => el.style.display !== 'none' && window.getComputedStyle(el).display !== 'none');
+              if (pinnedVisible.length > 0) {
+                annotationCard._phrazeTempHiddenPinnedCards = pinnedVisible;
+                pinnedVisible.forEach((pinnedCard) => {
+                  try {
+                    hideCardInstantly(pinnedCard);
+                    // Keep it sticky so it restores as pinned.
+                    pinnedCard.classList.add('sticky');
+                  } catch (_) {}
+                });
+              } else {
+                annotationCard._phrazeTempHiddenPinnedCards = [];
               }
+            } catch (_) {
+              try { annotationCard._phrazeTempHiddenPinnedCards = []; } catch (_) {}
+            }
+
+            const openCards = document.querySelectorAll('.annotation-popup');
+            openCards.forEach(card => {
+              if (card === annotationCard) return;
+              const isVisible = card.style.display !== 'none' && window.getComputedStyle(card).display !== 'none';
+              if (!isVisible) return;
+              if (card.classList && card.classList.contains('sticky')) return; // never close pinned on hover
+              hideCardInstantly(card);
+              card.classList.remove('sticky');
             });
 
             clearHideTimeout();
-            hoverState.overSegments += 1;
-
+            // Treat hover as boolean rather than a counter (counter can desync across fragments).
+            hoverState.overSegments = 1;
             annotationCard.classList.add('active');
             annotationCard.style.display = '';
             annotationCard.style.visibility = 'visible';
             annotationCard.style.opacity = 1;
-            annotationCard.style.pointerEvents = "auto";
+            annotationCard.style.pointerEvents = 'auto';
+            annotationCard.style.transform = 'translateY(0px)';
+            annotationCard._phrazeHideAnimToken = (annotationCard._phrazeHideAnimToken || 0) + 1;
             annotationCard.setAttribute('aria-hidden', 'false');
 
-            // Freeze the hover position so it doesn't shift after initial open.
-            // If we're already frozen for this highlight, don't recompute.
             if (!(annotationCard._phrazeHoverFreeze && annotationCard._phrazeHoverFreeze.container === containerSpan)) {
               scheduleHoverFreezePositionUpdate(annotationCard, containerSpan);
             }
-          });
 
-          // Hide annotation card when mouse leaves (unless hovering over the card itself or it's sticky)
-          containerSpan.addEventListener('mouseleave', (e) => {
-            if (!hoverState.hoverEnabled) return; // Skip if popup is open
-            hoverState.overSegments = Math.max(0, hoverState.overSegments - 1);
+            // Ensure labels/notes are loaded when opening.
+            void hydratePopupFromExistingData();
+          };
 
-            // When leaving the highlight entirely, allow the next hover to compute a fresh position.
-            if (hoverState.overSegments === 0) {
-              try {
-                annotationCard._phrazeHoverFreeze = null;
-              } catch (_) {}
-            }
-            scheduleHide();
-          });
+          const openCardNonSticky = (e) => {
+            try { if (e) e.stopPropagation(); } catch (_) {}
+            clearHideTimeout();
+            hoverState.overSegments = Math.max(hoverState.overSegments, 1);
+            hoverState.overCard = true;
 
-          // Keep card open when clicking on highlight (make it sticky)
-          containerSpan.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent document click handler from closing
-
-            annotationCard._lastTriggerEl = containerSpan;
-
-            try {
-              const scrollContainer = getPhrazeHighlightScrollContainer(containerSpan);
-              if (scrollContainer && !(annotationCard.classList && annotationCard.classList.contains('sticky'))) {
-                const containerRect = scrollContainer.getBoundingClientRect();
-                const currentLeft = Number.parseFloat(annotationCard.style.left || '');
-                const currentTop = Number.parseFloat(annotationCard.style.top || '');
-                if (Number.isFinite(currentLeft) && Number.isFinite(currentTop)) {
-                  const localLeft = currentLeft - containerRect.left + (scrollContainer.scrollLeft || 0);
-                  const localTop = currentTop - containerRect.top + (scrollContainer.scrollTop || 0);
-                  annotationCard._phrazePinFreeze = { container: scrollContainer, left: localLeft, top: localTop };
-                  annotationCard._phrazePinnedStaticPos = { container: scrollContainer, left: localLeft, top: localTop };
-                }
-              }
-            } catch (_) {}
-
-            // Once pinned, we should no longer treat the position as hover-frozen.
-            try {
-              annotationCard._phrazeHoverFreeze = null;
-            } catch (_) {}
-
-            // Do not close other pinned cards on pin; allow multiple pinned cards.
+            const openCards = document.querySelectorAll('.annotation-popup');
+            openCards.forEach(card => {
+              if (card === annotationCard) return;
+              const isVisible = card.style.display !== 'none' && window.getComputedStyle(card).display !== 'none';
+              if (!isVisible) return;
+              // Only allow one popup open at a time.
+              hideCardInstantly(card);
+              card.classList.remove('sticky');
+            });
 
             annotationCard.classList.add('active');
-            annotationCard.classList.add('sticky'); // Add sticky class to keep it open
+            annotationCard.classList.remove('sticky');
             annotationCard.style.display = '';
             annotationCard.style.visibility = 'visible';
             annotationCard.style.opacity = 1;
+            annotationCard.style.pointerEvents = 'auto';
+            annotationCard.setAttribute('aria-hidden', 'false');
+
+            void hydratePopupFromExistingData();
+            scheduleFloaterPositionUpdate(annotationCard, containerSpan);
+          };
+
+          const togglePinned = (e) => {
+            try { if (e) e.stopPropagation(); } catch (_) {}
+            clearHideTimeout();
+
+            const isPinned = annotationCard.classList.contains('sticky');
+            if (isPinned) {
+              annotationCard.classList.remove('sticky');
+              // Keep it visible (acts like opened), but no longer pinned.
+              annotationCard.classList.add('active');
+              annotationCard.style.display = '';
+              annotationCard.style.visibility = 'visible';
+              annotationCard.style.opacity = 1;
+              annotationCard.style.pointerEvents = 'auto';
+              annotationCard.setAttribute('aria-hidden', 'false');
+              scheduleFloaterPositionUpdate(annotationCard, containerSpan);
+              return;
+            }
+
+            // Only allow one popup open at a time.
+            try {
+              const openCards = document.querySelectorAll('.annotation-popup');
+              openCards.forEach(card => {
+                if (card === annotationCard) return;
+                const isVisible = card.style.display !== 'none' && window.getComputedStyle(card).display !== 'none';
+                if (!isVisible) return;
+                hideCardInstantly(card);
+                card.classList.remove('sticky');
+              });
+            } catch (_) {}
+
+            annotationCard.classList.add('active');
+            annotationCard.classList.add('sticky');
+            annotationCard.style.display = '';
+            annotationCard.style.visibility = 'visible';
+            annotationCard.style.opacity = 1;
+            annotationCard.style.pointerEvents = 'auto';
+            annotationCard.setAttribute('aria-hidden', 'false');
+
+            void hydratePopupFromExistingData();
 
             try {
-              if (annotationCard.dataset) {
-                delete annotationCard.dataset.pinnedPlacement;
+              const scrollContainer = getPhrazeHighlightScrollContainer(containerSpan);
+              const rect = annotationCard.getBoundingClientRect();
+              if (scrollContainer) {
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const localLeft = rect.left - containerRect.left + (scrollContainer.scrollLeft || 0);
+                const localTop = rect.top - containerRect.top + (scrollContainer.scrollTop || 0);
+                annotationCard._phrazePinFreeze = { container: scrollContainer, left: localLeft, top: localTop };
+                annotationCard._phrazePinnedStaticPos = { container: scrollContainer, left: localLeft, top: localTop };
+              } else {
+                annotationCard._phrazePinnedStaticPos = null;
               }
             } catch (_) {}
 
-            // Close any other non-sticky active cards before opening this one
-            const otherActiveCards = document.querySelectorAll('.phraze-unified-annotation-card.active:not(.sticky)');
-            otherActiveCards.forEach(card => {
-              if (card !== annotationCard) {
-                hideCardInstantly(card);
-              }
-            });
-            annotationCard.style.pointerEvents = "auto";
-            annotationCard.setAttribute('aria-hidden', 'false');
-            // Update position immediately when activated
+            try { annotationCard._phrazeHoverFreeze = null; } catch (_) {}
             scheduleFloaterPositionUpdate(annotationCard, containerSpan);
+          };
 
-            const closeBtn = annotationCard.querySelector('button[title="Close annotation card"]') || annotationCard.querySelector('.annotation-close-btn');
-            if (closeBtn && closeBtn.focus) {
-              setTimeout(() => {
-                try { closeBtn.focus(); } catch (_) {}
-              }, 0);
+          // Click-only UX:
+          // - single click opens (non-pinned)
+          // - double click toggles pin
+          containerSpan._phrazeClickTimer = null;
+          containerSpan._phrazeLastOpenAt = 0;
+          containerSpan.addEventListener('click', (e) => {
+            // Sync clicked highlight color into the fixed top toolbar.
+            try {
+              document.dispatchEvent(new CustomEvent('phraze:active-highlight-changed', {
+                detail: {
+                  highlightId: String(highlight && highlight.id ? highlight.id : containerSpan.dataset.highlightId),
+                  hex: (highlight && highlight.color) ? highlight.color : undefined,
+                  name: (highlight && highlight.colorName) ? highlight.colorName : undefined
+                }
+              }));
+            } catch (_) {}
+
+            // Delay to allow dblclick to cancel the single-click action.
+            if (containerSpan._phrazeClickTimer) {
+              clearTimeout(containerSpan._phrazeClickTimer);
+              containerSpan._phrazeClickTimer = null;
             }
+            containerSpan._phrazeClickTimer = setTimeout(() => {
+              containerSpan._phrazeClickTimer = null;
+              try {
+                const now = Date.now();
+                const isOpen = annotationCard.classList.contains('active') &&
+                  annotationCard.style.visibility !== 'hidden' &&
+                  annotationCard.style.opacity !== '0';
+                const isPinned = annotationCard.classList.contains('sticky');
+                const recentlyOpened = containerSpan._phrazeLastOpenAt && (now - containerSpan._phrazeLastOpenAt) <= 2200;
+
+                // If user clicks again shortly after opening (and it's not pinned yet), pin it.
+                if (isOpen && !isPinned && recentlyOpened) {
+                  togglePinned(e);
+                  return;
+                }
+
+                openCardNonSticky(e);
+                containerSpan._phrazeLastOpenAt = now;
+              } catch (_) {
+                openCardNonSticky(e);
+              }
+            }, 220);
           });
-          
-          // Keep card open when hovering over it (but don't change sticky state)
-          if (!annotationCard._phrazeHoverBound) {
-            annotationCard._phrazeHoverBound = true;
 
-            annotationCard.addEventListener('mouseenter', () => {
-              clearHideTimeout();
-              hoverState.overCard = true;
-              if (!annotationCard.classList.contains('active')) {
-                annotationCard.classList.add('active');
-                annotationCard.style.display = '';
-                annotationCard.style.visibility = 'visible';
-                annotationCard.style.opacity = 1;
-                annotationCard.style.pointerEvents = "auto";
-                annotationCard.setAttribute('aria-hidden', 'false');
-              }
-            });
-
-            annotationCard.addEventListener('mouseleave', () => {
-              hoverState.overCard = false;
-              if (!annotationCard.classList.contains('sticky')) {
-                scheduleHide();
-              }
-            });
-          }
-          
-          // Keep card open when interacting with it
-          if (!annotationCard._phrazeClickBound) {
-            annotationCard._phrazeClickBound = true;
-            annotationCard.addEventListener('click', (e) => {
-              e.stopPropagation();
-              e.stopImmediatePropagation(); // Prevent other handlers from firing
-              // Keep the card open and sticky when clicking inside it
-              annotationCard.classList.add('sticky');
-            });
-          }
+          containerSpan.addEventListener('dblclick', (e) => {
+            if (containerSpan._phrazeClickTimer) {
+              clearTimeout(containerSpan._phrazeClickTimer);
+              containerSpan._phrazeClickTimer = null;
+            }
+            togglePinned(e);
+          });
           
           // Add scroll listener to update position when page scrolls
           const updateCardPositionOnScroll = () => {
@@ -4835,6 +5128,31 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               // Pinned cards are locked to their pinned position; they scroll naturally with the chat container.
               // Hover-preview cards should NOT follow while scrolling; hide them immediately.
               if (!annotationCard.classList.contains('sticky')) {
+                // If we're actively scrolling the labels dropdown, ignore scroll-hide briefly.
+                // This prevents the hover card from closing when tiny scroll events leak through.
+                try {
+                  if (annotationCard._phrazeIgnoreScrollHideUntil && Date.now() < annotationCard._phrazeIgnoreScrollHideUntil) {
+                    return;
+                  }
+                } catch (_) {}
+                // Give a small grace period on scroll so it doesn't feel like it "snaps" closed.
+                // We debounce so continuous scrolling doesn't repeatedly close/reopen; it closes shortly after scroll stops.
+                try {
+                  if (annotationCard._phrazeScrollHideTimeout) {
+                    clearTimeout(annotationCard._phrazeScrollHideTimeout);
+                  }
+                  annotationCard._phrazeScrollHideTimeout = setTimeout(() => {
+                    try {
+                      annotationCard._phrazeHoverFreeze = null;
+                    } catch (_) {}
+                    try {
+                      hoverState.overSegments = 0;
+                      hoverState.overCard = false;
+                    } catch (_) {}
+                    hideCardSoftly(annotationCard, 120);
+                  }, 35);
+                  return;
+                } catch (_) {}
                 try {
                   annotationCard._phrazeHoverFreeze = null;
                 } catch (_) {}
@@ -4842,28 +5160,34 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                   hoverState.overSegments = 0;
                   hoverState.overCard = false;
                 } catch (_) {}
-                hideCardInstantly(annotationCard);
+                hideCardSoftly(annotationCard, 120);
               }
             }
           };
           
           const chatScrollContainer = getPhrazeHighlightScrollContainer(containerSpan);
 
-          // Add scroll event listeners to window and the chat scroll container (internal scrolling)
-          window.addEventListener('scroll', updateCardPositionOnScroll, true);
-          window.addEventListener('resize', updateCardPositionOnScroll, true);
-          if (chatScrollContainer) {
-            chatScrollContainer.addEventListener('scroll', updateCardPositionOnScroll, { passive: true });
-          }
-          
-          // Store cleanup function on the card for later removal
-          annotationCard._scrollCleanup = () => {
-            window.removeEventListener('scroll', updateCardPositionOnScroll, true);
-            window.removeEventListener('resize', updateCardPositionOnScroll, true);
+          // Add scroll event listeners to window and the chat scroll container (internal scrolling).
+          // IMPORTANT: bind at most once per popup (multi-line highlights create multiple fragments).
+          if (!annotationCard._phrazeScrollListenersBound) {
+            annotationCard._phrazeScrollListenersBound = true;
+            window.addEventListener('scroll', updateCardPositionOnScroll, true);
+            window.addEventListener('resize', updateCardPositionOnScroll, true);
             if (chatScrollContainer) {
-              try { chatScrollContainer.removeEventListener('scroll', updateCardPositionOnScroll); } catch (_) {}
+              chatScrollContainer.addEventListener('scroll', updateCardPositionOnScroll, { passive: true });
+              annotationCard._phrazeScrollContainer = chatScrollContainer;
             }
-          };
+            
+            // Store cleanup function on the card for later removal
+            annotationCard._scrollCleanup = () => {
+              window.removeEventListener('scroll', updateCardPositionOnScroll, true);
+              window.removeEventListener('resize', updateCardPositionOnScroll, true);
+              const sc = annotationCard._phrazeScrollContainer;
+              if (sc) {
+                try { sc.removeEventListener('scroll', updateCardPositionOnScroll); } catch (_) {}
+              }
+            };
+          }
 
         // Surround the highlighted text safely
         if (!highlightedSegment.parentNode) {
@@ -4896,15 +5220,10 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
           // Show popup immediately after card is added to DOM (if this is a new highlight)
           // CRITICAL: Only show popup if this is truly a NEW highlight (no annotations yet) AND not permanently closed
           if (shouldBeActive) {
-            // Check permission before showing popup
-            const currentUserRole = typeof window !== 'undefined' ? window.currentUserRole : null;
-            const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
-            const isOwner = currentUserRole === 'owner';
-            const canCreateAnnotations = isOwner || (annotationPerms && annotationPerms.createAnnotations === true);
-            
             // Check if this popup is permanently closed - check multiple sources to be thorough
+            const existingPopup = document.querySelector(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
             const isPermanentlyClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id)) || 
-                                       (annotationCard._annotationPopup && annotationCard._annotationPopup.dataset.permanentlyClosed === 'true');
+                                       (existingPopup && existingPopup.dataset.permanentlyClosed === 'true');
             
             // Also check if any popup with this highlight ID is marked as permanently closed
             const anyPopupClosed = document.querySelectorAll(`.annotation-popup[data-highlight-id="${highlight.id}"][data-permanently-closed="true"]`).length > 0;
@@ -4914,19 +5233,49 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                                    (highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0);
             
             // Only show popup if:
-            // 1. User has permission
-            // 2. Popup is not permanently closed
-            // 3. Highlight doesn't already have annotations (if it does, user already annotated it)
-            if (canCreateAnnotations && !isPermanentlyClosed && !anyPopupClosed && !hasAnnotations) {
+            // 1. Popup is not permanently closed
+            // 2. Highlight doesn't already have annotations (if it does, user already annotated it)
+            //
+            // Even if user can't "create annotations", we still show the popup UI; the Save button is already hidden
+            // via permission checks in `createUnifiedAnnotationCard()`. This prevents the confusing "can't open at all"
+            // state right after creating a highlight.
+            if (!isPermanentlyClosed && !anyPopupClosed && !hasAnnotations) {
               // Add a small delay to ensure all DOM operations complete
               requestAnimationFrame(() => {
-                const annotationPopup = annotationCard._annotationPopup;
+                // Query for the popup directly using its data attribute
+                const annotationPopup = document.querySelector(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
                 
                 // Double-check that it's not permanently closed (race condition protection)
                 const stillClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id)) ||
                                    (annotationPopup && annotationPopup.dataset.permanentlyClosed === 'true');
                 
                 if (annotationPopup && !stillClosed && annotationPopup.dataset.permanentlyClosed !== 'true') {
+                  // Close ALL other open popups first (Zotero behavior: only one popup at a time)
+                  const allPopups = document.querySelectorAll('.annotation-popup');
+                  allPopups.forEach(popup => {
+                    // Skip if this is the popup we're about to open
+                    if (popup.dataset.highlightId === highlight.id) return;
+                    
+                    // Check if popup is currently visible (check multiple ways)
+                    const isVisible = popup.style.display === 'block' || 
+                                     popup.style.display !== 'none' ||
+                                     popup.style.opacity !== '0' ||
+                                     window.getComputedStyle(popup).display !== 'none';
+                    
+                    if (!isVisible) return;
+                    // Skip if this is the popup we're about to open
+                    if (popup.dataset.highlightId === highlight.id) return;
+                    
+                    // Close other popups (do NOT permanently close; user can reopen)
+                    phrazeHidePopupElement(popup);
+                    const otherHighlightId = popup.dataset.highlightId;
+                    if (otherHighlightId) {
+                      phrazeClearPermanentlyClosed(otherHighlightId, popup);
+                      phrazeClearKeepPopupOpen(otherHighlightId);
+                      phrazeRemoveFromActiveIds(otherHighlightId);
+                    }
+                  });
+
                   // Position popup as close as possible to the highlight (viewport-aware)
                   // Safety check: ensure containerSpan is still in the DOM
                   let highlightRect = null;
@@ -4989,20 +5338,22 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             }
           }
           
-          // Add document-level click handler to close sticky cards when clicking outside
-          // Store the handler so we can remove it later if needed
-          const documentClickHandler = (e) => {
-            // Only handle PhrazeMark elements to avoid interfering with other page elements
-            if (!e.target.closest('.PhrazeMark') && !e.target.classList.contains('PhrazeMark')) {
-              // Check if the card is sticky and visible
-              if (annotationCard.classList.contains('sticky')) {
-                // Check if click was outside both the highlight and the card
-                const clickedOnHighlight = containerSpan.contains(e.target);
+          // Add document-level click handler to close sticky cards when clicking outside.
+          // IMPORTANT: bind at most once per popup (multi-line highlights create multiple fragments).
+          // Also, treat ANY fragment of this highlight as "clicked on highlight" (not just the current containerSpan).
+          if (!annotationCard._phrazeStickyOutsideClickBound) {
+            annotationCard._phrazeStickyOutsideClickBound = true;
+            const documentClickHandler = (e) => {
+              // Only handle non-Phraze clicks to avoid interfering with other page elements
+              const targetEl = (e && e.target && e.target.nodeType === 1) ? e.target : null;
+              const targetClosest = (targetEl && typeof targetEl.closest === 'function') ? targetEl.closest.bind(targetEl) : null;
+              const targetHasClass = (targetEl && targetEl.classList) ? targetEl.classList.contains.bind(targetEl.classList) : () => false;
+              if (!targetClosest || (!targetClosest('.PhrazeMark') && !targetHasClass('PhrazeMark'))) {
+                if (!annotationCard.classList.contains('sticky')) return;
+                const clickedOnAnyHighlightFragment = targetClosest ? !!targetClosest(`.phraze-highlight-container[data-highlight-id="${highlight.id}"]`) : false;
                 const clickedOnCard = annotationCard.contains(e.target);
-                const clickedOnPopup = e.target.closest('.annotation-popup');
-                
-                if (!clickedOnHighlight && !clickedOnCard && !clickedOnPopup) {
-                  // Close this sticky card
+                const clickedOnPopup = targetClosest ? targetClosest('.annotation-popup') : null;
+                if (!clickedOnAnyHighlightFragment && !clickedOnCard && !clickedOnPopup) {
                   annotationCard.classList.remove('active');
                   annotationCard.classList.remove('sticky');
                   try {
@@ -5014,68 +5365,18 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                   annotationCard.style.pointerEvents = "none";
                 }
               }
-            }
-          };
-          
-          // Add the click handler to document with capture to handle before other handlers
-          document.addEventListener('click', documentClickHandler, true);
-          
-          // Store cleanup function to remove the document click handler
-          const originalScrollCleanup = annotationCard._scrollCleanup;
-          annotationCard._scrollCleanup = () => {
-            if (originalScrollCleanup) originalScrollCleanup();
-            document.removeEventListener('click', documentClickHandler, true);
-          };
-          
-          // Add X button to close the unified card
-          const closeCardButton = document.createElement('button');
-          closeCardButton.innerHTML = '&times;';
-          closeCardButton.title = 'Close annotation card';
-          closeCardButton.style.cssText = `
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background-color: #f3f4f6;
-            border: none;
-            color: #6b7280;
-            width: 20px;
-            height: 20px;
-            font-size: 14px;
-            line-height: 18px;
-            border-radius: 3px;
-            cursor: pointer;
-            z-index: 1000000002;
-          `;
-          
-          closeCardButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            annotationCard.classList.remove('active');
-            annotationCard.classList.remove('sticky'); // Remove sticky class
-            try {
-              if (annotationCard.dataset) {
-                delete annotationCard.dataset.pinnedPlacement;
-              }
-            } catch (_) {}
-            annotationCard.style.opacity = 0;
-            annotationCard.style.pointerEvents = "none";
-            
-            // Also close the annotation popup if it's open
-            const annotationPopup = annotationCard._annotationPopup;
-            if (annotationPopup) {
-              annotationPopup.style.display = 'none';
-            }
-            
-            // Remove this highlight ID from the active list to prevent reopening
-            if (window.phrazeActiveAnnotationCardIds) {
-              const index = window.phrazeActiveAnnotationCardIds.indexOf(highlight.id);
-              if (index > -1) {
-                window.phrazeActiveAnnotationCardIds.splice(index, 1);
-              }
-            }
-          });
-          
-          annotationCard.appendChild(closeCardButton);
+            };
+
+            // Add the click handler to document with capture to handle before other handlers
+            document.addEventListener('click', documentClickHandler, true);
+
+            // Store cleanup function to remove the document click handler (chain with existing)
+            const originalScrollCleanup = annotationCard._scrollCleanup;
+            annotationCard._scrollCleanup = () => {
+              if (originalScrollCleanup) originalScrollCleanup();
+              document.removeEventListener('click', documentClickHandler, true);
+            };
+          }
           
           // Add event listener to detect when card is hidden or destroyed
           const observer = new MutationObserver((mutations) => {
@@ -5131,6 +5432,15 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
   } finally {
     // Always reset the loading flag, even if an error occurred
     isLoadingHighlights = false;
+    // If something queued another load while we were running, replay it now (latest-wins).
+    try {
+      const pending = window._phrazePendingLoadHighlights;
+      if (pending) {
+        window._phrazePendingLoadHighlights = null;
+        // Fire-and-forget; this function already guards re-entrancy.
+        void loadHighlights(pending.showAllLabelsAndCodes, pending.newHighlightId);
+      }
+    } catch (_) {}
   }
 }
 
@@ -5475,10 +5785,11 @@ function updateAnnotationCardButtonsVisibility() {
  * Refreshes the highlightsToAnnotationsMap with latest annotation data
  * This function can be called from the extension popup
  */
-async function refreshAnnotationsMap() {
+async function refreshAnnotationsMap(options = {}) {
   try {
+    const { force = false } = options || {};
     // Skip if currently processing annotation to avoid conflicts
-    if (window.phrazeProcessingAnnotation) {
+    if (!force && window.phrazeProcessingAnnotation) {
       // console.log('Skipping refresh - annotation processing in progress');
       return;
     }
@@ -5538,8 +5849,8 @@ function startPeriodicRefresh() {
       return;
     }
     
-    // Only refresh if there are annotation cards visible
-    const visibleCards = document.querySelectorAll('.phraze-unified-annotation-card.active');
+    // Only refresh if there are annotation popups visible
+    const visibleCards = document.querySelectorAll('.annotation-popup.active');
     if (visibleCards.length > 0) {
       await refreshAnnotationsMap();
     }
