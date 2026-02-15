@@ -4090,10 +4090,29 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       }
       document.body.style.userSelect = 'none';
     } catch (_) {}
-    try {
-      const sel = window.getSelection?.();
-      sel?.removeAllRanges?.();
-    } catch (_) {}
+    const container = chatMessagesContainerRef.current;
+    const savedScrollTop = container ? container.scrollTop : 0;
+    const savedScrollLeft = container ? container.scrollLeft : 0;
+    const savedWindowScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    const savedWindowScrollX = typeof window !== 'undefined' ? window.scrollX : 0;
+    const restore = () => {
+      if (container) {
+        container.scrollTop = savedScrollTop;
+        container.scrollLeft = savedScrollLeft;
+      }
+      try {
+        if (typeof window !== 'undefined' && (window.scrollY !== savedWindowScrollY || window.scrollX !== savedWindowScrollX)) {
+          window.scrollTo(savedWindowScrollX, savedWindowScrollY);
+        }
+      } catch (_) {}
+    };
+    restore();
+    requestAnimationFrame(() => {
+      restore();
+      requestAnimationFrame(restore);
+    });
+    setTimeout(restore, 0);
+    setTimeout(restore, 50);
   };
 
   const selectionRestoreUserSelect = () => {
@@ -4112,7 +4131,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       })();
       const enabled = active === 'selection';
       setSelectionModeEnabled(enabled);
-      if (!enabled) {
+      if (enabled) {
+        setIsAutoScrollEnabled(false);
+      } else {
         setSelectionInteraction({ type: 'idle' });
         setSelectedSelectionBoxId(null);
         selectionRestoreUserSelect();
