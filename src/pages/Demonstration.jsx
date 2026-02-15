@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { auth, database } from '../firebase-init';
 import { ref, onValue, off, get, set } from 'firebase/database';
 import ChatSidebar from '../components/ChatSidebar';
@@ -3859,6 +3860,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               }));
             }
           } catch (_) {}
+          // If a selection box is selected, notify so its color can be updated.
+          try {
+            const boxId = (typeof window !== 'undefined' && window.phrazeSelectedSelectionBoxId) || null;
+            document.dispatchEvent(new CustomEvent('phraze:selection-box-color-changed', { detail: { hex, boxId } }));
+          } catch (_) {}
           colorPalette.style.display = 'none';
         });
         colorGrid.appendChild(btn);
@@ -4025,7 +4031,57 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   const selectionPrevUserSelectRef = useRef(null);
   const selectionHydratingRef = useRef(false);
   const selectionBoxesPathRef = useRef(null);
+  const selectedSelectionBoxIdRef = useRef(null);
+  const selectionResizeRafRef = useRef(null);
+  const selectionResizePendingRef = useRef(null);
   const SELECTION_MIN_SIZE = 8;
+  const DEFAULT_SELECTION_BOX_COLOR = '#90CAF9';
+
+  useLayoutEffect(() => {
+    selectedSelectionBoxIdRef.current = selectedSelectionBoxId;
+    try {
+      if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = selectedSelectionBoxId || null;
+    } catch (_) {}
+  }, [selectedSelectionBoxId]);
+
+  useEffect(() => {
+    const handleSelectionKeyboard = (e) => {
+      if (!selectionModeEnabled) return;
+      const active = document.activeElement;
+      const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+      if (isInput) return;
+      if (e.key === 'Escape') {
+        setSelectedSelectionBoxId(null);
+        selectedSelectionBoxIdRef.current = null;
+        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = null; } catch (_) {}
+        return;
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSelectionBoxIdRef.current) {
+        e.preventDefault();
+        const boxId = selectedSelectionBoxIdRef.current;
+        setSelectionBoxes((prev) => prev.filter((b) => b.id !== boxId));
+        setSelectedSelectionBoxId(null);
+        selectedSelectionBoxIdRef.current = null;
+        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = null; } catch (_) {}
+      }
+    };
+    document.addEventListener('keydown', handleSelectionKeyboard);
+    return () => document.removeEventListener('keydown', handleSelectionKeyboard);
+  }, [selectionModeEnabled]);
+
+  useEffect(() => {
+    const onSelectionBoxColorChanged = (e) => {
+      const hex = e?.detail?.hex;
+      if (!hex || typeof hex !== 'string') return;
+      const boxId = e.detail?.boxId ?? selectedSelectionBoxIdRef.current;
+      if (!boxId) return;
+      setSelectionBoxes((prev) =>
+        prev.map((b) => (b.id === boxId ? { ...b, color: hex } : b))
+      );
+    };
+    document.addEventListener('phraze:selection-box-color-changed', onSelectionBoxColorChanged);
+    return () => document.removeEventListener('phraze:selection-box-color-changed', onSelectionBoxColorChanged);
+  }, []);
 
   const selectionDisableUserSelect = () => {
     try {
@@ -4104,11 +4160,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     const handle = (snapshot) => {
       try {
         const val = snapshot.val();
-        const next = Array.isArray(val)
+        const raw = Array.isArray(val)
           ? val
           : val
             ? Object.values(val)
             : [];
+        const next = raw.map((b) => ({
+          ...b,
+          color: b.color || DEFAULT_SELECTION_BOX_COLOR,
+        }));
         setSelectionBoxes(next);
       } finally {
         selectionHydratingRef.current = false;
@@ -4236,9 +4296,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       e.preventDefault();
       const nextX = p.x - selectionInteraction.grabOffsetX;
       const nextY = p.y - selectionInteraction.grabOffsetY;
-      setSelectionBoxes((prev) =>
-        prev.map((b) => (b.id === selectionInteraction.boxId ? { ...b, x: nextX, y: nextY } : b))
-      );
+      const startX = selectionInteraction.startBoxX ?? 0;
+      const startY = selectionInteraction.startBoxY ?? 0;
+      const el = selectionOverlayRef.current?.querySelector?.(`[data-selection-box-id="${selectionInteraction.boxId}"]`);
+      if (el) {
+        el.style.transform = `translate(${nextX - startX}px, ${nextY - startY}px)`;
+      }
       return;
     }
 
@@ -4251,9 +4314,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         startPointer: selectionInteraction.startPointer,
         currentPointer: p,
       });
-      setSelectionBoxes((prev) =>
-        prev.map((b) => (b.id === selectionInteraction.boxId ? { ...b, ...nextRect } : b))
-      );
+      selectionResizePendingRef.current = { boxId: selectionInteraction.boxId, nextRect };
+      if (selectionResizeRafRef.current == null) {
+        selectionResizeRafRef.current = requestAnimationFrame(() => {
+          selectionResizeRafRef.current = null;
+          const pending = selectionResizePendingRef.current;
+          if (!pending) return;
+          selectionResizePendingRef.current = null;
+          setSelectionBoxes((prev) =>
+            prev.map((b) => (b.id === pending.boxId ? { ...b, ...pending.nextRect } : b))
+          );
+        });
+      }
     }
   };
 
@@ -4271,7 +4343,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       if (rect.width >= SELECTION_MIN_SIZE && rect.height >= SELECTION_MIN_SIZE) {
         const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-        setSelectionBoxes((prev) => [...prev, { id, ...rect }]);
+        const hex = (typeof window !== 'undefined' && window.phrazeHighlightColorHex) || DEFAULT_SELECTION_BOX_COLOR;
+        setSelectionBoxes((prev) => [...prev, { id, ...rect, color: hex }]);
+        setSelectedSelectionBoxId(id);
+        selectedSelectionBoxIdRef.current = id;
+        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = id; } catch (_) {}
       }
       setSelectionInteraction({ type: 'idle' });
       selectionRestoreUserSelect();
@@ -4281,6 +4357,17 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     if (selectionInteraction.type === 'moving') {
       if (selectionInteraction.pointerId !== e.pointerId) return;
       e.preventDefault();
+      const p = getSelectionLocalPoint(e);
+      const nextX = p ? p.x - selectionInteraction.grabOffsetX : selectionInteraction.startBoxX;
+      const nextY = p ? p.y - selectionInteraction.grabOffsetY : selectionInteraction.startBoxY;
+      const boxId = selectionInteraction.boxId;
+      flushSync(() => {
+        setSelectionBoxes((prev) =>
+          prev.map((b) => (b.id === boxId ? { ...b, x: nextX ?? b.x, y: nextY ?? b.y } : b))
+        );
+      });
+      const el = selectionOverlayRef.current?.querySelector?.(`[data-selection-box-id="${boxId}"]`);
+      if (el) el.style.transform = '';
       setSelectionInteraction({ type: 'idle' });
       selectionRestoreUserSelect();
       return;
@@ -4289,6 +4376,23 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     if (selectionInteraction.type === 'resizing') {
       if (selectionInteraction.pointerId !== e.pointerId) return;
       e.preventDefault();
+      if (selectionResizeRafRef.current != null) {
+        cancelAnimationFrame(selectionResizeRafRef.current);
+        selectionResizeRafRef.current = null;
+      }
+      const p = getSelectionLocalPoint(e);
+      if (p) {
+        const nextRect = computeResizedRect({
+          startBox: selectionInteraction.startBox,
+          handle: selectionInteraction.handle,
+          startPointer: selectionInteraction.startPointer,
+          currentPointer: p,
+        });
+        setSelectionBoxes((prev) =>
+          prev.map((b) => (b.id === selectionInteraction.boxId ? { ...b, ...nextRect } : b))
+        );
+      }
+      selectionResizePendingRef.current = null;
       setSelectionInteraction({ type: 'idle' });
       selectionRestoreUserSelect();
     }
@@ -4307,6 +4411,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     if (!box) return;
 
     setSelectedSelectionBoxId(boxId);
+    selectedSelectionBoxIdRef.current = boxId;
+    try {
+      if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = boxId;
+      const hex = box.color || DEFAULT_SELECTION_BOX_COLOR;
+      if (window.phrazeSetToolbarHighlightColor) window.phrazeSetToolbarHighlightColor(hex);
+    } catch (_) {}
 
     selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
     setSelectionInteraction({
@@ -4315,6 +4425,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       boxId,
       grabOffsetX: p.x - box.x,
       grabOffsetY: p.y - box.y,
+      startBoxX: box.x,
+      startBoxY: box.y,
     });
   };
 
@@ -4331,6 +4443,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     if (!box) return;
 
     setSelectedSelectionBoxId(boxId);
+    selectedSelectionBoxIdRef.current = boxId;
+    try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = boxId; } catch (_) {}
     selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
     setSelectionInteraction({
       type: 'resizing',
@@ -4340,6 +4454,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       startPointer: p,
       startBox: { x: box.x, y: box.y, width: box.width, height: box.height },
     });
+  };
+
+  const handleSelectionBoxDelete = (boxId) => (e) => {
+    if (!selectionModeEnabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectionBoxes((prev) => prev.filter((b) => b.id !== boxId));
+    setSelectedSelectionBoxId((current) => (current === boxId ? null : current));
   };
 
   // Available models
@@ -13362,6 +13484,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 position: 'relative'
               }}
             >
+              {/* Selection overlay inside scrollable content so boxes stay pinned and scroll with messages */}
               <div
                 ref={selectionOverlayRef}
                 style={{
@@ -13370,6 +13493,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   pointerEvents: selectionModeEnabled ? 'auto' : 'none',
                   zIndex: 5,
                   touchAction: 'none',
+                  cursor: selectionModeEnabled ? 'crosshair' : undefined,
                 }}
                 onPointerDown={handleSelectionOverlayPointerDown}
                 onPointerMove={handleSelectionOverlayPointerMove}
@@ -13379,6 +13503,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 {selectionBoxes.map((b) => (
                   <div
                     key={b.id}
+                    data-selection-box-id={b.id}
                     style={{
                       position: 'absolute',
                       left: `${b.x}px`,
@@ -13386,6 +13511,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       width: `${b.width}px`,
                       height: `${b.height}px`,
                       boxSizing: 'border-box',
+                      borderRadius: 12,
                     }}
                   >
                     <div
@@ -13393,24 +13519,71 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        border: selectedSelectionBoxId === b.id
-                          ? '2px solid rgba(37, 99, 235, 1)'
-                          : '2px solid rgba(37, 99, 235, 0.95)',
-                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: 12,
+                        background: (() => {
+                          const c = b.color || DEFAULT_SELECTION_BOX_COLOR;
+                          return c.length === 7 ? `${c}59` : c;
+                        })(),
                         boxSizing: 'border-box',
                         cursor: 'move',
                       }}
                     />
                     {selectedSelectionBoxId === b.id && (
                       <>
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'nw')} style={{ position: 'absolute', left: -5, top: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nwse-resize' }} />
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'n')} style={{ position: 'absolute', left: '50%', top: -5, transform: 'translateX(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ns-resize' }} />
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'ne')} style={{ position: 'absolute', right: -5, top: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nesw-resize' }} />
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'e')} style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ew-resize' }} />
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'se')} style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nwse-resize' }} />
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 's')} style={{ position: 'absolute', left: '50%', bottom: -5, transform: 'translateX(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ns-resize' }} />
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'sw')} style={{ position: 'absolute', left: -5, bottom: -5, width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'nesw-resize' }} />
-                        <div onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, 'w')} style={{ position: 'absolute', left: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, background: '#fff', border: '1px solid rgba(37, 99, 235, 1)', borderRadius: 2, boxSizing: 'border-box', cursor: 'ew-resize' }} />
+                        {/* Delete button - Zotero-style: minimal, top-right */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className="phraze-selection-box-delete"
+                          onClick={handleSelectionBoxDelete(b.id)}
+                          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          style={{
+                            position: 'absolute',
+                            right: 2,
+                            top: 2,
+                            width: 16,
+                            height: 16,
+                            boxSizing: 'border-box',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 14,
+                            lineHeight: 1,
+                            color: '#6b7280',
+                            background: '#fff',
+                            border: '1px solid #d1d5db',
+                            borderRadius: 3,
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectionBoxDelete(b.id)(e); } }}
+                        >
+                          ×
+                        </div>
+                        {['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map((handle) => (
+                          <div
+                            key={handle}
+                            onPointerDown={handleSelectionBoxResizeHandlePointerDown(b.id, handle)}
+                            style={{
+                              position: 'absolute',
+                              ...(handle === 'nw' ? { left: -6, top: -6 } : null),
+                              ...(handle === 'n' ? { left: '50%', top: -6, transform: 'translateX(-50%)' } : null),
+                              ...(handle === 'ne' ? { right: -6, top: -6 } : null),
+                              ...(handle === 'e' ? { right: -6, top: '50%', transform: 'translateY(-50%)' } : null),
+                              ...(handle === 'se' ? { right: -6, bottom: -6 } : null),
+                              ...(handle === 's' ? { left: '50%', bottom: -6, transform: 'translateX(-50%)' } : null),
+                              ...(handle === 'sw' ? { left: -6, bottom: -6 } : null),
+                              ...(handle === 'w' ? { left: -6, top: '50%', transform: 'translateY(-50%)' } : null),
+                              width: 12,
+                              height: 12,
+                              background: '#fff',
+                              border: '1px solid #94a3b8',
+                              borderRadius: '50%',
+                              boxSizing: 'border-box',
+                              cursor: `${handle === 'nw' || handle === 'se' ? 'nwse-resize' : handle === 'ne' || handle === 'sw' ? 'nesw-resize' : handle === 'n' || handle === 's' ? 'ns-resize' : 'ew-resize'}`,
+                            }}
+                          />
+                        ))}
                       </>
                     )}
                   </div>
@@ -13422,6 +13595,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     selectionInteraction.currentX,
                     selectionInteraction.currentY
                   );
+                  const drawColor = (typeof window !== 'undefined' && window.phrazeHighlightColorHex) || DEFAULT_SELECTION_BOX_COLOR;
+                  const fillHex = drawColor.length === 7 ? `${drawColor}59` : drawColor;
                   return (
                     <div
                       style={{
@@ -13430,8 +13605,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         top: `${rect.y}px`,
                         width: `${rect.width}px`,
                         height: `${rect.height}px`,
-                        border: '2px dashed rgba(37, 99, 235, 0.9)',
-                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: 12,
+                        background: fillHex,
                         boxSizing: 'border-box',
                       }}
                     />
