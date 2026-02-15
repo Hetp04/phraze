@@ -844,6 +844,58 @@ export function phrazeShowPopupElement(popupEl) {
   try { popupEl.setAttribute('aria-hidden', 'false'); } catch (_) {}
 }
 
+export async function phrazeHydrateAnnotationPopupFromStorage(popupEl, highlight, opts = {}) {
+  if (!popupEl || !highlight) return;
+  try {
+    if (popupEl && typeof popupEl._phrazeResetNotesUI === 'function') {
+      popupEl._phrazeResetNotesUI();
+    }
+  } catch (_) {}
+
+  try {
+    if (popupEl && typeof popupEl._phrazeUpdateHeaderTitle === 'function') {
+      popupEl._phrazeUpdateHeaderTitle();
+    }
+  } catch (_) {}
+
+  try {
+    const selectedLabelsContainer = popupEl.querySelector('.selected-labels-container');
+    const richTextDiv = popupEl.querySelector('[contenteditable="true"]');
+    const canvas = popupEl.querySelector('canvas');
+    const canvasContainer = popupEl.querySelector('.canvas-container');
+    const toolbar = popupEl.querySelector('.annotation-toolbar');
+    const textModeBtn = popupEl.querySelector('.text-mode-btn');
+    const canvasModeBtn = popupEl.querySelector('.canvas-mode-btn');
+    const modeRef = { current: 'text' };
+
+    await loadExistingAnnotationsIntoPopup(
+      highlight,
+      selectedLabelsContainer,
+      richTextDiv,
+      canvas,
+      canvasContainer,
+      toolbar,
+      textModeBtn,
+      canvasModeBtn,
+      modeRef
+    );
+  } catch (err) {
+    console.warn('Failed to hydrate annotation popup from storage', err);
+  }
+
+  try {
+    if (popupEl && typeof popupEl._phrazeResetNotesUI === 'function') {
+      popupEl._phrazeResetNotesUI();
+    }
+  } catch (_) {}
+
+  try {
+    if (popupEl && typeof popupEl._phrazeUpdateHeaderTitle === 'function') {
+      popupEl._phrazeUpdateHeaderTitle();
+    }
+  } catch (_) {}
+}
+
 function setPinnedCardPlacement(annotationCard, container, anchorRect, cardRect, yOffset = 0) {
   try {
     if (!annotationCard || !container) return;
@@ -3150,37 +3202,6 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       });
     } catch (_) {}
     
-    // Set highlight ID to ensure annotations are saved with correct ID
-    localStorage.setItem('globalHighlightID', highlight.id);
-    
-    // Get the highlighted text
-    let highlightedText = '';
-    if (highlight && highlight.textNodes && highlight.textNodes.length > 0) {
-      const firstTextNode = highlight.textNodes[0];
-      if (firstTextNode.wholeText && firstTextNode.highlightedRanges && firstTextNode.highlightedRanges.length > 0) {
-        const range = firstTextNode.highlightedRanges[0];
-        if (range.length >= 3) {
-          const start = range[1];
-          const end = range[2];
-          highlightedText = firstTextNode.wholeText.substring(start, end);
-        }
-      }
-    }
-    
-    // Fallback: try to get from DOM
-    if (!highlightedText) {
-      const mark = containerSpan.querySelector('mark[id="PhrazeHighlight"]');
-      if (mark) {
-        highlightedText = mark.textContent;
-      }
-    }
-    
-    if (!highlightedText) {
-      console.error('Could not determine highlighted text');
-      window.phrazeProcessingAnnotation = false;
-      return;
-    }
-
     // Notes are saved via the toolbar "Add note" action, not via the Add Annotation button.
     let noteText = '';
     
@@ -3213,6 +3234,37 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         console.error('Failed to save region labels:', error);
       }
     } else {
+      // Set highlight ID to ensure annotations are saved with correct ID
+      localStorage.setItem('globalHighlightID', highlight.id);
+      
+      // Get the highlighted text
+      let highlightedText = '';
+      if (highlight && highlight.textNodes && highlight.textNodes.length > 0) {
+        const firstTextNode = highlight.textNodes[0];
+        if (firstTextNode.wholeText && firstTextNode.highlightedRanges && firstTextNode.highlightedRanges.length > 0) {
+          const range = firstTextNode.highlightedRanges[0];
+          if (range.length >= 3) {
+            const start = range[1];
+            const end = range[2];
+            highlightedText = firstTextNode.wholeText.substring(start, end);
+          }
+        }
+      }
+      
+      // Fallback: try to get from DOM
+      if (!highlightedText) {
+        const mark = containerSpan.querySelector('mark[id="PhrazeHighlight"]');
+        if (mark) {
+          highlightedText = mark.textContent;
+        }
+      }
+      
+      if (!highlightedText) {
+        console.error('Could not determine highlighted text');
+        window.phrazeProcessingAnnotation = false;
+        return;
+      }
+
       // FIRST: Handle deletions - remove annotations that were removed from popup
       await handleAnnotationDeletions(highlightedText, highlight.id, selectedLabels);
       

@@ -10,7 +10,7 @@ import { getFirebaseData, saveFirebaseData, isLoggedIn, showToast, getMainCompan
 import { useLocation, useNavigate } from 'react-router-dom';
 import { listenToUserPresence, getPresenceColor, getPresenceLabel } from '../utils/presence';
 import { reportTyping, stopTyping, initializeTypingForConversation, listenToTyping, formatTypingIndicator } from '../utils/typing';
-import { loadHighlights, setMainCompanyEmail, saveHighlight, clearHighlights, loadHighlightsForText, createUnifiedAnnotationCard, phrazeHideAnyOtherPopups, phrazeShowPopupElement } from '../utils/highlighting';
+import { loadHighlights, setMainCompanyEmail, saveHighlight, clearHighlights, loadHighlightsForText, createUnifiedAnnotationCard, phrazeHideAnyOtherPopups, phrazeShowPopupElement, phrazeHydrateAnnotationPopupFromStorage, upsertRegionAnnotation } from '../utils/highlighting';
 import { DEFAULT_PERMISSIONS } from '../utils/permissionConstants';
 // import { initContactsPanel, setMessagingUserEmail, setMessagingUserName, setMessagingCurrentProject, setFirebaseFunctions } from '../utils/messaging';
 import { useExtension } from "../context/ExtensionContext";
@@ -628,6 +628,103 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('phraze:project-changed', handleStorageChange);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const positionPopupFromToolbar = (popupEl) => {
+      if (!popupEl) return;
+      const toolbar = document.getElementById('phraze-top-toolbar');
+      if (!toolbar) return;
+      const rect = toolbar.getBoundingClientRect();
+      const popupWidth = popupEl.getBoundingClientRect().width || 400;
+      const spacing = 10;
+      let left = rect.left + rect.width / 2 - popupWidth / 2;
+      let top = rect.bottom + spacing;
+      const padding = 12;
+      const maxLeft = Math.max(padding, window.innerWidth - popupWidth - padding);
+      left = Math.max(padding, Math.min(left, maxLeft));
+      // If it would go below viewport, try above the toolbar.
+      try {
+        const popupHeight = popupEl.getBoundingClientRect().height || 320;
+        if (top + popupHeight + padding > window.innerHeight) {
+          top = Math.max(padding, rect.top - popupHeight - spacing);
+        }
+      } catch (_) {}
+      popupEl.style.position = 'fixed';
+      popupEl.style.left = `${left}px`;
+      popupEl.style.top = `${top}px`;
+      popupEl.style.transform = 'none';
+    };
+
+    const openRegionAnnotationPopupForSelectionBox = async (regionId, { hydrate = true } = {}) => {
+      if (!regionId) return;
+
+      try {
+        await upsertRegionAnnotation({ id: regionId });
+      } catch (_) {}
+
+      const regionHighlight = { id: regionId, _phrazeAnnotationSource: 'region', _phrazeRegionId: regionId };
+      let popupEl = document.querySelector(`.annotation-popup[data-annotation-type="region"][data-region-id="${regionId}"]`);
+
+      if (!popupEl) {
+        try {
+          const anchor = document.createElement('span');
+          anchor.style.display = 'none';
+          anchor.dataset.phrazeRegionAnchor = regionId;
+          document.body.appendChild(anchor);
+          await createUnifiedAnnotationCard(regionHighlight, anchor, { type: 'region', regionId });
+        } catch (err) {
+          console.warn('Failed to create region annotation popup', err);
+          return;
+        }
+        popupEl = document.querySelector(`.annotation-popup[data-annotation-type="region"][data-region-id="${regionId}"]`);
+      }
+
+      if (!popupEl) return;
+
+      try { phrazeHideAnyOtherPopups(popupEl); } catch (_) {}
+      try { popupEl.classList.add('active'); } catch (_) {}
+      try { popupEl.classList.remove('sticky'); } catch (_) {}
+      try { delete popupEl?.dataset?.pinnedPlacement; } catch (_) {}
+
+      if (hydrate) {
+        try {
+          await phrazeHydrateAnnotationPopupFromStorage(popupEl, regionHighlight, { type: 'region', regionId });
+        } catch (_) {}
+      } else {
+        // Fresh UI for brand new selections.
+        try { if (popupEl && typeof popupEl._phrazeResetLabelsDropdown === 'function') popupEl._phrazeResetLabelsDropdown(); } catch (_) {}
+        try { if (popupEl && typeof popupEl._phrazeResetNotesUI === 'function') popupEl._phrazeResetNotesUI(); } catch (_) {}
+        try {
+          const selectedLabelsContainer = popupEl.querySelector('.selected-labels-container');
+          if (selectedLabelsContainer) selectedLabelsContainer.innerHTML = '';
+        } catch (_) {}
+        try {
+          const richTextDiv = popupEl.querySelector('[contenteditable="true"]');
+          if (richTextDiv) richTextDiv.innerHTML = '';
+        } catch (_) {}
+        try { if (popupEl && typeof popupEl._phrazeUpdateHeaderTitle === 'function') popupEl._phrazeUpdateHeaderTitle(); } catch (_) {}
+      }
+
+      positionPopupFromToolbar(popupEl);
+      phrazeShowPopupElement(popupEl);
+
+      try {
+        requestAnimationFrame(() => {
+          const richTextDiv = popupEl.querySelector('[contenteditable="true"]');
+          if (richTextDiv) richTextDiv.focus();
+        });
+      } catch (_) {}
+    };
+
+    try {
+      window.phrazeOpenSelectionBoxNotes = (regionId) => {
+        void openRegionAnnotationPopupForSelectionBox(String(regionId || ''), { hydrate: true });
+      };
+    } catch (_) {}
+    return () => {};
   }, []);
 
   useEffect(() => {
@@ -3746,19 +3843,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               b.classList.toggle('active', b.getAttribute('data-tool') === next);
             });
           } catch (_) {}
+
         });
         return btn;
       };
 
       const selectionSvg = `<svg class="phraze-top-toolbar-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 18 2-8 8-2L3 3z"/></svg>`;
-      const noteSvg = `<svg class="phraze-top-toolbar-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a2 2 0 0 1 2 2v14l-4-3H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>`;
 
       toolbar.appendChild(makeBtn({ tool: 'selection', label: 'Selection', svg: selectionSvg }));
-      toolbar.appendChild(makeBtn({ tool: 'note', label: 'Note', svg: noteSvg }));
 
       const highlightColorSwatch = document.createElement('button');
       highlightColorSwatch.type = 'button';
-      highlightColorSwatch.className = 'phraze-top-toolbar-btn';
+      highlightColorSwatch.className = 'phraze-top-toolbar-color';
       highlightColorSwatch.setAttribute('aria-label', 'Choose highlight color');
       highlightColorSwatch.title = 'Highlight Color';
       highlightColorSwatch.style.width = '36px';
@@ -4368,8 +4464,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         setSelectionBoxes((prev) => [...prev, { id, ...rect, color: hex }]);
         setSelectedSelectionBoxId(id);
         selectedSelectionBoxIdRef.current = id;
-        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = id; } catch (_) {}
+        try {
+          if (typeof window !== 'undefined') {
+            window.phrazeSelectedSelectionBoxId = id;
+            window.phrazeNewSelectionBoxId = id;
+          }
+        } catch (_) {}
       }
+      selectionResizePendingRef.current = null;
       setSelectionInteraction({ type: 'idle' });
       selectionRestoreUserSelect();
       return;
@@ -4381,13 +4483,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       const p = getSelectionLocalPoint(e);
       const nextX = p ? p.x - selectionInteraction.grabOffsetX : selectionInteraction.startBoxX;
       const nextY = p ? p.y - selectionInteraction.grabOffsetY : selectionInteraction.startBoxY;
-      const boxId = selectionInteraction.boxId;
+      const movingBoxId = selectionInteraction.boxId;
+
       flushSync(() => {
         setSelectionBoxes((prev) =>
-          prev.map((b) => (b.id === boxId ? { ...b, x: nextX ?? b.x, y: nextY ?? b.y } : b))
+          prev.map((b) => (b.id === movingBoxId ? { ...b, x: nextX ?? b.x, y: nextY ?? b.y } : b))
         );
       });
-      const el = selectionOverlayRef.current?.querySelector?.(`[data-selection-box-id="${boxId}"]`);
+
+      const el = selectionOverlayRef.current?.querySelector?.(`[data-selection-box-id="${movingBoxId}"]`);
       if (el) el.style.transform = '';
       setSelectionInteraction({ type: 'idle' });
       selectionRestoreUserSelect();
@@ -4397,10 +4501,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     if (selectionInteraction.type === 'resizing') {
       if (selectionInteraction.pointerId !== e.pointerId) return;
       e.preventDefault();
+
       if (selectionResizeRafRef.current != null) {
         cancelAnimationFrame(selectionResizeRafRef.current);
         selectionResizeRafRef.current = null;
       }
+
       const p = getSelectionLocalPoint(e);
       if (p) {
         const nextRect = computeResizedRect({
@@ -4413,9 +4519,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           prev.map((b) => (b.id === selectionInteraction.boxId ? { ...b, ...nextRect } : b))
         );
       }
+
       selectionResizePendingRef.current = null;
       setSelectionInteraction({ type: 'idle' });
       selectionRestoreUserSelect();
+      return;
     }
   };
 
@@ -4434,7 +4542,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     setSelectedSelectionBoxId(boxId);
     selectedSelectionBoxIdRef.current = boxId;
     try {
-      if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = boxId;
+      if (typeof window !== 'undefined') {
+        window.phrazeSelectedSelectionBoxId = boxId;
+        window.phrazeNewSelectionBoxId = null;
+      }
       const hex = box.color || DEFAULT_SELECTION_BOX_COLOR;
       if (window.phrazeSetToolbarHighlightColor) window.phrazeSetToolbarHighlightColor(hex);
     } catch (_) {}
@@ -4465,7 +4576,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
     setSelectedSelectionBoxId(boxId);
     selectedSelectionBoxIdRef.current = boxId;
-    try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = boxId; } catch (_) {}
+    try {
+      if (typeof window !== 'undefined') {
+        window.phrazeSelectedSelectionBoxId = boxId;
+        window.phrazeNewSelectionBoxId = null;
+      }
+    } catch (_) {}
     selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
     setSelectionInteraction({
       type: 'resizing',
@@ -13552,6 +13668,42 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     />
                     {selectedSelectionBoxId === b.id && (
                       <>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className="phraze-selection-box-notes"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              if (typeof window !== 'undefined' && typeof window.phrazeOpenSelectionBoxNotes === 'function') {
+                                window.phrazeOpenSelectionBoxNotes(b.id);
+                              }
+                            } catch (_) {}
+                          }}
+                          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); try { window.phrazeOpenSelectionBoxNotes && window.phrazeOpenSelectionBoxNotes(b.id); } catch (_) {} } }}
+                          style={{
+                            position: 'absolute',
+                            left: 6,
+                            top: 2,
+                            padding: '2px 8px',
+                            height: 18,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#ffffff',
+                            border: '1px solid #d1d5db',
+                            borderRadius: 9999,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#374151',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                          }}
+                        >
+                          Notes
+                        </div>
                         {/* Delete button - Zotero-style: minimal, top-right */}
                         <div
                           role="button"
