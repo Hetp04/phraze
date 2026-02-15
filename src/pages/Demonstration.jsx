@@ -4470,6 +4470,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             window.phrazeNewSelectionBoxId = id;
           }
         } catch (_) {}
+        try {
+          window.setTimeout(() => {
+            try {
+              if (typeof window !== 'undefined' && typeof window.phrazeOpenSelectionBoxNotes === 'function') {
+                window.phrazeOpenSelectionBoxNotes(id);
+              }
+            } catch (_) {}
+          }, 0);
+        } catch (_) {}
       }
       selectionResizePendingRef.current = null;
       setSelectionInteraction({ type: 'idle' });
