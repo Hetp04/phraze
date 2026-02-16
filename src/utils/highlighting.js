@@ -67,7 +67,7 @@ export async function loadRegionAnnotations() {
     const data = await getFirebaseData(path);
     const normalized = normalizeRemote(data);
     // Cache a local copy as a fallback (helps if auth is flaky).
-    try { localStorage.setItem(localKey, JSON.stringify(normalized)); } catch (_) {}
+    try { localStorage.setItem(localKey, JSON.stringify(normalized)); } catch (_) { }
     return normalized;
   } catch (_) {
     return readLocal();
@@ -79,8 +79,8 @@ async function saveRegionAnnotationsList(list) {
   try {
     const projectName = await getCurrentProject();
     const localKey = `phraze_regionAnnotations__${String(projectName || 'default')}`;
-    try { localStorage.setItem(localKey, JSON.stringify(safe)); } catch (_) {}
-  } catch (_) {}
+    try { localStorage.setItem(localKey, JSON.stringify(safe)); } catch (_) { }
+  } catch (_) { }
   await saveRegionFunc(safe);
   return safe;
 }
@@ -151,7 +151,7 @@ async function saveRegionFunc(value) {
       } else {
         showToast('Failed to save region annotation - please try again', 'error');
       }
-    } catch (_) {}
+    } catch (_) { }
     return false;
   }
 }
@@ -172,7 +172,7 @@ function upsertModifiedBy(entryArr, userMeta) {
 
 var mainCompanyEmail = "";
 export function getMainCompanyEmail() {
- // if (mainCompanyEmail)
+  // if (mainCompanyEmail)
   //  return mainCompanyEmail;
   return localStorage.getItem("companyEmail");
 }
@@ -200,17 +200,17 @@ async function saveFunc(value) {
     return true;
   } catch (error) {
     console.error('[saveFunc] Failed to save highlights:', error);
-    
+
     // Check if it's a permission error
-    const isPermissionError = error?.message?.includes('Permission denied') || 
-                              error?.code === 'PERMISSION_DENIED';
-    
+    const isPermissionError = error?.message?.includes('Permission denied') ||
+      error?.code === 'PERMISSION_DENIED';
+
     if (isPermissionError) {
       showToast('Unable to save highlight - you may not have permission for this project', 'error');
     } else {
       showToast('Failed to save highlight - please try again', 'error');
     }
-    
+
     return false;
   }
 }
@@ -251,19 +251,19 @@ async function loadHighlightProfilePicture(imgElement, userEmail, companyEmail) 
   // Normalize email format (replace . with , for Firebase path)
   const userEmailFormatted = userEmail.replace(/\./g, ',');
   const displayEmail = userEmail.replace(/,/g, '.'); // For display/fallback
-  
+
   let profilePicData = null;
-  
+
   try {
     // First, try to get the user's own company email from emailToCompanyDirectory
     // This is needed because profile pics are stored under the user's OWN company, not the project's company
     const userCompanyEmail = await getFirebaseData(`emailToCompanyDirectory/${userEmailFormatted}`);
-    
+
     if (userCompanyEmail) {
       // Fetch profile picture from user's own company
       profilePicData = await getFirebaseData(`Companies/${userCompanyEmail}/users/${userEmailFormatted}/profileImage`);
     }
-    
+
     // If not found in user's own company, try the provided company email as fallback
     if (!profilePicData && companyEmail && companyEmail !== 'local') {
       const fallbackPath = `Companies/${companyEmail}/users/${userEmailFormatted}/profileImage`;
@@ -272,7 +272,7 @@ async function loadHighlightProfilePicture(imgElement, userEmail, companyEmail) 
   } catch (e) {
     console.warn('Error fetching profile picture for:', displayEmail, e);
   }
-  
+
   if (profilePicData) {
     // Set the profile picture
     imgElement.src = profilePicData;
@@ -281,7 +281,7 @@ async function loadHighlightProfilePicture(imgElement, userEmail, companyEmail) 
     imgElement.style.height = '28px';
     imgElement.style.borderRadius = '50%';
     imgElement.style.objectFit = 'cover';
-    
+
     // Handle image load error - show fallback initial
     imgElement.onerror = () => {
       showFallbackInitial(imgElement, displayEmail);
@@ -300,19 +300,19 @@ async function loadHighlightProfilePicture(imgElement, userEmail, companyEmail) 
 function showFallbackInitial(imgElement, email) {
   // Hide the img element
   imgElement.style.display = 'none';
-  
+
   // Check if fallback already exists
   if (imgElement.nextElementSibling && imgElement.nextElementSibling.classList.contains('profile-initial-fallback')) {
     return; // Already has fallback
   }
-  
+
   // Create a fallback div with the initial letter
   const fallbackDiv = document.createElement('div');
   fallbackDiv.className = 'profile-initial-fallback';
   const initial = email.charAt(0).toUpperCase();
   // Generate a consistent color based on email
   const hue = email.charCodeAt(0) * 10 % 360;
-  
+
   fallbackDiv.style.cssText = `
     width: 28px;
     height: 28px;
@@ -328,72 +328,72 @@ function showFallbackInitial(imgElement, email) {
     flex-shrink: 0;
   `;
   fallbackDiv.textContent = initial;
-  
+
   // Insert after the img element
   imgElement.parentNode.insertBefore(fallbackDiv, imgElement.nextSibling);
 }
 
- function mergeAnnotationHistoryEntries(input) {
-   const history = Array.isArray(input) ? input : [];
-   const result = [];
-   const seen = new Map();
-   let didMerge = false;
+function mergeAnnotationHistoryEntries(input) {
+  const history = Array.isArray(input) ? input : [];
+  const result = [];
+  const seen = new Map();
+  let didMerge = false;
 
-   const getVal = (entryArr, key) => {
-     if (!Array.isArray(entryArr)) return null;
-     const obj = entryArr.find((o) => o && Object.prototype.hasOwnProperty.call(o, key));
-     return obj ? obj[key] : null;
-   };
+  const getVal = (entryArr, key) => {
+    if (!Array.isArray(entryArr)) return null;
+    const obj = entryArr.find((o) => o && Object.prototype.hasOwnProperty.call(o, key));
+    return obj ? obj[key] : null;
+  };
 
-   for (const entry of history) {
-     if (!Array.isArray(entry)) continue;
+  for (const entry of history) {
+    if (!Array.isArray(entry)) continue;
 
-     const type = getVal(entry, 'type');
-     const key = getVal(entry, 'key');
-     const userText = getVal(entry, 'userText');
-     const url = getVal(entry, 'url');
-     const highlightID = getVal(entry, 'highlightID');
+    const type = getVal(entry, 'type');
+    const key = getVal(entry, 'key');
+    const userText = getVal(entry, 'userText');
+    const url = getVal(entry, 'url');
+    const highlightID = getVal(entry, 'highlightID');
 
-     const mergeKey = `${String(highlightID || '')}||${String(type || '')}||${String(key || '')}||${String(userText || '')}||${String(url || '')}`;
+    const mergeKey = `${String(highlightID || '')}||${String(type || '')}||${String(key || '')}||${String(userText || '')}||${String(url || '')}`;
 
-     if (!seen.has(mergeKey)) {
-       const cloned = entry.map((o) => (o && typeof o === 'object' ? { ...o } : o));
-       const idx = result.length;
-       result.push(cloned);
-       seen.set(mergeKey, idx);
-       continue;
-     }
+    if (!seen.has(mergeKey)) {
+      const cloned = entry.map((o) => (o && typeof o === 'object' ? { ...o } : o));
+      const idx = result.length;
+      result.push(cloned);
+      seen.set(mergeKey, idx);
+      continue;
+    }
 
-     didMerge = true;
-     const existing = result[seen.get(mergeKey)];
-     const existingOptions = getVal(existing, 'options');
-     const incomingOptions = getVal(entry, 'options');
+    didMerge = true;
+    const existing = result[seen.get(mergeKey)];
+    const existingOptions = getVal(existing, 'options');
+    const incomingOptions = getVal(entry, 'options');
 
-     const mergedOptions = Array.from(
-       new Set([
-         ...(Array.isArray(existingOptions) ? existingOptions : []),
-         ...(Array.isArray(incomingOptions) ? incomingOptions : [])
-       ].filter(Boolean).map(String))
-     );
+    const mergedOptions = Array.from(
+      new Set([
+        ...(Array.isArray(existingOptions) ? existingOptions : []),
+        ...(Array.isArray(incomingOptions) ? incomingOptions : [])
+      ].filter(Boolean).map(String))
+    );
 
-     const existingOptionsObjIndex = existing.findIndex((o) => o && Object.prototype.hasOwnProperty.call(o, 'options'));
-     if (existingOptionsObjIndex >= 0) {
-       existing[existingOptionsObjIndex] = { options: mergedOptions };
-     } else {
-       existing.push({ options: mergedOptions });
-     }
+    const existingOptionsObjIndex = existing.findIndex((o) => o && Object.prototype.hasOwnProperty.call(o, 'options'));
+    if (existingOptionsObjIndex >= 0) {
+      existing[existingOptionsObjIndex] = { options: mergedOptions };
+    } else {
+      existing.push({ options: mergedOptions });
+    }
 
-     const existingTs = getVal(existing, 'timestamp');
-     const incomingTs = getVal(entry, 'timestamp');
-     if (incomingTs && (!existingTs || String(incomingTs) > String(existingTs))) {
-       const tsIdx = existing.findIndex((o) => o && Object.prototype.hasOwnProperty.call(o, 'timestamp'));
-       if (tsIdx >= 0) existing[tsIdx] = { timestamp: incomingTs };
-       else existing.push({ timestamp: incomingTs });
-     }
-   }
+    const existingTs = getVal(existing, 'timestamp');
+    const incomingTs = getVal(entry, 'timestamp');
+    if (incomingTs && (!existingTs || String(incomingTs) > String(existingTs))) {
+      const tsIdx = existing.findIndex((o) => o && Object.prototype.hasOwnProperty.call(o, 'timestamp'));
+      if (tsIdx >= 0) existing[tsIdx] = { timestamp: incomingTs };
+      else existing.push({ timestamp: incomingTs });
+    }
+  }
 
-   return { history: result, _didMerge: didMerge };
- }
+  return { history: result, _didMerge: didMerge };
+}
 
 async function getAnnotationHistory() {
   // Prefer Firebase (project-scoped) when logged in
@@ -411,15 +411,15 @@ async function getAnnotationHistory() {
               const merged = mergeAnnotationHistoryEntries(parsed);
               if (!window.__phrazeHistoryMigrated && merged._didMerge) {
                 window.__phrazeHistoryMigrated = true;
-                try { await saveFirebaseData(path, JSON.stringify(merged.history)); } catch (_) {}
+                try { await saveFirebaseData(path, JSON.stringify(merged.history)); } catch (_) { }
               }
               return merged.history;
-            } catch (_) {}
+            } catch (_) { }
           }
           const merged = mergeAnnotationHistoryEntries(data);
           if (!window.__phrazeHistoryMigrated && merged._didMerge) {
             window.__phrazeHistoryMigrated = true;
-            try { await saveFirebaseData(path, JSON.stringify(merged.history)); } catch (_) {}
+            try { await saveFirebaseData(path, JSON.stringify(merged.history)); } catch (_) { }
           }
           return merged.history;
         }
@@ -436,7 +436,7 @@ async function getAnnotationHistory() {
   const merged = mergeAnnotationHistoryEntries(values[0]);
   if (!window.__phrazeHistoryMigrated && merged._didMerge) {
     window.__phrazeHistoryMigrated = true;
-    try { await callSetItem("annotationHistory", JSON.stringify(merged.history)); } catch (_) {}
+    try { await callSetItem("annotationHistory", JSON.stringify(merged.history)); } catch (_) { }
   }
   return merged.history;
 }
@@ -444,23 +444,23 @@ async function getAnnotationHistory() {
 async function getHighlightAnnotations(id) {
   let annotationHistory = await getAnnotationHistory();
   var annotations = [];
-  
+
   // Ensure annotationHistory is an array
   if (!Array.isArray(annotationHistory)) {
     console.warn('annotationHistory is not an array:', annotationHistory);
     return annotations;
   }
-  
+
   // Removed excessive logging - was causing thousands of console messages
   // console.log(`🔍 Searching annotations for highlight ID: ${id} in history with ${annotationHistory.length} entries`);
-  
+
   for (var annotation of annotationHistory) {
     // Ensure annotation is an array
     if (!Array.isArray(annotation)) {
       // console.warn('annotation is not an array:', annotation);
       continue;
     }
-    
+
     for (var property of annotation) {
       if (property && property.highlightID) {
         if (property.highlightID === id) {
@@ -471,12 +471,12 @@ async function getHighlightAnnotations(id) {
       }
     }
   }
-  
+
   // Removed excessive logging
   // if (annotations.length === 0) {
   //   console.log(`❌ No annotations found for highlight ${id}`);
   // }
-  
+
   return annotations;
 }
 
@@ -513,7 +513,7 @@ async function getResolvedCompanyEmail() {
   const sharedCompanyEmail = localStorage.getItem("sharedCompanyEmail");
   const sharedProjectId = localStorage.getItem("sharedProjectId");
   const currentProject = getCurrentProject();
-  
+
   // Only use sharedCompanyEmail if the current project matches the stored shared project
   // DON'T clear localStorage here - let ChatSidebar manage that when user explicitly changes projects
   if (sharedCompanyEmail && sharedProjectId && sharedProjectId === currentProject) {
@@ -525,7 +525,7 @@ async function getResolvedCompanyEmail() {
     // Only log warning in debug mode to reduce console noise
     // console.log("[getResolvedCompanyEmail] Project mismatch - sharedProjectId:", sharedProjectId, "currentProject:", currentProject, "- using user's own company");
   }
-  
+
   // Try local cache for user's own company
   let companyEmail = getMainCompanyEmail();
   if (companyEmail) {
@@ -542,12 +542,12 @@ async function getResolvedCompanyEmail() {
     const emailKey = rawEmail.replace('.', ',');
     const mapped = await getFirebaseData(`emailToCompanyDirectory/${emailKey}`);
     if (mapped) {
-      try { localStorage.setItem("companyEmail", mapped); } catch (_) {}
+      try { localStorage.setItem("companyEmail", mapped); } catch (_) { }
       setMainCompanyEmail(mapped);
       console.log("[getResolvedCompanyEmail] Fetched company from Firebase:", mapped, "for project:", currentProject);
       return mapped.replace(/\./g, ',');
     }
-  } catch (_) {}
+  } catch (_) { }
 
   console.log("[getResolvedCompanyEmail] No company email found!");
   return null;
@@ -564,34 +564,34 @@ async function getResolvedCompanyEmail() {
  */
 function positionElementInViewport(element, options = {}) {
   const { preferredLeft, preferredTop, referenceRect, position = 'fixed' } = options;
-  
+
   // Safety check: ensure element exists and is in the DOM
   if (!element || !element.parentNode && element !== document.body) {
     console.warn('positionElementInViewport: element not in DOM, skipping positioning');
     return;
   }
-  
+
   // Store original display state
   const originalDisplay = element.style.display;
   const originalVisibility = element.style.visibility;
-  
+
   // Ensure element is visible to get dimensions
   if (element.style.display === 'none') {
     element.style.display = 'block';
     element.style.visibility = 'hidden';
   }
-  
+
   // Get popup dimensions (force a reflow to ensure accurate measurements)
   // Wrap in try-catch to handle cases where element is being removed
   let popupRect;
   let popupWidth = 400; // Fallback width from CSS
   let popupHeight = 300; // Fallback height estimate
-  
+
   try {
     popupRect = element.getBoundingClientRect();
     popupWidth = popupRect.width || 400;
     popupHeight = popupRect.height || 300;
-    
+
     // Additional safety check: if dimensions are 0 and element should be visible, it might be detached
     if (popupWidth === 0 && popupHeight === 0 && element.style.display !== 'none') {
       // Element might be detached, use fallback dimensions
@@ -602,7 +602,7 @@ function positionElementInViewport(element, options = {}) {
     console.warn('positionElementInViewport: error getting element dimensions, using fallback', e);
     // Use fallback dimensions if getBoundingClientRect fails
   }
-  
+
   // Restore original visibility state if we changed it (only if element is still valid)
   try {
     if (originalDisplay === 'none' && element.parentNode) {
@@ -612,14 +612,14 @@ function positionElementInViewport(element, options = {}) {
   } catch (e) {
     console.warn('positionElementInViewport: error restoring visibility state', e);
   }
-  
+
   // Get viewport dimensions
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  
+
   // Calculate preferred position (prioritize preferredLeft/preferredTop if provided)
   let left, top;
-  
+
   if (preferredLeft !== undefined && preferredTop !== undefined) {
     // Use preferred positions as starting point (left edge of popup)
     left = preferredLeft;
@@ -633,24 +633,24 @@ function positionElementInViewport(element, options = {}) {
     left = (viewportWidth - popupWidth) / 2;
     top = (viewportHeight - popupHeight) / 2;
   }
-  
+
   // Ensure popup stays within viewport bounds
   const padding = 16; // Minimum padding from viewport edges
-  
+
   // Adjust horizontal position
   if (left < padding) {
     left = padding;
   } else if (left + popupWidth > viewportWidth - padding) {
     left = Math.max(padding, viewportWidth - popupWidth - padding);
   }
-  
+
   // Adjust vertical position - prioritize staying close to reference if provided
   if (top < padding) {
     // If too close to top, try to fit it below reference or at top
     if (referenceRect) {
       const spaceBelow = viewportHeight - referenceRect.bottom;
       const spaceAbove = referenceRect.top;
-      
+
       // Check which side has more space
       if (spaceBelow >= popupHeight + padding) {
         // Position below reference
@@ -678,12 +678,12 @@ function positionElementInViewport(element, options = {}) {
   } else if (top + popupHeight > viewportHeight - padding) {
     // If popup would be cut off at bottom
     const maxTop = viewportHeight - popupHeight - padding;
-    
+
     if (referenceRect) {
       // Try to position on the side with more space
       const spaceAbove = referenceRect.top;
       const spaceBelow = viewportHeight - referenceRect.bottom;
-      
+
       if (spaceAbove >= popupHeight + padding && spaceAbove > spaceBelow) {
         // Position above the reference element (if it fits better)
         top = referenceRect.top - popupHeight - 10;
@@ -706,7 +706,7 @@ function positionElementInViewport(element, options = {}) {
       top = Math.max(padding, maxTop);
     }
   }
-  
+
   // Apply positioning (only if element is still in DOM)
   try {
     if (element.parentNode || element === document.body) {
@@ -714,7 +714,7 @@ function positionElementInViewport(element, options = {}) {
       element.style.left = `${left}px`;
       element.style.top = `${top}px`;
       element.style.transform = 'none'; // Remove any transform that might interfere
-      
+
       // Restore display if we changed it
       if (originalDisplay === 'none') {
         element.style.display = 'block';
@@ -747,7 +747,7 @@ function getPhrazeHeaderBottomOffset() {
       const rect = el.getBoundingClientRect();
       if (rect && rect.bottom > 0) return rect.bottom;
     }
-  } catch (_) {}
+  } catch (_) { }
   return 0;
 }
 
@@ -756,7 +756,7 @@ function getPhrazeHighlightScrollContainer(container) {
     if (!container || typeof container.closest !== 'function') return null;
     const chat = container.closest('#chatMessagesDiv');
     if (chat) return chat;
-  } catch (_) {}
+  } catch (_) { }
   return null;
 }
 
@@ -784,20 +784,20 @@ function phrazeSetKeepPopupOpen(highlightId) {
 function phrazeClearKeepPopupOpen(highlightId) {
   try {
     if (window.phrazeKeepPopupOpenIds) window.phrazeKeepPopupOpenIds.delete(phrazeNormalizeHighlightId(highlightId));
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function phrazeSetPermanentlyClosed(highlightId, popupEl = null) {
   const set = phrazeEnsureGlobalSet('phrazePermanentlyClosedPopups');
   if (set) set.add(phrazeNormalizeHighlightId(highlightId));
-  try { if (popupEl && popupEl.dataset) popupEl.dataset.permanentlyClosed = 'true'; } catch (_) {}
+  try { if (popupEl && popupEl.dataset) popupEl.dataset.permanentlyClosed = 'true'; } catch (_) { }
 }
 
-function phrazeClearPermanentlyClosed(highlightId, popupEl = null) {
+export function phrazeClearPermanentlyClosed(highlightId, popupEl = null) {
   try {
     if (window.phrazePermanentlyClosedPopups) window.phrazePermanentlyClosedPopups.delete(phrazeNormalizeHighlightId(highlightId));
-  } catch (_) {}
-  try { if (popupEl && popupEl.dataset) popupEl.dataset.permanentlyClosed = 'false'; } catch (_) {}
+  } catch (_) { }
+  try { if (popupEl && popupEl.dataset) popupEl.dataset.permanentlyClosed = 'false'; } catch (_) { }
 }
 
 function phrazeRemoveFromActiveIds(highlightId) {
@@ -805,7 +805,7 @@ function phrazeRemoveFromActiveIds(highlightId) {
     if (!window.phrazeActiveAnnotationCardIds) return;
     const idx = window.phrazeActiveAnnotationCardIds.indexOf(phrazeNormalizeHighlightId(highlightId));
     if (idx > -1) window.phrazeActiveAnnotationCardIds.splice(idx, 1);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function phrazeHidePopupElement(popupEl) {
@@ -815,7 +815,7 @@ function phrazeHidePopupElement(popupEl) {
     if (typeof popupEl._phrazeResetLabelsDropdown === 'function') {
       popupEl._phrazeResetLabelsDropdown();
     }
-  } catch (_) {}
+  } catch (_) { }
   popupEl.style.display = 'none';
   popupEl.style.visibility = 'hidden';
   popupEl.style.opacity = '0';
@@ -828,11 +828,11 @@ export function phrazeHideAnyOtherPopups(exceptPopupEl = null) {
     popups.forEach(p => {
       if (!p || p === exceptPopupEl) return;
       if (p.style.display === 'none') return;
-      try { p.classList.remove('sticky'); } catch (_) {}
-      try { p.classList.remove('active'); } catch (_) {}
+      try { p.classList.remove('sticky'); } catch (_) { }
+      try { p.classList.remove('active'); } catch (_) { }
       phrazeHidePopupElement(p);
     });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 export function phrazeShowPopupElement(popupEl) {
@@ -841,7 +841,7 @@ export function phrazeShowPopupElement(popupEl) {
   popupEl.style.visibility = 'visible';
   popupEl.style.opacity = '1';
   popupEl.style.pointerEvents = 'auto';
-  try { popupEl.setAttribute('aria-hidden', 'false'); } catch (_) {}
+  try { popupEl.setAttribute('aria-hidden', 'false'); } catch (_) { }
 }
 
 export async function phrazeHydrateAnnotationPopupFromStorage(popupEl, highlight, opts = {}) {
@@ -850,13 +850,13 @@ export async function phrazeHydrateAnnotationPopupFromStorage(popupEl, highlight
     if (popupEl && typeof popupEl._phrazeResetNotesUI === 'function') {
       popupEl._phrazeResetNotesUI();
     }
-  } catch (_) {}
+  } catch (_) { }
 
   try {
     if (popupEl && typeof popupEl._phrazeUpdateHeaderTitle === 'function') {
       popupEl._phrazeUpdateHeaderTitle();
     }
-  } catch (_) {}
+  } catch (_) { }
 
   try {
     const selectedLabelsContainer = popupEl.querySelector('.selected-labels-container');
@@ -887,13 +887,13 @@ export async function phrazeHydrateAnnotationPopupFromStorage(popupEl, highlight
     if (popupEl && typeof popupEl._phrazeResetNotesUI === 'function') {
       popupEl._phrazeResetNotesUI();
     }
-  } catch (_) {}
+  } catch (_) { }
 
   try {
     if (popupEl && typeof popupEl._phrazeUpdateHeaderTitle === 'function') {
       popupEl._phrazeUpdateHeaderTitle();
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function setPinnedCardPlacement(annotationCard, container, anchorRect, cardRect, yOffset = 0) {
@@ -910,7 +910,7 @@ function setPinnedCardPlacement(annotationCard, container, anchorRect, cardRect,
     const aboveTop = anchorRect.top - cardRect.height - spacing + yOffset;
     const placement = aboveTop < minTopPadding ? 'below' : 'above';
     annotationCard.dataset.pinnedPlacement = placement;
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function rectsOverlap(a, b) {
@@ -969,7 +969,7 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
         return;
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const highlightId = container.dataset && container.dataset.highlightId ? container.dataset.highlightId : (mark.dataset ? mark.dataset.highlightId : null);
   let anchorRect = null;
@@ -1148,14 +1148,14 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
       if (annotationCard.parentNode !== scrollContainer) {
         try {
           scrollContainer.appendChild(annotationCard);
-        } catch (_) {}
+        } catch (_) { }
       }
       try {
         const cs = window.getComputedStyle(scrollContainer);
         if (cs.position === 'static') {
           scrollContainer.style.position = 'relative';
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const clampPinned = (l, t) => {
         const sr = scrollContainer;
@@ -1182,7 +1182,7 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
           annotationCard._phrazePinnedStaticPos = { container: scrollContainer, left: clamped.left, top: clamped.top };
           return;
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // Apply one-time freeze captured at pin-time.
       try {
@@ -1194,7 +1194,7 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
           annotationCard._phrazePinFreeze = null;
           return;
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // Fallback: convert the computed viewport position to scroll-container coordinates once.
       const containerRect = scrollContainer.getBoundingClientRect();
@@ -1216,7 +1216,7 @@ function updateFloaterPosition(annotationCard, container, yOffset = 0) {
       annotationCard.style.top = `${localTop}px`;
       try {
         annotationCard._phrazePinnedStaticPos = { container: scrollContainer, left: localLeft, top: localTop };
-      } catch (_) {}
+      } catch (_) { }
     } else {
       // Fallback: position relative to the document.
       const docLeft = left + window.scrollX;
@@ -1246,7 +1246,7 @@ function scheduleHoverFreezePositionUpdate(annotationCard, container, yOffset = 
   // Clear any prior freeze and compute a fresh position once.
   try {
     annotationCard._phrazeHoverFreeze = null;
-  } catch (_) {}
+  } catch (_) { }
 
   scheduleFloaterPositionUpdate(annotationCard, container, yOffset);
 
@@ -1261,7 +1261,7 @@ function scheduleHoverFreezePositionUpdate(annotationCard, container, yOffset = 
       if (Number.isFinite(left) && Number.isFinite(top)) {
         annotationCard._phrazeHoverFreeze = { container, left, top };
       }
-    } catch (_) {}
+    } catch (_) { }
   });
 }
 
@@ -1277,16 +1277,16 @@ async function deleteHighlightFromStorage(id) {
   const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
   const isOwner = currentUserRole === 'owner';
   const canDeleteAnnotations = isOwner || (annotationPerms && annotationPerms.deleteAnnotations === true);
-    
+
   if (!canDeleteAnnotations && currentUserRole !== 'viewer') {
-      if (typeof showToast === 'function') {
+    if (typeof showToast === 'function') {
       showToast('You do not have permission to delete annotations', 'error');
     } else if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
       window.showToast('You do not have permission to delete annotations', 'error');
-      }
+    }
     throw new Error('Permission denied: You do not have permission to delete annotations');
   }
-  
+
   // First delete the highlight
   const highlights_data = await loadFunc("highlights");
   // Filter out the highlight to delete
@@ -1386,12 +1386,12 @@ async function addNoteToStorage(id, noteText) {
   const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
   const isOwner = currentUserRole === 'owner';
   const canCreateAnnotations = isOwner || (annotationPerms && annotationPerms.createAnnotations === true);
-  
+
   if (!canCreateAnnotations && currentUserRole !== 'viewer') {
     // Only check for non-viewers (viewers are already blocked elsewhere)
     throw new Error('Permission denied: You do not have permission to create/modify annotations');
   }
-  
+
   if (await isUserLoggedIn()) {
     // --- Firebase Logic ---
     const highlights_data = await loadFunc();
@@ -1433,7 +1433,7 @@ async function addNoteToStorage(id, noteText) {
           }
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
   } else {
     // --- Local Storage Logic --- 
@@ -1472,12 +1472,12 @@ async function removeNoteFromStorage(id, noteText) {
   const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
   const isOwner = currentUserRole === 'owner';
   const canCreateAnnotations = isOwner || (annotationPerms && annotationPerms.createAnnotations === true);
-  
+
   if (!canCreateAnnotations && currentUserRole !== 'viewer') {
     // Only check for non-viewers (viewers are already blocked elsewhere)
     throw new Error('Permission denied: You do not have permission to create/modify annotations');
   }
-  
+
   const url = sanitizeFirebasePath(window.location.href);
 
   if (await isUserLoggedIn()) {
@@ -1522,7 +1522,7 @@ async function removeNoteFromStorage(id, noteText) {
           }
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
   } else {
     // --- Local Storage Logic --- 
@@ -1587,10 +1587,10 @@ function getHighlightedTextNodeRanges() {
         var child = child2;
         if (isNodeAHighlight(child) && child.childNodes && child.childNodes.length > 0)
           child = child.childNodes[0]; //Redirect to mark element in highlight span
-        
+
         // Skip if child is undefined or null
         if (!child) continue;
-        
+
         // Direct text nodes
         if (
           isNodeAHighlight(child) &&
@@ -1598,16 +1598,16 @@ function getHighlightedTextNodeRanges() {
         ) {
           lastWasPhrazeHighlight = true;
           if (child.childNodes) {
-          for (let textNode of child.childNodes) {
+            for (let textNode of child.childNodes) {
               if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-            const subRange = range.cloneRange();
-            subRange.selectNodeContents(textNode);
-            if (textNode === range.startContainer) subRange.setStart(textNode, range.startOffset);
-            if (textNode === range.endContainer) subRange.setEnd(textNode, range.endOffset);
-            if (currentLength > 0 && collectedText.length > 0)
-              collectedText[collectedText.length - 1][2] += subRange.toString().length;
-            else
-              collectedText.push([currentTextNodeIndex, currentLength + subRange.startOffset, currentLength + subRange.endOffset]);
+                const subRange = range.cloneRange();
+                subRange.selectNodeContents(textNode);
+                if (textNode === range.startContainer) subRange.setStart(textNode, range.startOffset);
+                if (textNode === range.endContainer) subRange.setEnd(textNode, range.endOffset);
+                if (currentLength > 0 && collectedText.length > 0)
+                  collectedText[collectedText.length - 1][2] += subRange.toString().length;
+                else
+                  collectedText.push([currentTextNodeIndex, currentLength + subRange.startOffset, currentLength + subRange.endOffset]);
               }
             }
           }
@@ -1709,14 +1709,14 @@ async function hydrateDefaultHighlightColorFromFirebase() {
       try {
         localStorage.setItem('phrazeLastHighlightColorHex', remote.hex);
         localStorage.setItem('phrazeLastHighlightColorName', remote.name || 'yellow');
-      } catch (_) {}
+      } catch (_) { }
     }
   } catch (_) { /* ignore */ }
   defaultColorHydrated = true;
 }
 
 // Kick off hydration as soon as possible (but it will check for auth first)
-(async () => { try { await hydrateDefaultHighlightColorFromFirebase(); } catch (_) {} })();
+(async () => { try { await hydrateDefaultHighlightColorFromFirebase(); } catch (_) { } })();
 
 
 function applyHighlightColorToMarks(highlightId, colorHex) {
@@ -1761,9 +1761,9 @@ function bindPhrazeHighlightColorChangeListener() {
         if (updated) {
           await saveFunc(highlights);
         }
-      } catch (_) {}
+      } catch (_) { }
     });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 export async function saveHighlight(chatID = null) {
@@ -1776,26 +1776,26 @@ export async function saveHighlight(chatID = null) {
     }
     return;
   }
-  
+
   // Removed excessive logging
   // console.log("Saving highlight", window.location.href);
-  
+
   // If chatID not provided, try to get it from localStorage
   if (!chatID) {
     try {
       chatID = localStorage.getItem('phraze_currentChatId') || null;
-    } catch (_) {}
+    } catch (_) { }
   }
-  
+
   // console.log("Chat ID", chatID);
   var collectedRanges = getHighlightedTextNodeRanges();
   var globalHighlightID = getGlobalHighlightID();
   const highlightIdStr = String(globalHighlightID);
   const { hex: defaultHex, name: defaultName } = getDefaultHighlightColor();
-  
+
   // Use getResolvedCompanyEmail to support shared projects
   const resolvedCompanyEmail = await getResolvedCompanyEmail();
-  
+
   var highlight = {
     id: highlightIdStr,
     userEmail: getUserEmail(),
@@ -1832,13 +1832,13 @@ export async function saveHighlight(chatID = null) {
   // Keep the annotation popup open for this new highlight until user closes or saves annotation
   try {
     phrazeSetKeepPopupOpen(highlightIdStr);
-  } catch (_) {}
-  
+  } catch (_) { }
+
   // Ensure this new highlight is NOT in the permanently closed set
   if (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlightIdStr)) {
     phrazeClearPermanentlyClosed(highlightIdStr);
   }
-  
+
   // Load highlights to render the new highlight and show the annotation popup
   await loadHighlights(false, highlightIdStr);
 }
@@ -1846,29 +1846,29 @@ export async function saveHighlight(chatID = null) {
 export function clearHighlights() {
   // Removed excessive logging
   // console.log("unified clearing highlights");
-  
+
   // Store active annotation card IDs AND visible popup IDs before clearing
   const activeCardIds = [];
-  
+
   // Capture visible popups/cards (so loadHighlights can restore them after refresh)
   const visiblePopups = document.querySelectorAll('.annotation-popup[data-highlight-id]');
   visiblePopups.forEach(popup => {
     const highlightId = popup.dataset.highlightId;
     const isPermanentlyClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlightId)) ||
-                               popup.dataset.permanentlyClosed === 'true';
+      popup.dataset.permanentlyClosed === 'true';
     if (highlightId && popup.style.display !== 'none' && !isPermanentlyClosed) {
       if (!activeCardIds.includes(highlightId)) activeCardIds.push(highlightId);
     }
   });
-  
+
   // Check for visible annotation popups (display is not 'none')
   // BUT skip popups that are permanently closed
   const annotationPopups = document.querySelectorAll('.annotation-popup[data-highlight-id]');
   annotationPopups.forEach(popup => {
     const highlightId = popup.dataset.highlightId;
-    const isPermanentlyClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlightId)) || 
-                               popup.dataset.permanentlyClosed === 'true';
-    
+    const isPermanentlyClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlightId)) ||
+      popup.dataset.permanentlyClosed === 'true';
+
     if (highlightId && popup.style.display !== 'none' && !isPermanentlyClosed) {
       // Add to active list if not already there
       if (!activeCardIds.includes(highlightId)) {
@@ -1876,10 +1876,10 @@ export function clearHighlights() {
       }
     }
   });
-  
+
   // Store the active IDs globally so loadHighlights can access them
   window.phrazeActiveAnnotationCardIds = activeCardIds;
-  
+
   const marks = document.querySelectorAll('.phraze-highlight-container');
   marks.forEach(mark => {
     const parent = mark.parentNode;
@@ -1911,16 +1911,16 @@ async function handleAnnotationDeletions(highlightedText, highlightId, selectedL
     if (!Array.isArray(annotationHistory) || annotationHistory.length === 0) {
       return; // No existing annotations, nothing to delete
     }
-    
+
     const url = window.location.href;
     let updated = false;
     let hasDeletions = false; // Track if we actually need to delete anything
-    
+
     // First pass: Check if there are any deletions needed
     for (let i = annotationHistory.length - 1; i >= 0; i--) {
       const entry = annotationHistory[i];
       if (!Array.isArray(entry)) continue;
-      
+
       // Extract annotation data
       const entryUserText = entry.find(item => item.userText)?.userText || '';
       const entryKey = entry.find(item => item.key)?.key || '';
@@ -1929,17 +1929,17 @@ async function handleAnnotationDeletions(highlightedText, highlightId, selectedL
       const entryHighlightId = entry.find(item => item.highlightID)?.highlightID || '';
       const optionsObj = entry.find(item => item.options);
       const entryOptions = optionsObj?.options || [];
-      
+
       // Only process annotations for this highlight
       if (entryUserText !== highlightedText || entryUrl !== url || entryHighlightId !== highlightId) {
         continue;
       }
-      
+
       if (entryType.toLowerCase() === 'label') {
         // Check if this label type exists in selectedLabels
         const selectedForType = selectedLabels.filter(l => l.type === entryKey);
         const selectedValues = selectedForType.map(l => l.value);
-        
+
         if (selectedValues.length === 0) {
           // All labels of this type were removed - deletion needed
           hasDeletions = true;
@@ -1956,31 +1956,31 @@ async function handleAnnotationDeletions(highlightedText, highlightId, selectedL
         // Similar logic for codes if needed
       }
     }
-    
+
     // Only check delete permission if we actually need to delete something
     if (hasDeletions) {
-  const userEmail = getUserEmailDotFormat();
-  const companyEmail = await getResolvedCompanyEmail();
-  const projectId = getCurrentProject();
-  
-  if (userEmail && companyEmail && projectId) {
-    const companyEmailDotFormat = companyEmail.replace(/,/g, '.');
-    const hasDeletePermission = await hasPermission(userEmail, companyEmailDotFormat, projectId, 'deleteAnnotations');
-    
-    if (!hasDeletePermission) {
-      if (typeof showToast === 'function') {
-        showToast('You do not have permission to delete annotations in this project', 'error');
+      const userEmail = getUserEmailDotFormat();
+      const companyEmail = await getResolvedCompanyEmail();
+      const projectId = getCurrentProject();
+
+      if (userEmail && companyEmail && projectId) {
+        const companyEmailDotFormat = companyEmail.replace(/,/g, '.');
+        const hasDeletePermission = await hasPermission(userEmail, companyEmailDotFormat, projectId, 'deleteAnnotations');
+
+        if (!hasDeletePermission) {
+          if (typeof showToast === 'function') {
+            showToast('You do not have permission to delete annotations in this project', 'error');
+          }
+          return; // Exit early if permission denied
+        }
       }
-      return; // Exit early if permission denied
     }
-  }
-    }
-    
+
     // Second pass: Actually perform deletions (only if we have permission or no deletions needed)
     for (let i = annotationHistory.length - 1; i >= 0; i--) {
       const entry = annotationHistory[i];
       if (!Array.isArray(entry)) continue;
-      
+
       // Extract annotation data
       const entryUserText = entry.find(item => item.userText)?.userText || '';
       const entryKey = entry.find(item => item.key)?.key || '';
@@ -1989,17 +1989,17 @@ async function handleAnnotationDeletions(highlightedText, highlightId, selectedL
       const entryHighlightId = entry.find(item => item.highlightID)?.highlightID || '';
       const optionsObj = entry.find(item => item.options);
       const entryOptions = optionsObj?.options || [];
-      
+
       // Only process annotations for this highlight
       if (entryUserText !== highlightedText || entryUrl !== url || entryHighlightId !== highlightId) {
         continue;
       }
-      
+
       if (entryType.toLowerCase() === 'label') {
         // Check if this label type exists in selectedLabels
         const selectedForType = selectedLabels.filter(l => l.type === entryKey);
         const selectedValues = selectedForType.map(l => l.value);
-        
+
         if (selectedValues.length === 0) {
           // All labels of this type were removed - delete the entire annotation entry
           annotationHistory.splice(i, 1);
@@ -2017,7 +2017,7 @@ async function handleAnnotationDeletions(highlightedText, highlightId, selectedL
         // Similar logic for codes if needed
       }
     }
-    
+
     // Save updated annotation history if changes were made
     if (updated) {
       try {
@@ -2037,7 +2037,7 @@ async function handleAnnotationDeletions(highlightedText, highlightId, selectedL
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { }
       const annotationKey = "annotationHistory";
       const annotationHistoryString = JSON.stringify(annotationHistory);
       await callSetItem(annotationKey, annotationHistoryString);
@@ -2062,11 +2062,11 @@ async function deleteSingleAnnotationOption(highlightedText, highlightId, key, v
   const userEmail = getUserEmailDotFormat();
   const companyEmail = await getResolvedCompanyEmail();
   const projectId = getCurrentProject();
-  
+
   if (userEmail && companyEmail && projectId) {
     const companyEmailDotFormat = companyEmail.replace(/,/g, '.');
     const hasDeletePermission = await hasPermission(userEmail, companyEmailDotFormat, projectId, 'deleteAnnotations');
-    
+
     if (!hasDeletePermission) {
       if (typeof showToast === 'function') {
         showToast('You do not have permission to delete annotations in this project', 'error');
@@ -2074,21 +2074,21 @@ async function deleteSingleAnnotationOption(highlightedText, highlightId, key, v
       return; // Exit early if permission denied
     }
   }
-  
+
   try {
     const annotationHistory = await getAnnotationHistory();
     if (!Array.isArray(annotationHistory) || annotationHistory.length === 0) {
       return;
     }
-    
+
     const url = window.location.href;
     let updated = false;
-    
+
     // Find and update the annotation entry
     for (let i = 0; i < annotationHistory.length; i++) {
       const entry = annotationHistory[i];
       if (!Array.isArray(entry)) continue;
-      
+
       // Extract annotation data
       const entryUserText = entry.find(item => item.userText)?.userText || '';
       const entryKey = entry.find(item => item.key)?.key || '';
@@ -2097,21 +2097,21 @@ async function deleteSingleAnnotationOption(highlightedText, highlightId, key, v
       const entryHighlightId = entry.find(item => item.highlightID)?.highlightID || '';
       const optionsObj = entry.find(item => item.options);
       const entryOptions = optionsObj?.options || [];
-      
+
       // Check if this is the annotation we want to modify
-      if (entryUserText === highlightedText && 
-          entryUrl === url && 
-          entryHighlightId === highlightId &&
-          entryKey === key &&
-          entryType.toLowerCase() === type.toLowerCase() &&
-          entryOptions.includes(value)) {
-        
+      if (entryUserText === highlightedText &&
+        entryUrl === url &&
+        entryHighlightId === highlightId &&
+        entryKey === key &&
+        entryType.toLowerCase() === type.toLowerCase() &&
+        entryOptions.includes(value)) {
+
         // Remove the specific option
         const optionIndex = entryOptions.indexOf(value);
         if (optionIndex > -1) {
           entryOptions.splice(optionIndex, 1);
           updated = true;
-          
+
           // If no options remain, delete the entire annotation entry
           if (entryOptions.length === 0) {
             annotationHistory.splice(i, 1);
@@ -2120,7 +2120,7 @@ async function deleteSingleAnnotationOption(highlightedText, highlightId, key, v
         break; // Found and updated, no need to continue
       }
     }
-    
+
     // Save updated annotation history if changes were made
     if (updated) {
       try {
@@ -2141,13 +2141,13 @@ async function deleteSingleAnnotationOption(highlightedText, highlightId, key, v
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { }
       const annotationKey = "annotationHistory";
       const annotationHistoryString = JSON.stringify(annotationHistory);
       await callSetItem(annotationKey, annotationHistoryString);
       console.log(`Deleted ${type} option: ${key}: ${value}`);
       document.dispatchEvent(new Event('annotationUpdated'));
-      
+
       // Refresh the annotations map
       await refreshAnnotationsMap();
     }
@@ -2176,7 +2176,7 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
   if (richTextDiv) {
     richTextDiv.innerHTML = '';
   }
-  
+
   const isRegion = Boolean(highlight && highlight._phrazeAnnotationSource === 'region');
   const regionId = isRegion ? String(highlight._phrazeRegionId || highlight.id || '') : '';
 
@@ -2191,9 +2191,9 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
           const type = labelObj && labelObj.type ? String(labelObj.type) : '';
           const value = labelObj && labelObj.value ? String(labelObj.value) : '';
           if (type && value) addSelectedLabel(value, type, selectedLabelsContainer, false);
-        } catch (_) {}
+        } catch (_) { }
       });
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // Highlight-backed labels
@@ -2205,7 +2205,7 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
         const type = annotation.find(item => item.type)?.type || '';
         const key = annotation.find(item => item.key)?.key || '';
         const options = annotation.find(item => item.options)?.options || [];
-        
+
         if (type.toLowerCase() === "label" && selectedLabelsContainer) {
           options.forEach(option => {
             // Add as pill with format "Key: Value"
@@ -2215,7 +2215,7 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
       }
     }
   }
-  
+
   // Load notes from highlight.notes array
   if (!isRegion && highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0) {
     // Reload highlight from storage to get latest notes
@@ -2226,7 +2226,7 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
         // Separate text notes from canvas images
         const textNotes = [];
         const canvasNotes = [];
-        
+
         updatedHighlight.notes.forEach(note => {
           if (note.includes('data:image/')) {
             canvasNotes.push(note);
@@ -2234,14 +2234,14 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
             textNotes.push(note);
           }
         });
-        
+
         // Do NOT pre-fill the rich text editor with existing notes.
         // We want the editor to always start empty when the popup opens,
         // so users can add a fresh note instead of editing old ones.
         if (richTextDiv) {
           richTextDiv.innerHTML = '';
         }
-        
+
         // Load canvas image into canvas (load the most recent one)
         if (canvasNotes.length > 0 && canvas) {
           const lastCanvasNote = canvasNotes[canvasNotes.length - 1];
@@ -2267,7 +2267,7 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
         // Separate text and canvas notes
         const textNotes = [];
         const canvasNotes = [];
-        
+
         highlight.notes.forEach(note => {
           if (note.includes('data:image/')) {
             canvasNotes.push(note);
@@ -2275,13 +2275,13 @@ async function loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContain
             textNotes.push(note);
           }
         });
-        
+
         // Do NOT pre-fill the rich text editor with existing notes.
         // We want the editor to always start empty when the popup opens.
         if (richTextDiv) {
           richTextDiv.innerHTML = '';
         }
-        
+
         // Load canvas
         if (canvasNotes.length > 0 && canvas) {
           const lastCanvasNote = canvasNotes[canvasNotes.length - 1];
@@ -2313,7 +2313,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         highlight._phrazeRegionId = String(opts.regionId || highlight.id || '');
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // Create the unified annotation popup (single interface, no separate card)
   const annotationPopup = document.createElement('div');
@@ -2325,7 +2325,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   try {
     annotationPopup.dataset.annotationType = annotationSource;
     if (annotationSource === 'region') annotationPopup.dataset.regionId = String(opts.regionId || highlight.id || '');
-  } catch (_) {}
+  } catch (_) { }
 
   // Interaction guard for hover-previews:
   // when user is scrolling/clicking inside the popup (esp. labels dropdown), do not allow hover-close timers to hide it.
@@ -2335,12 +2335,12 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   const phrazeMarkInteracting = (ms = 800) => {
     try {
       annotationPopup._phrazePreventHoverCloseUntil = Date.now() + ms;
-    } catch (_) {}
+    } catch (_) { }
   };
   const phrazeIgnoreScrollHideBriefly = (ms = 250) => {
     try {
       annotationPopup._phrazeIgnoreScrollHideUntil = Date.now() + ms;
-    } catch (_) {}
+    } catch (_) { }
   };
   annotationPopup.addEventListener('pointerdown', () => phrazeMarkInteracting(1200), true);
   annotationPopup.addEventListener('focusin', () => phrazeMarkInteracting(1500), true);
@@ -2358,14 +2358,14 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         if (canScroll) {
           return; // allow dropdown scrolling
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     // Otherwise, prevent the underlying container from scrolling while hovering the popup.
     phrazeIgnoreScrollHideBriefly(250);
-    try { e.preventDefault(); } catch (_) {}
-    try { e.stopPropagation(); } catch (_) {}
+    try { e.preventDefault(); } catch (_) { }
+    try { e.stopPropagation(); } catch (_) { }
   }, { capture: true, passive: false });
-  
+
   // Check if this popup should be permanently closed from the start
   if (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id)) {
     annotationPopup.dataset.permanentlyClosed = 'true';
@@ -2384,21 +2384,21 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation(); // Prevent other handlers from firing
-    
+
     // Close (do NOT permanently close; allow hover/click to reopen)
     phrazeClearPermanentlyClosed(highlight.id, annotationPopup);
     phrazeClearKeepPopupOpen(highlight.id);
-    
+
     // Close popup
     phrazeHidePopupElement(annotationPopup);
-    
+
     // Enable hover behavior on the container span after popup closes
     if (window.phrazeEnableHoverForHighlightId && window.phrazeEnableHoverForHighlightId[highlight.id]) {
       window.phrazeEnableHoverForHighlightId[highlight.id]();
     } else if (containerSpan._enableHover) {
       containerSpan._enableHover();
     }
-    
+
     // Remove this highlight ID from the active list to prevent reopening
     phrazeRemoveFromActiveIds(highlight.id);
   });
@@ -2406,7 +2406,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   // Create header section - simplified Zotero-style
   const headerSection = document.createElement('div');
   headerSection.className = 'modal-header';
-  
+
   const headerText = document.createElement('span');
   headerText.className = 'modal-title';
 
@@ -2420,8 +2420,8 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       }
       const hasLabels = Boolean(
         window.highlightsToAnnotationsMap &&
-          window.highlightsToAnnotationsMap[highlight.id] &&
-          window.highlightsToAnnotationsMap[highlight.id].length > 0
+        window.highlightsToAnnotationsMap[highlight.id] &&
+        window.highlightsToAnnotationsMap[highlight.id].length > 0
       );
       const hasNotes = Boolean(Array.isArray(highlight.notes) && highlight.notes.length > 0);
       return hasLabels || hasNotes;
@@ -2433,12 +2433,12 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   const updateHeaderTitle = () => {
     try {
       headerText.textContent = hasExistingAnnotations() ? 'Update Annotations' : 'Add Annotations';
-    } catch (_) {}
+    } catch (_) { }
   };
 
   annotationPopup._phrazeUpdateHeaderTitle = updateHeaderTitle;
   updateHeaderTitle();
-  
+
   headerSection.appendChild(headerText);
   // Put the close button INSIDE the header (prevents duplicate X / weird absolute positioning)
   headerSection.appendChild(closeButton);
@@ -2451,38 +2451,38 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
 
   // Always create labels section for all highlights (enables editing)
   let selectedLabelsContainer = null;
-  
+
   // Create labels section for all highlights
   {
     // Removed excessive logging
     // console.log('Creating labels section for highlight');
     const popupLabelsSection = document.createElement('div');
     popupLabelsSection.className = 'labels-section';
-    
+
     const labelsHeader = document.createElement('div');
     labelsHeader.className = 'labels-header';
     labelsHeader.textContent = 'Labels:';
     popupLabelsSection.appendChild(labelsHeader);
-    
+
     const labelsToggleBtn = document.createElement('button');
     labelsToggleBtn.className = 'labels-toggle-btn';
     labelsToggleBtn.innerHTML = 'Add Label <span>&#9662;</span>';
     popupLabelsSection.appendChild(labelsToggleBtn);
-    
+
     const labelsDropdown = document.createElement('div');
     labelsDropdown.className = 'labels-dropdown';
     labelsDropdown.style.display = 'none';
 
     // Helper to reset dropdown UI state so it doesn't persist across open/close cycles.
     annotationPopup._phrazeResetLabelsDropdown = () => {
-      try { labelsDropdown.style.display = 'none'; } catch (_) {}
-      try { labelsDropdown.style.left = ''; } catch (_) {}
-      try { labelsDropdown.style.right = ''; } catch (_) {}
-      try { labelsDropdown.style.top = ''; } catch (_) {}
-      try { annotationPopup._phrazeLabelsDropdownOpen = false; } catch (_) {}
-      try { labelsToggleBtn.innerHTML = 'Add Label <span>&#9662;</span>'; } catch (_) {}
+      try { labelsDropdown.style.display = 'none'; } catch (_) { }
+      try { labelsDropdown.style.left = ''; } catch (_) { }
+      try { labelsDropdown.style.right = ''; } catch (_) { }
+      try { labelsDropdown.style.top = ''; } catch (_) { }
+      try { annotationPopup._phrazeLabelsDropdownOpen = false; } catch (_) { }
+      try { labelsToggleBtn.innerHTML = 'Add Label <span>&#9662;</span>'; } catch (_) { }
     };
-    
+
     // Populate dropdown with labels from labelMap (top 4 categories only)
     const labelMap = {
       Sentiment: ['Positive', 'Neutral', 'Negative'],
@@ -2490,13 +2490,13 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       Intent: ['Question', 'Statement', 'Request', 'Feedback'],
       Emotion: ['Happy', 'Frustrated', 'Confused', 'Satisfied']
     };
-    
+
     Object.entries(labelMap).forEach(([labelType, options]) => {
       const labelTypeDiv = document.createElement('div');
       labelTypeDiv.className = 'label-type-header';
       labelTypeDiv.textContent = labelType;
       labelsDropdown.appendChild(labelTypeDiv);
-      
+
       options.forEach(option => {
         const optionDiv = document.createElement('div');
         optionDiv.className = 'label-option';
@@ -2512,35 +2512,35 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         labelsDropdown.appendChild(optionDiv);
       });
     });
-    
+
     // Add "Create Custom Label" option at the bottom - only for owners/editors
     const currentUserRole = typeof window !== 'undefined' ? window.currentUserRole : null;
     const isOwnerOrEditor = currentUserRole === 'owner' || currentUserRole === 'editor';
-    
+
     if (isOwnerOrEditor) {
-    const createCustomLabelDiv = document.createElement('div');
-    createCustomLabelDiv.className = 'create-custom-option';
-    createCustomLabelDiv.textContent = 'Create new label';
-    createCustomLabelDiv.style.padding = '8px 12px';
-    createCustomLabelDiv.style.cursor = 'pointer';
-    createCustomLabelDiv.style.borderTop = '1px solid #e5e7eb';
-    createCustomLabelDiv.style.color = '#6b7280';
-    createCustomLabelDiv.addEventListener('click', () => {
-      showCreateCustomModal('label', labelsDropdown, selectedLabelsContainer, labelsToggleBtn);
-    });
-    labelsDropdown.appendChild(createCustomLabelDiv);
+      const createCustomLabelDiv = document.createElement('div');
+      createCustomLabelDiv.className = 'create-custom-option';
+      createCustomLabelDiv.textContent = 'Create new label';
+      createCustomLabelDiv.style.padding = '8px 12px';
+      createCustomLabelDiv.style.cursor = 'pointer';
+      createCustomLabelDiv.style.borderTop = '1px solid #e5e7eb';
+      createCustomLabelDiv.style.color = '#6b7280';
+      createCustomLabelDiv.addEventListener('click', () => {
+        showCreateCustomModal('label', labelsDropdown, selectedLabelsContainer, labelsToggleBtn);
+      });
+      labelsDropdown.appendChild(createCustomLabelDiv);
     }
-    
+
     popupLabelsSection.appendChild(labelsDropdown);
-    
+
     // Selected labels container
     selectedLabelsContainer = document.createElement('div');
     selectedLabelsContainer.className = 'selected-labels-container';
     popupLabelsSection.appendChild(selectedLabelsContainer);
-    
+
     // Load and add custom labels after container is created
     await loadCustomLabelsIntoDropdown(labelsDropdown, selectedLabelsContainer, labelsToggleBtn);
-    
+
     // Toggle dropdown
     labelsToggleBtn.addEventListener('click', () => {
       const isVisible = labelsDropdown.style.display !== 'none';
@@ -2573,10 +2573,10 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
             labelsDropdown.style.left = `calc(100% + ${gap}px)`;
             labelsDropdown.style.top = `${yOffset}px`;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
     });
-    
+
     // Global (single) outside-click handler to close any open labels dropdowns.
     // Avoids registering one `document.click` listener per highlight/popup (memory/perf leak).
     if (typeof window !== 'undefined' && !window._phrazeLabelsDropdownOutsideClickBound) {
@@ -2593,28 +2593,28 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
             if (labelsSection && labelsSection.contains(e.target)) return; // click inside labels area
             popup._phrazeResetLabelsDropdown();
           });
-        } catch (_) {}
+        } catch (_) { }
       }, true);
     }
-    
+
     // Prevent scroll chaining: when user scrolls the dropdown, NEVER let the chat/page scroll,
     // otherwise the hover-preview scroll handler will hide the card.
     labelsDropdown.addEventListener('wheel', (e) => {
       phrazeMarkInteracting(2500);
       phrazeIgnoreScrollHideBriefly(300);
-      try { e.stopPropagation(); } catch (_) {}
+      try { e.stopPropagation(); } catch (_) { }
 
       // If pinned, allow normal scrolling behavior.
       if (annotationPopup.classList.contains('sticky')) return;
 
       // Always prevent default and manually scroll the dropdown to avoid momentum scroll chaining.
-      try { e.preventDefault(); } catch (_) {}
+      try { e.preventDefault(); } catch (_) { }
 
       try {
         // deltaMode: 0=pixel, 1=line, 2=page
         const multiplier = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? labelsDropdown.clientHeight : 1;
         labelsDropdown.scrollTop += (e.deltaY * multiplier);
-      } catch (_) {}
+      } catch (_) { }
     }, { capture: true, passive: false });
 
     // Append into modal body now (avoids `popupLabelsSection` scope bugs)
@@ -2628,7 +2628,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   toolbar.style.gap = '4px';
   toolbar.style.marginBottom = '8px';
   toolbar.style.alignItems = 'center';
-  
+
   // Bold button
   const boldBtn = document.createElement('button');
   boldBtn.type = 'button';
@@ -2649,7 +2649,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     color: #374151;
     transition: all 0.15s ease;
   `;
-  
+
   // Italic button
   const italicBtn = document.createElement('button');
   italicBtn.type = 'button';
@@ -2657,7 +2657,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   italicBtn.innerHTML = '<i class="fas fa-italic"></i>';
   italicBtn.title = 'Italic';
   italicBtn.style.cssText = boldBtn.style.cssText;
-  
+
   // Color picker button
   const colorBtn = document.createElement('button');
   colorBtn.type = 'button';
@@ -2665,19 +2665,19 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   colorBtn.innerHTML = '<i class="fa fa-palette"></i>';
   colorBtn.title = 'Text Color';
   colorBtn.style.cssText = boldBtn.style.cssText;
-  
+
   // Hidden color input
   const colorInput = document.createElement('input');
   colorInput.type = 'color';
   colorInput.style.display = 'none';
   colorInput.value = '#000000';
-  
+
   // Add buttons to toolbar
   toolbar.appendChild(boldBtn);
   toolbar.appendChild(italicBtn);
   toolbar.appendChild(colorBtn);
   toolbar.appendChild(colorInput);
-  
+
   // Image upload button
   const imageBtn = document.createElement('button');
   imageBtn.type = 'button';
@@ -2685,17 +2685,17 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   imageBtn.innerHTML = '<i class="fas fa-image"></i>';
   imageBtn.title = 'Upload Image';
   imageBtn.style.cssText = boldBtn.style.cssText;
-  
+
   // Hidden file input for image upload
   const imageInput = document.createElement('input');
   imageInput.type = 'file';
   imageInput.accept = 'image/*';
   imageInput.style.display = 'none';
-  
+
   // Add image button and input to toolbar
   toolbar.appendChild(imageBtn);
   toolbar.appendChild(imageInput);
-  
+
   // Create contenteditable div instead of textarea for rich text
   const richTextDiv = document.createElement('div');
   richTextDiv.contentEditable = true;
@@ -2715,56 +2715,56 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     transition: border-color 0.2s ease;
     overflow-y: auto;
   `;
-  
+
   // Set placeholder text
   richTextDiv.setAttribute('data-placeholder', 'Share your insights, questions, or observations');
-  
+
   // Add focus/blur events
   richTextDiv.addEventListener('focus', () => {
     richTextDiv.style.borderColor = '#3b82f6';
   });
-  
+
   richTextDiv.addEventListener('blur', () => {
     richTextDiv.style.borderColor = '#e5e7eb';
   });
-  
+
   // Handle paste to strip formatting and paste as plain text
   richTextDiv.addEventListener('paste', (e) => {
     e.preventDefault();
     const text = e.clipboardData.getData('text/plain');
     document.execCommand('insertText', false, text);
   });
-  
+
   // Add toolbar event listeners
   boldBtn.addEventListener('click', () => {
     document.execCommand('bold', false, null);
     richTextDiv.focus();
   });
-  
+
   italicBtn.addEventListener('click', () => {
     document.execCommand('italic', false, null);
     richTextDiv.focus();
   });
-  
+
   colorBtn.addEventListener('click', () => {
     colorInput.click();
   });
-  
+
   colorInput.addEventListener('change', () => {
     document.execCommand('foreColor', false, colorInput.value);
     richTextDiv.focus();
   });
-  
+
   // Image upload functionality
   imageBtn.addEventListener('click', () => {
     imageInput.click();
   });
-  
+
   imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = function(event) {
+      reader.onload = function (event) {
         const img = document.createElement('img');
         img.src = event.target.result;
         img.style.maxWidth = '100%';
@@ -2773,7 +2773,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         img.style.borderRadius = '4px';
         img.style.margin = '4px 0';
         img.style.display = 'block';
-        
+
         // Insert image at cursor position or at end
         const selection = window.getSelection();
         if (selection.rangeCount > 0) {
@@ -2783,16 +2783,16 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         } else {
           richTextDiv.appendChild(img);
         }
-        
+
         // Add a line break after image
         const br = document.createElement('br');
         img.parentNode.insertBefore(br, img.nextSibling);
-        
+
         // Force a re-render of the content
         richTextDiv.innerHTML = richTextDiv.innerHTML;
-        
+
         richTextDiv.focus();
-        
+
         console.log('Image inserted:', img.outerHTML);
         console.log('Rich text content:', richTextDiv.innerHTML);
       };
@@ -2801,14 +2801,14 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     // Reset file input
     imageInput.value = '';
   });
-  
+
   // Hover effects for toolbar buttons
   [boldBtn, italicBtn, colorBtn, imageBtn].forEach(btn => {
     btn.addEventListener('mouseenter', () => {
       btn.style.backgroundColor = '#f3f4f6';
       btn.style.borderColor = '#9ca3af';
     });
-    
+
     btn.addEventListener('mouseleave', () => {
       btn.style.backgroundColor = 'white';
       btn.style.borderColor = '#d1d5db';
@@ -2827,7 +2827,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         addNoteToolbarButton.disabled = !enabled;
         addNoteToolbarButton.setAttribute('aria-disabled', enabled ? 'false' : 'true');
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const richTextHasContent = () => {
@@ -2847,19 +2847,19 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   richTextDiv.addEventListener('input', () => {
     setNotesToolbarEnabled(richTextHasContent());
   });
-  
+
   // Text-only mode (no Text/Canvas toggle)
   const modeRef = { current: 'text' }; // kept for compatibility with shared loader signature
   const textModeBtn = null;
   const canvasModeBtn = null;
-  
+
   // Create canvas container
   const canvasContainer = document.createElement('div');
   canvasContainer.style.cssText = `
     display: none;
     margin-bottom: 8px;
   `;
-  
+
   const canvas = document.createElement('canvas');
   canvas.width = 400;
   canvas.height = 300;
@@ -2873,18 +2873,18 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     width: 100%;
     max-width: 400px;
   `;
-  
+
   // Canvas drawing state
   let isDrawing = false;
   let canvasStrokes = [];
   let currentStroke = [];
   const strokeColor = '#ff6b6b';
   const strokeWidth = 3;
-  
+
   // Store canvas state on canvas element for access in loading function
   canvas.dataset.annotationMode = 'text';
   canvas._canvasStrokes = canvasStrokes;
-  
+
   // Canvas drawing functions
   const getMousePos = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -2895,7 +2895,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       y: (e.clientY - rect.top) * scaleY
     };
   };
-  
+
   const startCanvasDrawing = (e) => {
     isDrawing = true;
     const pos = getMousePos(e);
@@ -2908,7 +2908,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
   };
-  
+
   const drawOnCanvas = (e) => {
     if (!isDrawing) return;
     const pos = getMousePos(e);
@@ -2917,7 +2917,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
   };
-  
+
   const stopCanvasDrawing = () => {
     if (!isDrawing) return;
     isDrawing = false;
@@ -2927,7 +2927,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     }
     currentStroke = [];
   };
-  
+
   const clearCanvas = () => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2935,7 +2935,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     canvas._canvasStrokes = canvasStrokes;
     currentStroke = [];
   };
-  
+
   const redrawCanvas = () => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2943,7 +2943,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     ctx.lineJoin = 'round';
     ctx.strokeStyle = strokeColor;
     ctx.lineWidth = strokeWidth;
-    
+
     canvasStrokes.forEach(stroke => {
       if (stroke.length > 1) {
         ctx.beginPath();
@@ -2955,13 +2955,13 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       }
     });
   };
-  
+
   // Canvas event listeners
   canvas.addEventListener('mousedown', startCanvasDrawing);
   canvas.addEventListener('mousemove', drawOnCanvas);
   canvas.addEventListener('mouseup', stopCanvasDrawing);
   canvas.addEventListener('mouseleave', stopCanvasDrawing);
-  
+
   // Canvas toolbar
   const canvasToolbar = document.createElement('div');
   canvasToolbar.style.cssText = `
@@ -2970,7 +2970,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     justify-content: center;
     margin-bottom: 8px;
   `;
-  
+
   const clearBtn = document.createElement('button');
   clearBtn.type = 'button';
   clearBtn.textContent = 'Clear';
@@ -2985,7 +2985,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   `;
   clearBtn.addEventListener('click', clearCanvas);
   canvasToolbar.appendChild(clearBtn);
-  
+
   canvasContainer.appendChild(canvasToolbar);
   canvasContainer.appendChild(canvas);
 
@@ -3011,7 +3011,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         const regionId = String(opts.regionId || highlight.id || '');
         const regions = await loadRegionAnnotations();
         const region = Array.isArray(regions) ? regions.find(r => r && String(r.id) === regionId) : null;
-        try { annotationPopup._phrazeRegionCached = region; } catch (_) {}
+        try { annotationPopup._phrazeRegionCached = region; } catch (_) { }
         notes = (region && Array.isArray(region.notes)) ? region.notes : [];
       } else {
         const highlights = await loadFunc() || [];
@@ -3046,13 +3046,13 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
                 const noteIndex = highlight.notes.indexOf(noteText);
                 if (noteIndex > -1) highlight.notes.splice(noteIndex, 1);
               }
-            } catch (_) {}
+            } catch (_) { }
             await renderPopupNotes();
             try {
               if (annotationPopup && typeof annotationPopup._phrazeUpdateHeaderTitle === 'function') {
                 annotationPopup._phrazeUpdateHeaderTitle();
               }
-            } catch (_) {}
+            } catch (_) { }
           } catch (error) {
             console.error('Failed to delete note:', error);
             if (typeof showToast === 'function') {
@@ -3093,15 +3093,15 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       try {
         if (!Array.isArray(highlight.notes)) highlight.notes = [];
         highlight.notes.push(noteHtml);
-      } catch (_) {}
-      try { richTextDiv.innerHTML = ''; } catch (_) {}
-      try { setNotesToolbarEnabled(false); } catch (_) {}
+      } catch (_) { }
+      try { richTextDiv.innerHTML = ''; } catch (_) { }
+      try { setNotesToolbarEnabled(false); } catch (_) { }
       await renderPopupNotes();
       try {
         if (annotationPopup && typeof annotationPopup._phrazeUpdateHeaderTitle === 'function') {
           annotationPopup._phrazeUpdateHeaderTitle();
         }
-      } catch (_) {}
+      } catch (_) { }
       document.dispatchEvent(new Event('annotationUpdated'));
     } catch (error) {
       console.error('Failed to add note:', error);
@@ -3116,8 +3116,8 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
 
   // Expose a reset helper because the popup DOM persists across opens and there are multiple open paths.
   annotationPopup._phrazeResetNotesUI = () => {
-    try { richTextDiv.innerHTML = ''; } catch (_) {}
-    try { setNotesToolbarEnabled(false); } catch (_) {}
+    try { richTextDiv.innerHTML = ''; } catch (_) { }
+    try { setNotesToolbarEnabled(false); } catch (_) { }
   };
 
   popupNotesSection.appendChild(popupNotesList);
@@ -3137,28 +3137,28 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   // Create Save button
   const addAnnotationButton = document.createElement('button');
   addAnnotationButton.className = 'add-annotation-button update-btn';
-  
+
   // Check permissions for creating/modifying annotations
   const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
   const currentUserRole = typeof window !== 'undefined' ? window.currentUserRole : null;
-  
+
   // Owners always have all permissions, editors need explicit permissions
   const isOwner = currentUserRole === 'owner';
   const isEditor = currentUserRole === 'editor';
-  
+
   const canCreateAnnotations = isOwner || (isEditor && annotationPerms && isPermissionEnabled(annotationPerms, 'createAnnotations'));
   const canDeleteAnnotations = isOwner || (isEditor && annotationPerms && isPermissionEnabled(annotationPerms, 'deleteAnnotations'));
   // createAnnotations covers both creating and modifying annotations (they're the same operation in Firebase)
   const canAnnotate = canCreateAnnotations;
-  
+
   if (!canAnnotate) {
     addAnnotationButton.style.display = 'none'; // Hide button if no permission
   }
-  
+
   // Create save icon
   const saveIcon = document.createElement('span');
   saveIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 32 32"><path fill="currentColor" d="M5 7.5A2.5 2.5 0 0 1 7.5 5H9v4.5a2.5 2.5 0 0 0 2.5 2.5h8A2.5 2.5 0 0 0 22 9.5V5.04a2.5 2.5 0 0 1 1.318.692l2.95 2.95A2.5 2.5 0 0 1 27 10.45V24.5a2.5 2.5 0 0 1-2 2.45V18.5a2.5 2.5 0 0 0-2.5-2.5h-13A2.5 2.5 0 0 0 7 18.5v8.45a2.5 2.5 0 0 1-2-2.45zM9 27v-8.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5V27zM20 5v4.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5V5zM7.5 3A4.5 4.5 0 0 0 3 7.5v17A4.5 4.5 0 0 0 7.5 29h17a4.5 4.5 0 0 0 4.5-4.5V10.45a4.5 4.5 0 0 0-1.318-3.182l-2.95-2.95A4.5 4.5 0 0 0 21.55 3z"/></svg>';
-  
+
   addAnnotationButton.appendChild(saveIcon);
   // Always show "Add Annotation" (simplified UI)
   addAnnotationButton.appendChild(document.createTextNode(' Add Annotation'));
@@ -3168,7 +3168,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation(); // Prevent other handlers from firing
-    
+
     // Double-check permission before processing annotation
     if (!canAnnotate) {
       if (typeof showToast === 'function') {
@@ -3176,14 +3176,14 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       }
       return;
     }
-    
+
     // Prevent multiple simultaneous operations
     if (window.phrazeProcessingAnnotation) {
       console.log('Already processing annotation, ignoring click');
       return;
     }
     window.phrazeProcessingAnnotation = true;
-    
+
     console.log(hasExistingAnnotations() ? 'Update Annotations button clicked' : 'Add Annotation button clicked');
 
     // Close popup immediately (visually) to avoid flicker / duplicate opens while saving,
@@ -3200,13 +3200,13 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         phrazeClearPermanentlyClosed(highlight.id, popup);
         phrazeHidePopupElement(popup);
       });
-    } catch (_) {}
-    
+    } catch (_) { }
+
     // Notes are saved via the toolbar "Add note" action, not via the Add Annotation button.
     let noteText = '';
-    
+
     const selectedLabels = [];
-    
+
     // Get selected labels from the container
     if (selectedLabelsContainer) {
       const labelTags = selectedLabelsContainer.querySelectorAll('.selected-label-tag');
@@ -3218,9 +3218,9 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         }
       });
     }
-    
+
     console.log('Updating annotations with:', { noteText, selectedLabels });
-    
+
     if (annotationSource === 'region') {
       try {
         const regionId = String(opts.regionId || highlight.id || '');
@@ -3229,14 +3229,14 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
           const regions = await loadRegionAnnotations();
           const region = Array.isArray(regions) ? regions.find(r => r && String(r.id) === regionId) : null;
           annotationPopup._phrazeRegionCached = region;
-        } catch (_) {}
+        } catch (_) { }
       } catch (error) {
         console.error('Failed to save region labels:', error);
       }
     } else {
       // Set highlight ID to ensure annotations are saved with correct ID
       localStorage.setItem('globalHighlightID', highlight.id);
-      
+
       // Get the highlighted text
       let highlightedText = '';
       if (highlight && highlight.textNodes && highlight.textNodes.length > 0) {
@@ -3250,7 +3250,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
           }
         }
       }
-      
+
       // Fallback: try to get from DOM
       if (!highlightedText) {
         const mark = containerSpan.querySelector('mark[id="PhrazeHighlight"]');
@@ -3258,7 +3258,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
           highlightedText = mark.textContent;
         }
       }
-      
+
       if (!highlightedText) {
         console.error('Could not determine highlighted text');
         window.phrazeProcessingAnnotation = false;
@@ -3267,14 +3267,14 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
 
       // FIRST: Handle deletions - remove annotations that were removed from popup
       await handleAnnotationDeletions(highlightedText, highlight.id, selectedLabels);
-      
+
       // Save new labels (only those that don't already exist)
       if (selectedLabels.length > 0) {
         try {
           // Get existing annotations to check for duplicates
           const annotationHistory = await getAnnotationHistory();
           const existingLabelKeys = new Set();
-          
+
           annotationHistory.forEach(entry => {
             if (!Array.isArray(entry)) return;
             const entryUserText = entry.find(item => item.userText)?.userText || '';
@@ -3283,24 +3283,24 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
             const entryUrl = entry.find(item => item.url)?.url || '';
             const entryHighlightId = entry.find(item => item.highlightID)?.highlightID || '';
             const entryOptions = entry.find(item => item.options)?.options || [];
-            
-            if (entryUserText === highlightedText && 
-                entryUrl === window.location.href && 
-                entryHighlightId === highlight.id &&
-                entryType.toLowerCase() === 'label') {
+
+            if (entryUserText === highlightedText &&
+              entryUrl === window.location.href &&
+              entryHighlightId === highlight.id &&
+              entryType.toLowerCase() === 'label') {
               entryOptions.forEach(opt => {
                 existingLabelKeys.add(`${entryKey}: ${opt}`);
               });
             }
           });
-          
+
           // Save each label that doesn't already exist
           for (const labelData of selectedLabels) {
             const labelKey = `${labelData.type}: ${labelData.value}`;
             if (!existingLabelKeys.has(labelKey)) {
               await addSelectedTextEntry(highlightedText, labelData.type, 'label', labelData.value);
               // console.log(`Label saved: ${labelData.type} - ${labelData.value}`);
-              } else {
+            } else {
               // console.log(`Label already exists, skipping: ${labelKey}`);
             }
           }
@@ -3308,9 +3308,9 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
           console.error('Failed to save labels:', error);
         }
       }
-      
+
       // Notes are intentionally not modified here.
-      
+
       // Refresh annotations map so the next hover/click shows updated labels/notes.
       try {
         await refreshAnnotationsMap({ force: true });
@@ -3318,7 +3318,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         console.warn('Error refreshing annotations map:', err);
       }
     }
-    
+
     // Clear processing flag after a short delay
     setTimeout(() => {
       window.phrazeProcessingAnnotation = false;
@@ -3331,7 +3331,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       } else if (containerSpan && containerSpan._enableHover) {
         containerSpan._enableHover();
       }
-    } catch (_) {}
+    } catch (_) { }
   });
 
   buttonContainer.appendChild(addAnnotationButton);
@@ -3360,7 +3360,7 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     const clickedOnThisHighlight = e.target && typeof e.target.closest === 'function'
       ? e.target.closest(`.phraze-highlight-container[data-highlight-id="${highlight.id}"]`)
       : null;
-    
+
     const closestPopup = (e.target && typeof e.target.closest === 'function')
       ? e.target.closest('.annotation-popup')
       : null;
@@ -3376,9 +3376,9 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
     const isDifferentHighlightClick = !!(clickedHighlightId && clickedHighlightId !== String(highlight.id));
 
     const isClickOnPopupSystem = annotationPopup.contains(e.target) ||
-                                closestPopup ||
-                                clickedOnThisHighlight;
-    
+      closestPopup ||
+      clickedOnThisHighlight;
+
     if (!isClickOnPopupSystem) {
       // Close popup (do NOT permanently close; allow hover/click to reopen)
       phrazeHidePopupElement(annotationPopup);
@@ -3386,24 +3386,24 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       // Clear "keep open" (new highlight flow) and re-enable hover for this highlight.
       try {
         phrazeClearPermanentlyClosed(highlight.id, annotationPopup);
-      } catch (_) {}
+      } catch (_) { }
       try {
         phrazeClearPermanentlyClosed(highlight.id, annotationPopup);
-      } catch (_) {}
+      } catch (_) { }
       try {
         phrazeClearKeepPopupOpen(highlight.id);
-      } catch (_) {}
+      } catch (_) { }
       try {
         if (window.phrazeEnableHoverForHighlightId && window.phrazeEnableHoverForHighlightId[highlight.id]) {
           window.phrazeEnableHoverForHighlightId[highlight.id]();
         } else if (containerSpan && containerSpan._enableHover) {
           containerSpan._enableHover();
         }
-      } catch (_) {}
-      
+      } catch (_) { }
+
       // Remove this highlight ID from the active list to prevent reopening
       phrazeRemoveFromActiveIds(highlight.id);
-      
+
       // Remove this event listener after closing
       document.removeEventListener('click', handlePopupClick);
 
@@ -3414,13 +3414,13 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
         requestAnimationFrame(() => {
           try {
             clickedHighlightContainer.click();
-          } catch (_) {}
+          } catch (_) { }
           window._phrazeReplayingHighlightClick = false;
         });
       }
     }
   };
-  
+
   // Use capture phase to handle before other handlers
   document.addEventListener('click', handlePopupClick, true);
 
@@ -3473,15 +3473,15 @@ function isNodeAHighlight(node) {
   const cardHeaderSpacer = document.createElement('div');
   cardHeaderSpacer.style.flex = '1';
   cardHeader.appendChild(cardHeaderSpacer);
-
+ 
   // Right side container for color selector
   const rightSideContainer = document.createElement('div');
   rightSideContainer.style.display = 'flex';
   rightSideContainer.style.flexDirection = 'column';
   rightSideContainer.style.alignItems = 'flex-start';
   rightSideContainer.style.gap = '6px';
-
-
+ 
+ 
   const cardColorWrapper = document.createElement('div');
   cardColorWrapper.style.position = 'relative';
   cardColorWrapper.style.display = 'inline-block';
@@ -3489,7 +3489,7 @@ function isNodeAHighlight(node) {
   cardColorWrapper.setAttribute('role', 'button');
   cardColorWrapper.setAttribute('tabindex', '0');
   cardColorWrapper.setAttribute('aria-label', 'Select highlight color');
-
+ 
   const cardSwatch = document.createElement('div');
   cardSwatch.style.width = '14px';
   cardSwatch.style.height = '14px';
@@ -3497,7 +3497,7 @@ function isNodeAHighlight(node) {
   cardSwatch.style.border = '1px solid #d1d5db';
   cardSwatch.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
   cardSwatch.style.background = (highlight && highlight.color) ? highlight.color : getDefaultHighlightColor().hex;
-
+ 
   const cardPalette = document.createElement('div');
   cardPalette.style.position = 'static';
   cardPalette.style.background = '#ffffff';
@@ -3509,7 +3509,7 @@ function isNodeAHighlight(node) {
   cardPalette.style.width = '100%';
   cardPalette.style.boxSizing = 'border-box';
   cardPalette.style.marginTop = '8px';
-
+ 
   const cardGrid = document.createElement('div');
   cardGrid.style.display = 'grid';
   cardGrid.style.gridTemplateColumns = 'repeat(6, 24px)';
@@ -3564,7 +3564,7 @@ function isNodeAHighlight(node) {
     });
     cardGrid.appendChild(btn);
   });
-
+ 
   cardPalette.appendChild(cardGrid);
   cardColorWrapper.appendChild(cardSwatch);
   rightSideContainer.appendChild(cardPalette);
@@ -3578,7 +3578,7 @@ function isNodeAHighlight(node) {
       cardPalette.style.display = 'none';
     }
   });
-
+ 
   rightSideContainer.appendChild(cardColorWrapper);
   cardHeader.appendChild(rightSideContainer);
   
@@ -3713,18 +3713,18 @@ function isNodeAHighlight(node) {
   // Helper function to create a list item with text and delete button
   const createListItem = (noteText) => {
     const listItem = document.createElement('li');
-
+ 
     const textSpan = document.createElement('span');
     textSpan.className = 'phraze-note-text PhrazeMark';
     textSpan.innerHTML = noteText; // Use innerHTML to render HTML tags
     listItem.appendChild(textSpan);
-
+ 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'phraze-note-delete-btn PhrazeMark';
     deleteButton.innerHTML = '&times;';
     deleteButton.title = 'Delete note';
     listItem.appendChild(deleteButton);
-
+ 
     deleteButton.addEventListener('click', async (e) => {
     e.stopPropagation();
       try {
@@ -3740,10 +3740,10 @@ function isNodeAHighlight(node) {
         alert(`Failed to delete note: ${error.message}`);
       }
     });
-
+ 
     return listItem;
   };
-
+ 
   // Populate the list with existing notes from the highlight object
   if (highlight.notes && Array.isArray(highlight.notes)) {
     highlight.notes.forEach(noteText => {
@@ -3804,7 +3804,7 @@ function isNodeAHighlight(node) {
     
     // Set global highlight ID to ensure annotations are saved with correct ID
     localStorage.setItem('globalHighlightID', highlight.id);
-
+ 
     // Reset notes controls before hydrating (popup DOM persists across opens)
     // Keep editor empty and disable toolbar + Add note until user types.
     try {
@@ -3815,14 +3815,14 @@ function isNodeAHighlight(node) {
     
     // Load existing annotations into the popup
     await loadExistingAnnotationsIntoPopup(highlight, selectedLabelsContainer, richTextDiv, canvas, canvasContainer, toolbar, textModeBtn, canvasModeBtn, modeRef);
-
+ 
     // Ensure header title reflects the latest stored labels/notes when opening.
     try {
       if (annotationPopup && typeof annotationPopup._phrazeUpdateHeaderTitle === 'function') {
         annotationPopup._phrazeUpdateHeaderTitle();
       }
     } catch (_) {}
-
+ 
     // Reset notes controls every time the popup opens (popup DOM persists across opens)
     // Keep editor empty and disable toolbar + Add note until user types.
     try {
@@ -3859,7 +3859,7 @@ function isNodeAHighlight(node) {
     annotationPopup.style.pointerEvents = 'auto';
     richTextDiv.focus();
   });
-
+ 
   // Attach to chat button (blue paperclip) - hide for viewers
   const attachButton = document.createElement('button');
   attachButton.className = 'attach-highlight-btn';
@@ -3870,7 +3870,7 @@ function isNodeAHighlight(node) {
   } else {
     attachButton.style.display = 'none'; // Hidden by default (will be shown by updateAttachButtonVisibility if in chat)
   }
-
+ 
   // Function to check if user is actually chatting with a person
   function isInActiveChat() {
     // Check if we're in an iframe (extension context)
@@ -3902,7 +3902,7 @@ function isNodeAHighlight(node) {
     
     return false;
   }
-
+ 
   // Show/hide attach button based on chat status
   function updateAttachButtonVisibility() {
     // Never show attach button for viewers
@@ -3926,13 +3926,13 @@ function isNodeAHighlight(node) {
     //   console.log('User not in chat - hiding attach button');
     // }
   }
-
+ 
   // Initial check
   updateAttachButtonVisibility();
-
+ 
   // Check periodically for chat status changes
   setInterval(updateAttachButtonVisibility, 2000);
-
+ 
   // Attach button click handler
   attachButton.addEventListener('click', async (e) => {
     e.preventDefault();
@@ -3957,7 +3957,7 @@ function isNodeAHighlight(node) {
         try {
           window.dispatchEvent(new Event('phraze:openCustomSidebarMessages'));
         } catch (_) {}
-
+ 
         try {
           window.dispatchEvent(
             new CustomEvent('phraze:attachHighlightToMessaging', {
@@ -3970,7 +3970,7 @@ function isNodeAHighlight(node) {
         } catch (dispatchError) {
           console.error('Failed to dispatch highlight attach event:', dispatchError);
         }
-
+ 
         if (typeof showToast === 'function') {
           showToast('Highlight attached to messaging!', 'success');
         } else {
@@ -3998,7 +3998,7 @@ function isNodeAHighlight(node) {
       }
     }
   });
-
+ 
   // Delete highlight button (red X) - only show if user has deleteAnnotations permission
   const deleteButton = document.createElement('button');
   deleteButton.className = 'delete-highlight-btn';
@@ -4010,11 +4010,11 @@ function isNodeAHighlight(node) {
   if (currentUserRole === 'viewer' || !canDeleteAnnotations) {
     deleteButton.style.display = 'none'; // Hide button if no permission
   }
-
+ 
   deleteButton.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
-
+ 
     // Security: Layer 2 - Action - Check permission before delete action
     // Re-check permissions in case they changed
     const currentUserRole = typeof window !== 'undefined' ? window.currentUserRole : null;
@@ -4030,15 +4030,15 @@ function isNodeAHighlight(node) {
       }
       return;
     }
-
+ 
     try {
       // Delete the highlight from storage (which also deletes annotations)
       await deleteHighlightFromStorage(highlight.id);
-
+ 
       // Remove the annotation card and popup
       annotationCard.remove();
       annotationPopup.remove();
-
+ 
       // Replace the container with the original text
       if (containerSpan.parentNode) {
         var parentNode = containerSpan.parentNode;
@@ -4054,7 +4054,7 @@ function isNodeAHighlight(node) {
       console.error('Error deleting highlight:', error);
     }
   });
-
+ 
   cardFooter.appendChild(addNoteButton);
   cardFooter.appendChild(attachButton);
   cardFooter.appendChild(deleteButton);
@@ -4256,7 +4256,7 @@ function isNodeAHighlight(node) {
     const closestAddNoteBtn = (e.target && typeof e.target.closest === 'function')
       ? e.target.closest('.add-note-btn')
       : null;
-
+ 
     const clickedHighlightContainer = (e.target && typeof e.target.closest === 'function')
       ? e.target.closest('.phraze-highlight-container[data-highlight-id]')
       : null;
@@ -4264,30 +4264,32 @@ function isNodeAHighlight(node) {
       ? clickedHighlightContainer.dataset.highlightId
       : null;
     const isDifferentHighlightClick = !!(clickedHighlightId && clickedHighlightId !== String(highlight.id));
-
+ 
     const isClickOnPopupSystem = annotationPopup.contains(e.target) ||
-                                addNoteButton.contains(e.target) ||
+                                (addNoteButton && addNoteButton.contains(e.target)) ||
                                 closestPopup ||
                                 closestAddNoteBtn;
     
     if (!isClickOnPopupSystem) {
-      // Mark as permanently closed
-      annotationPopup.dataset.permanentlyClosed = 'true';
-      if (!window.phrazePermanentlyClosedPopups) {
-        window.phrazePermanentlyClosedPopups = new Set();
+      // For text highlights, mark as permanently closed so hover doesn't reopen. For region (selection box) popups, allow reopen from Notes button.
+      const isRegion = annotationPopup.dataset.annotationType === 'region';
+      if (!isRegion) {
+        annotationPopup.dataset.permanentlyClosed = 'true';
+        if (!window.phrazePermanentlyClosedPopups) {
+          window.phrazePermanentlyClosedPopups = new Set();
+        }
+        window.phrazePermanentlyClosedPopups.add(highlight.id);
+      } else {
+        try { phrazeClearPermanentlyClosed(highlight.id, annotationPopup); } catch (_) { }
       }
-      window.phrazePermanentlyClosedPopups.add(highlight.id);
       
-      // Close popup
-      annotationPopup.style.display = 'none';
-      annotationPopup.style.visibility = 'hidden';
-      annotationPopup.style.opacity = '0';
-      annotationPopup.style.pointerEvents = 'none';
+      // Close popup (full hide)
+      phrazeHidePopupElement(annotationPopup);
       
-      // Enable hover behavior on the container span after popup closes
+      // Enable hover behavior on the container span after popup closes (text highlights only)
       if (window.phrazeEnableHoverForHighlightId && window.phrazeEnableHoverForHighlightId[highlight.id]) {
         window.phrazeEnableHoverForHighlightId[highlight.id]();
-      } else if (containerSpan._enableHover) {
+      } else if (containerSpan && containerSpan._enableHover) {
         containerSpan._enableHover();
       }
       
@@ -4301,7 +4303,7 @@ function isNodeAHighlight(node) {
       
       // Remove this event listener after closing
       document.removeEventListener('click', handlePopupClick);
-
+ 
       // If user was clicking another highlight while this popup was open, replay the click so
       // the target highlight opens immediately (avoids the "click somewhere random" workaround).
       if (isDifferentHighlightClick && clickedHighlightContainer && !window._phrazeReplayingHighlightClick) {
@@ -4318,14 +4320,14 @@ function isNodeAHighlight(node) {
   
   // Use capture phase to handle before other handlers
   document.addEventListener('click', handlePopupClick, true);
-
+ 
   return annotationCard;
 }
-
+ 
 function isNodeAHighlight(node) {
   return node && node.classList && node.classList.contains("PhrazeMark");
 }
-
+ 
 /**
  * Loads highlights into provided text and returns HTML with highlights applied
  * @param {string} text - The text to apply highlights to
@@ -4339,9 +4341,9 @@ export async function loadHighlightsForText(text, chatId = null) {
 
   try {
     const highlights = await loadFunc() || [];
-    
+
     // Filter highlights by chatId if provided
-    const relevantHighlights = chatId 
+    const relevantHighlights = chatId
       ? highlights.filter(h => h.chatID === chatId)
       : highlights;
 
@@ -4365,7 +4367,7 @@ export async function loadHighlightsForText(text, chatId = null) {
             const start = range[1];
             const end = range[2];
             const highlightedSegment = textNode.wholeText.substring(start, end);
-            
+
             // Find this segment in our text
             const segmentIndex = highlightedText.indexOf(highlightedSegment);
             if (segmentIndex !== -1) {
@@ -4390,7 +4392,7 @@ export async function loadHighlightsForText(text, chatId = null) {
       const colorAttr = (range.highlight && range.highlight.color) ? ` style="--highlight-color: ${range.highlight.color}"` : '';
       const highlighted = `<mark class="PhrazeHighlight PhrazeMark selectable" data-highlight-id="${range.highlight.id}"${colorAttr}>${range.text}</mark>`;
       const after = highlightedText.substring(range.end);
-      
+
       highlightedText = before + highlighted + after;
     }
 
@@ -4405,7 +4407,7 @@ export async function loadHighlightsForText(text, chatId = null) {
 let isLoadingHighlights = false;
 
 export async function loadHighlights(showAllLabelsAndCodes = false, newHighlightId = null) {
-  try { bindPhrazeHighlightColorChangeListener(); } catch (_) {}
+  try { bindPhrazeHighlightColorChangeListener(); } catch (_) { }
   // Prevent concurrent calls - if already loading, skip this call
   if (isLoadingHighlights) {
     // Queue the latest request so new highlights / state changes aren't dropped.
@@ -4413,10 +4415,10 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
     // while a periodic refresh is already in progress.
     try {
       window._phrazePendingLoadHighlights = { showAllLabelsAndCodes, newHighlightId };
-    } catch (_) {}
+    } catch (_) { }
     return;
   }
-  
+
   isLoadingHighlights = true;
   try {
     // Clean up expired "show card" entries and hide any cards that should have expired
@@ -4435,227 +4437,227 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
         }
       }
     }
-    
+
     // Fetch first to avoid visible gap between clear and re-render
     const highlights = await loadFunc() || [];
     // Now clear existing marks/cards in one batch
-  clearHighlights();
-  // Migration: ensure default color for highlights without color
-  try {
-    let migrated = false;
-    for (const h of highlights) {
-      if (h && !h.color) {
-        h.color = '#FFF176';
-        h.colorName = 'yellow';
-        migrated = true;
+    clearHighlights();
+    // Migration: ensure default color for highlights without color
+    try {
+      let migrated = false;
+      for (const h of highlights) {
+        if (h && !h.color) {
+          h.color = '#FFF176';
+          h.colorName = 'yellow';
+          migrated = true;
+        }
       }
-    }
-    if (migrated) {
-      await saveFunc(highlights);
-    }
-  } catch (_) { /* ignore */ }
-  
-  // Get previously active card IDs captured during clearHighlights
-  const previouslyActiveCardIds = window.phrazeActiveAnnotationCardIds || [];
-  
-  // Add the newly created highlight ID to the active list
-  if (newHighlightId) {
-    previouslyActiveCardIds.push(newHighlightId);
-  }
-  const treeWalker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_ALL,  // Only look at text nodes
-    {
-      acceptNode: function (node) {
-        return NodeFilter.FILTER_ACCEPT;
+      if (migrated) {
+        await saveFunc(highlights);
       }
-    }
-  );
+    } catch (_) { /* ignore */ }
 
-  //Temporarily remove any highlights that are completely covered by other larger highlights, otherwise the larger one won't have the 2nd half show up
-  for (var highlight1 of highlights) {
-    for (var highlight2 of highlights) {
-      if (highlight1 == highlight2)
-        continue;
-      var inc2 = 0;
-      while (inc2 < highlight2.textNodes.length) {
-        var inc1 = 0;
-        while (inc1 < highlight1.textNodes.length) {
-          var textNode1 = highlight1.textNodes[inc1];
-          var textNode2 = highlight2.textNodes[inc2];
-          if (
-            textNode1.parentText == textNode2.parentText &&
-            textNode1.wholeText == textNode2.wholeText &&
-            textNode1.elementTag == textNode2.elementTag
-          ) {
-            for (var range2 of textNode2.highlightedRanges) {
-              var break1 = false;
-              for (var range1 of textNode1.highlightedRanges) {
-                //Highlight2 is totally overlapping highlight1
-                //Delete it for now, better solution may come later
-                if (range2[0] == range1[0] && range2[1] <= range1[1] && range2[2] >= range1[2]) {
-                  highlight1.textNodes.splice(inc1, 1);
-                  inc1 -= 1;
-                  break1 = true;
-                  break;
+    // Get previously active card IDs captured during clearHighlights
+    const previouslyActiveCardIds = window.phrazeActiveAnnotationCardIds || [];
+
+    // Add the newly created highlight ID to the active list
+    if (newHighlightId) {
+      previouslyActiveCardIds.push(newHighlightId);
+    }
+    const treeWalker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_ALL,  // Only look at text nodes
+      {
+        acceptNode: function (node) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    //Temporarily remove any highlights that are completely covered by other larger highlights, otherwise the larger one won't have the 2nd half show up
+    for (var highlight1 of highlights) {
+      for (var highlight2 of highlights) {
+        if (highlight1 == highlight2)
+          continue;
+        var inc2 = 0;
+        while (inc2 < highlight2.textNodes.length) {
+          var inc1 = 0;
+          while (inc1 < highlight1.textNodes.length) {
+            var textNode1 = highlight1.textNodes[inc1];
+            var textNode2 = highlight2.textNodes[inc2];
+            if (
+              textNode1.parentText == textNode2.parentText &&
+              textNode1.wholeText == textNode2.wholeText &&
+              textNode1.elementTag == textNode2.elementTag
+            ) {
+              for (var range2 of textNode2.highlightedRanges) {
+                var break1 = false;
+                for (var range1 of textNode1.highlightedRanges) {
+                  //Highlight2 is totally overlapping highlight1
+                  //Delete it for now, better solution may come later
+                  if (range2[0] == range1[0] && range2[1] <= range1[1] && range2[2] >= range1[2]) {
+                    highlight1.textNodes.splice(inc1, 1);
+                    inc1 -= 1;
+                    break1 = true;
+                    break;
+                  }
                 }
+                if (break1)
+                  break;
               }
-              if (break1)
-                break;
             }
+            inc1 += 1;
           }
-          inc1 += 1;
+          inc2 += 1;
         }
-        inc2 += 1;
       }
     }
-  }
 
-  var finalNodes = new Map();
-  let node = treeWalker.currentNode;
-  while (node) {
-  
+    var finalNodes = new Map();
+    let node = treeWalker.currentNode;
+    while (node) {
 
-    if (node.nodeType != Node.TEXT_NODE) {
-      for (const highlight of highlights) {
-        for (const textNode of highlight.textNodes) {
-          var text = getImmediateTextInNode(node);
-          var parentText = "";
-          if (node.parentNode)
-            parentText = node.parentNode.textContent;
-          if (node.tagName == textNode.elementTag && text == textNode.wholeText && parentText == textNode.parentText) {
-           // console.log('Found matching text node 2', textNode);
-            for (let highlightedRange of textNode.highlightedRanges) { //Temporarily packing in the highlight so that we can link each range to the highlight it came from
-              if (highlightedRange.length == 3)
-                highlightedRange.push(highlight)
+
+      if (node.nodeType != Node.TEXT_NODE) {
+        for (const highlight of highlights) {
+          for (const textNode of highlight.textNodes) {
+            var text = getImmediateTextInNode(node);
+            var parentText = "";
+            if (node.parentNode)
+              parentText = node.parentNode.textContent;
+            if (node.tagName == textNode.elementTag && text == textNode.wholeText && parentText == textNode.parentText) {
+              // console.log('Found matching text node 2', textNode);
+              for (let highlightedRange of textNode.highlightedRanges) { //Temporarily packing in the highlight so that we can link each range to the highlight it came from
+                if (highlightedRange.length == 3)
+                  highlightedRange.push(highlight)
+              }
+
+
+              if (finalNodes.has(node))
+                finalNodes.set(node, finalNodes.get(node).concat(textNode.highlightedRanges));
+              else
+                finalNodes.set(node, textNode.highlightedRanges);
             }
-        
 
-            if (finalNodes.has(node))
-              finalNodes.set(node, finalNodes.get(node).concat(textNode.highlightedRanges));
-            else
-              finalNodes.set(node, textNode.highlightedRanges);
           }
-       
+
         }
-        
       }
+      node = treeWalker.nextNode();
     }
-    node = treeWalker.nextNode();
-  }
 
-  function getTextNode(node, index) {
-    var index2 = 0;
-    for (const child of node.childNodes) {
-      if (child.nodeType == Node.TEXT_NODE) {
-        if (index2 == index)
-          return child;
-        index2 += 1;
-      }
-    }
-    return null;
-  }
-
-  let highlightsToAnnotationsMap = await getHighlightAnnotationsMap(highlights);
-  // Make it globally accessible for the unified annotation card
-  window.highlightsToAnnotationsMap = highlightsToAnnotationsMap;
-  // Removed excessive logging
-  // console.log('🗺️ Annotations map created with', Object.keys(highlightsToAnnotationsMap).length, 'highlights');
-  // console.log('🗺️ Map contents:', highlightsToAnnotationsMap);
-
-  // Shared hover/card state across multi-line highlight fragments
-  if (!window.phrazeUnifiedCardByHighlightId) {
-    window.phrazeUnifiedCardByHighlightId = {};
-  }
-  if (!window.phrazeHoverStateByHighlightId) {
-    window.phrazeHoverStateByHighlightId = {};
-  }
-  if (!window.phrazeEnableHoverForHighlightId) {
-    window.phrazeEnableHoverForHighlightId = {};
-  }
-
-  if (!window.phrazeUnifiedGlobalHandlersInstalled) {
-    window.phrazeUnifiedGlobalHandlersInstalled = true;
-
-    const hideInstantly = (card) => {
-      if (!card) return;
-      const prevTransition = card.style.transition;
-      card.style.transition = 'none';
-      card.classList.remove('active');
-      card.classList.remove('sticky');
-      card.style.opacity = 0;
-      card.style.pointerEvents = 'none';
-      card.style.visibility = 'hidden';
-      card.setAttribute('aria-hidden', 'true');
-      void card.offsetHeight;
-      requestAnimationFrame(() => {
-        card.style.transition = prevTransition;
-      });
-    };
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
-      const popups = document.querySelectorAll('.annotation-popup[data-highlight-id]');
-      popups.forEach(popup => {
-        if (popup.classList.contains('sticky')) return;
-        const trigger = popup._lastTriggerEl;
-        popup.classList.remove('active');
-        popup.classList.remove('sticky');
-        phrazeHidePopupElement(popup);
-        if (trigger && trigger.focus) {
-          try { trigger.focus(); } catch (_) {}
+    function getTextNode(node, index) {
+      var index2 = 0;
+      for (const child of node.childNodes) {
+        if (child.nodeType == Node.TEXT_NODE) {
+          if (index2 == index)
+            return child;
+          index2 += 1;
         }
-      });
-    }, true);
-  }
+      }
+      return null;
+    }
 
-  for (const [node, ranges2] of finalNodes) {
-    var ranges = ranges2.sort((a, b) => ((b[0] - a[0]) * 1000000000 + (b[1] - a[1])));
-    var lastRange = null;
-    for (const range of ranges) {
-      var textNodeIndex = range[0];
-      var start = range[1];
-      var end = range[2];
-      // IMPORTANT: must be block-scoped so event handlers close over the correct highlight
-      // (using `var` here can cause all hover/click handlers to reference the last highlight).
-      const highlight = range[3]; //Temporarily packed in from above so that we can link each range to the highlight it came from
+    let highlightsToAnnotationsMap = await getHighlightAnnotationsMap(highlights);
+    // Make it globally accessible for the unified annotation card
+    window.highlightsToAnnotationsMap = highlightsToAnnotationsMap;
+    // Removed excessive logging
+    // console.log('🗺️ Annotations map created with', Object.keys(highlightsToAnnotationsMap).length, 'highlights');
+    // console.log('🗺️ Map contents:', highlightsToAnnotationsMap);
 
-      if (lastRange) {
-        var lastTextNodeIndex = lastRange[0];
-        var lastStart = lastRange[1];
-        // var lastEnd = lastRange[2];
-        if (lastTextNodeIndex == textNodeIndex && lastStart < end) { //Need to truncate the highlight
-          end = lastStart;
-          if (end <= start)
+    // Shared hover/card state across multi-line highlight fragments
+    if (!window.phrazeUnifiedCardByHighlightId) {
+      window.phrazeUnifiedCardByHighlightId = {};
+    }
+    if (!window.phrazeHoverStateByHighlightId) {
+      window.phrazeHoverStateByHighlightId = {};
+    }
+    if (!window.phrazeEnableHoverForHighlightId) {
+      window.phrazeEnableHoverForHighlightId = {};
+    }
+
+    if (!window.phrazeUnifiedGlobalHandlersInstalled) {
+      window.phrazeUnifiedGlobalHandlersInstalled = true;
+
+      const hideInstantly = (card) => {
+        if (!card) return;
+        const prevTransition = card.style.transition;
+        card.style.transition = 'none';
+        card.classList.remove('active');
+        card.classList.remove('sticky');
+        card.style.opacity = 0;
+        card.style.pointerEvents = 'none';
+        card.style.visibility = 'hidden';
+        card.setAttribute('aria-hidden', 'true');
+        void card.offsetHeight;
+        requestAnimationFrame(() => {
+          card.style.transition = prevTransition;
+        });
+      };
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const popups = document.querySelectorAll('.annotation-popup[data-highlight-id]');
+        popups.forEach(popup => {
+          if (popup.classList.contains('sticky')) return;
+          const trigger = popup._lastTriggerEl;
+          popup.classList.remove('active');
+          popup.classList.remove('sticky');
+          phrazeHidePopupElement(popup);
+          if (trigger && trigger.focus) {
+            try { trigger.focus(); } catch (_) { }
+          }
+        });
+      }, true);
+    }
+
+    for (const [node, ranges2] of finalNodes) {
+      var ranges = ranges2.sort((a, b) => ((b[0] - a[0]) * 1000000000 + (b[1] - a[1])));
+      var lastRange = null;
+      for (const range of ranges) {
+        var textNodeIndex = range[0];
+        var start = range[1];
+        var end = range[2];
+        // IMPORTANT: must be block-scoped so event handlers close over the correct highlight
+        // (using `var` here can cause all hover/click handlers to reference the last highlight).
+        const highlight = range[3]; //Temporarily packed in from above so that we can link each range to the highlight it came from
+
+        if (lastRange) {
+          var lastTextNodeIndex = lastRange[0];
+          var lastStart = lastRange[1];
+          // var lastEnd = lastRange[2];
+          if (lastTextNodeIndex == textNodeIndex && lastStart < end) { //Need to truncate the highlight
+            end = lastStart;
+            if (end <= start)
+              continue;
+          }
+        }
+
+        var textNode = getTextNode(node, textNodeIndex);
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          // Defensive bounds checking to avoid IndexSizeError
+          let textLen = textNode.textContent ? textNode.textContent.length : 0;
+          if (textLen === 0) {
             continue;
-        }
-      }
+          }
+          let safeStart = Math.max(0, Math.min(start, textLen));
+          let safeEnd = Math.max(0, Math.min(end, textLen));
+          if (safeEnd <= safeStart) {
+            continue; // nothing to highlight
+          }
 
-      var textNode = getTextNode(node, textNodeIndex);
-      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        // Defensive bounds checking to avoid IndexSizeError
-        let textLen = textNode.textContent ? textNode.textContent.length : 0;
-        if (textLen === 0) {
-          continue;
-        }
-        let safeStart = Math.max(0, Math.min(start, textLen));
-        let safeEnd = Math.max(0, Math.min(end, textLen));
-        if (safeEnd <= safeStart) {
-          continue; // nothing to highlight
-        }
-
-        var highlightedSegment = textNode;
-        // Split at end first to preserve indices for start
-        if (safeEnd < textLen) {
-          // Bounds are already clamped above
-          textNode.splitText(safeEnd);
-        }
-        if (safeStart > 0) {
-          highlightedSegment = textNode.splitText(safeStart);
-        }
-        if (!highlightedSegment || highlightedSegment.textContent.length === 0) {
-          continue;
-        }
+          var highlightedSegment = textNode;
+          // Split at end first to preserve indices for start
+          if (safeEnd < textLen) {
+            // Bounds are already clamped above
+            textNode.splitText(safeEnd);
+          }
+          if (safeStart > 0) {
+            highlightedSegment = textNode.splitText(safeStart);
+          }
+          if (!highlightedSegment || highlightedSegment.textContent.length === 0) {
+            continue;
+          }
 
           // Create container span
           const containerSpan = document.createElement('span');
@@ -4707,56 +4709,56 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             annotationCard = await createUnifiedAnnotationCard(highlight, containerSpan);
             window.phrazeUnifiedCardByHighlightId[highlight.id] = annotationCard;
           }
-          
+
           // Check if this card should be active (either newly created or previously active)
-        // IMPORTANT: Never activate a popup that has been permanently closed
-        const isPermanentlyClosed = window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id);
-        const keepOpen = !isPermanentlyClosed && (window.phrazeKeepPopupOpenIds && window.phrazeKeepPopupOpenIds.has(highlight.id));
-        
-        // Check if highlight already has annotations - if it does, don't treat it as "new" that needs popup
-        const hasAnnotations = (window.highlightsToAnnotationsMap && window.highlightsToAnnotationsMap[highlight.id] && window.highlightsToAnnotationsMap[highlight.id].length > 0) ||
-                               (highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0);
-        
-        // Check if this is a new highlight (just created) - prioritize showing popup for new highlights
-        const isNewHighlight = newHighlightId === highlight.id || previouslyActiveCardIds.includes(highlight.id) || keepOpen;
-        
-        // Only treat as "shouldBeActive" (needs popup) if:
-        // 1. Not permanently closed
-        // 2. Is a new highlight (in active list OR should keep open OR matches newHighlightId)
-        // 3. Does NOT already have annotations (if it has annotations, user already saved them, don't show popup again)
-        const shouldBeActive = !isPermanentlyClosed && !hasAnnotations && isNewHighlight;
-          
-        // Check if this card should stay visible (user just added/updated annotation)
-        const now = Date.now();
-        const showUntil = window.phrazeShowCardUntil && window.phrazeShowCardUntil[highlight.id];
-        const shouldShowCard = showUntil && now < showUntil;
-        
-        // Clean up expired entry if found
-        if (showUntil && now >= showUntil) {
-          delete window.phrazeShowCardUntil[highlight.id];
-        }
-        
-        // If card should be shown (after annotation), make it visible
-        if (shouldShowCard) {
-          annotationCard.classList.add('active');
-          annotationCard.style.display = '';
-          annotationCard.style.visibility = 'visible';
-          annotationCard.style.opacity = '1';
-          annotationCard.style.pointerEvents = 'auto';
-          
-          // Position the card
-          requestAnimationFrame(() => {
-            updateFloaterPosition(annotationCard, containerSpan);
-          });
-        } else if (showUntil && now >= showUntil) {
-          // Explicitly hide if timestamp expired (shouldn't happen due to cleanup above, but safety check)
-          annotationCard.classList.remove('active');
-          annotationCard.style.opacity = '0';
-          annotationCard.style.pointerEvents = 'none';
-          annotationCard.style.visibility = 'hidden';
-        }
+          // IMPORTANT: Never activate a popup that has been permanently closed
+          const isPermanentlyClosed = window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id);
+          const keepOpen = !isPermanentlyClosed && (window.phrazeKeepPopupOpenIds && window.phrazeKeepPopupOpenIds.has(highlight.id));
+
+          // Check if highlight already has annotations - if it does, don't treat it as "new" that needs popup
+          const hasAnnotations = (window.highlightsToAnnotationsMap && window.highlightsToAnnotationsMap[highlight.id] && window.highlightsToAnnotationsMap[highlight.id].length > 0) ||
+            (highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0);
+
+          // Check if this is a new highlight (just created) - prioritize showing popup for new highlights
+          const isNewHighlight = newHighlightId === highlight.id || previouslyActiveCardIds.includes(highlight.id) || keepOpen;
+
+          // Only treat as "shouldBeActive" (needs popup) if:
+          // 1. Not permanently closed
+          // 2. Is a new highlight (in active list OR should keep open OR matches newHighlightId)
+          // 3. Does NOT already have annotations (if it has annotations, user already saved them, don't show popup again)
+          const shouldBeActive = !isPermanentlyClosed && !hasAnnotations && isNewHighlight;
+
+          // Check if this card should stay visible (user just added/updated annotation)
+          const now = Date.now();
+          const showUntil = window.phrazeShowCardUntil && window.phrazeShowCardUntil[highlight.id];
+          const shouldShowCard = showUntil && now < showUntil;
+
+          // Clean up expired entry if found
+          if (showUntil && now >= showUntil) {
+            delete window.phrazeShowCardUntil[highlight.id];
+          }
+
+          // If card should be shown (after annotation), make it visible
+          if (shouldShowCard) {
+            annotationCard.classList.add('active');
+            annotationCard.style.display = '';
+            annotationCard.style.visibility = 'visible';
+            annotationCard.style.opacity = '1';
+            annotationCard.style.pointerEvents = 'auto';
+
+            // Position the card
+            requestAnimationFrame(() => {
+              updateFloaterPosition(annotationCard, containerSpan);
+            });
+          } else if (showUntil && now >= showUntil) {
+            // Explicitly hide if timestamp expired (shouldn't happen due to cleanup above, but safety check)
+            annotationCard.classList.remove('active');
+            annotationCard.style.opacity = '0';
+            annotationCard.style.pointerEvents = 'none';
+            annotationCard.style.visibility = 'hidden';
+          }
           // Explicitly hide the unified card for new highlights (only show popup)
-        else if (shouldBeActive) {
+          else if (shouldBeActive) {
             annotationCard.classList.remove('active');
             annotationCard.classList.remove('sticky');
             annotationCard.style.opacity = '0';
@@ -4764,7 +4766,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             annotationCard.style.visibility = 'hidden';
             // Don't set display: none - keep it in the DOM so hover can work
           }
-          
+
           const hoverState = window.phrazeHoverStateByHighlightId[highlight.id] || {
             overSegments: 0,
             overCard: false,
@@ -4826,7 +4828,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               try {
                 if (annotationCard._phrazeLabelsDropdownOpen) return;
                 if (annotationCard._phrazePreventHoverCloseUntil && Date.now() < annotationCard._phrazePreventHoverCloseUntil) return;
-              } catch (_) {}
+              } catch (_) { }
               const activeEl = document.activeElement;
               if (activeEl && annotationCard.contains(activeEl)) {
                 return;
@@ -4853,11 +4855,11 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                         pinnedCard.style.opacity = 1;
                         pinnedCard.style.pointerEvents = 'auto';
                         pinnedCard.setAttribute('aria-hidden', 'false');
-                      } catch (_) {}
+                      } catch (_) { }
                     });
                   }
-                } catch (_) {}
-                try { annotationCard._phrazeTempHiddenPinnedCards = []; } catch (_) {}
+                } catch (_) { }
+                try { annotationCard._phrazeTempHiddenPinnedCards = []; } catch (_) { }
               }
             }, 220);
           };
@@ -4868,7 +4870,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               if (typeof card._phrazeResetLabelsDropdown === 'function') {
                 card._phrazeResetLabelsDropdown();
               }
-            } catch (_) {}
+            } catch (_) { }
             const prevTransition = card.style.transition;
             card.style.transition = 'none';
             card.classList.remove('active');
@@ -4888,7 +4890,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               if (typeof card._phrazeResetLabelsDropdown === 'function') {
                 card._phrazeResetLabelsDropdown();
               }
-            } catch (_) {}
+            } catch (_) { }
             const token = (card._phrazeHideAnimToken = (card._phrazeHideAnimToken || 0) + 1);
             const prevTransition = card.style.transition;
             card.style.transition = `opacity ${durationMs}ms ease, transform ${durationMs}ms ease`;
@@ -4925,14 +4927,14 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                 if (annotationCard && typeof annotationCard._phrazeResetNotesUI === 'function') {
                   annotationCard._phrazeResetNotesUI();
                 }
-              } catch (_) {}
+              } catch (_) { }
 
               // Ensure the header reflects whether we are adding or updating.
               try {
                 if (annotationCard && typeof annotationCard._phrazeUpdateHeaderTitle === 'function') {
                   annotationCard._phrazeUpdateHeaderTitle();
                 }
-              } catch (_) {}
+              } catch (_) { }
 
               await loadExistingAnnotationsIntoPopup(
                 highlight,
@@ -4951,18 +4953,18 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                 if (annotationCard && typeof annotationCard._phrazeResetNotesUI === 'function') {
                   annotationCard._phrazeResetNotesUI();
                 }
-              } catch (_) {}
+              } catch (_) { }
 
               // Re-evaluate after hydration in case labels/notes changed.
               try {
                 if (annotationCard && typeof annotationCard._phrazeUpdateHeaderTitle === 'function') {
                   annotationCard._phrazeUpdateHeaderTitle();
                 }
-              } catch (_) {}
+              } catch (_) { }
             } catch (err) {
               console.warn('Failed to hydrate popup from existing annotations', err);
             } finally {
-              try { annotationCard._phrazeHydratingExisting = false; } catch (_) {}
+              try { annotationCard._phrazeHydratingExisting = false; } catch (_) { }
             }
           };
 
@@ -4994,13 +4996,13 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                     hideCardInstantly(pinnedCard);
                     // Keep it sticky so it restores as pinned.
                     pinnedCard.classList.add('sticky');
-                  } catch (_) {}
+                  } catch (_) { }
                 });
               } else {
                 annotationCard._phrazeTempHiddenPinnedCards = [];
               }
             } catch (_) {
-              try { annotationCard._phrazeTempHiddenPinnedCards = []; } catch (_) {}
+              try { annotationCard._phrazeTempHiddenPinnedCards = []; } catch (_) { }
             }
 
             const openCards = document.querySelectorAll('.annotation-popup');
@@ -5034,7 +5036,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
           };
 
           const openCardNonSticky = (e) => {
-            try { if (e) e.stopPropagation(); } catch (_) {}
+            try { if (e) e.stopPropagation(); } catch (_) { }
             clearHideTimeout();
             hoverState.overSegments = Math.max(hoverState.overSegments, 1);
             hoverState.overCard = true;
@@ -5062,7 +5064,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
           };
 
           const togglePinned = (e) => {
-            try { if (e) e.stopPropagation(); } catch (_) {}
+            try { if (e) e.stopPropagation(); } catch (_) { }
             clearHideTimeout();
 
             const isPinned = annotationCard.classList.contains('sticky');
@@ -5089,7 +5091,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                 hideCardInstantly(card);
                 card.classList.remove('sticky');
               });
-            } catch (_) {}
+            } catch (_) { }
 
             annotationCard.classList.add('active');
             annotationCard.classList.add('sticky');
@@ -5113,9 +5115,9 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               } else {
                 annotationCard._phrazePinnedStaticPos = null;
               }
-            } catch (_) {}
+            } catch (_) { }
 
-            try { annotationCard._phrazeHoverFreeze = null; } catch (_) {}
+            try { annotationCard._phrazeHoverFreeze = null; } catch (_) { }
             scheduleFloaterPositionUpdate(annotationCard, containerSpan);
           };
 
@@ -5134,7 +5136,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                   name: (highlight && highlight.colorName) ? highlight.colorName : undefined
                 }
               }));
-            } catch (_) {}
+            } catch (_) { }
 
             // Delay to allow dblclick to cancel the single-click action.
             if (containerSpan._phrazeClickTimer) {
@@ -5172,7 +5174,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             }
             togglePinned(e);
           });
-          
+
           // Add scroll listener to update position when page scrolls
           const updateCardPositionOnScroll = () => {
             // Only update if card is active/visible
@@ -5186,7 +5188,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                   if (annotationCard._phrazeIgnoreScrollHideUntil && Date.now() < annotationCard._phrazeIgnoreScrollHideUntil) {
                     return;
                   }
-                } catch (_) {}
+                } catch (_) { }
                 // Give a small grace period on scroll so it doesn't feel like it "snaps" closed.
                 // We debounce so continuous scrolling doesn't repeatedly close/reopen; it closes shortly after scroll stops.
                 try {
@@ -5196,27 +5198,27 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                   annotationCard._phrazeScrollHideTimeout = setTimeout(() => {
                     try {
                       annotationCard._phrazeHoverFreeze = null;
-                    } catch (_) {}
+                    } catch (_) { }
                     try {
                       hoverState.overSegments = 0;
                       hoverState.overCard = false;
-                    } catch (_) {}
+                    } catch (_) { }
                     hideCardSoftly(annotationCard, 120);
                   }, 35);
                   return;
-                } catch (_) {}
+                } catch (_) { }
                 try {
                   annotationCard._phrazeHoverFreeze = null;
-                } catch (_) {}
+                } catch (_) { }
                 try {
                   hoverState.overSegments = 0;
                   hoverState.overCard = false;
-                } catch (_) {}
+                } catch (_) { }
                 hideCardSoftly(annotationCard, 120);
               }
             }
           };
-          
+
           const chatScrollContainer = getPhrazeHighlightScrollContainer(containerSpan);
 
           // Add scroll event listeners to window and the chat scroll container (internal scrolling).
@@ -5229,23 +5231,23 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               chatScrollContainer.addEventListener('scroll', updateCardPositionOnScroll, { passive: true });
               annotationCard._phrazeScrollContainer = chatScrollContainer;
             }
-            
+
             // Store cleanup function on the card for later removal
             annotationCard._scrollCleanup = () => {
               window.removeEventListener('scroll', updateCardPositionOnScroll, true);
               window.removeEventListener('resize', updateCardPositionOnScroll, true);
               const sc = annotationCard._phrazeScrollContainer;
               if (sc) {
-                try { sc.removeEventListener('scroll', updateCardPositionOnScroll); } catch (_) {}
+                try { sc.removeEventListener('scroll', updateCardPositionOnScroll); } catch (_) { }
               }
             };
           }
 
-        // Surround the highlighted text safely
-        if (!highlightedSegment.parentNode) {
-          // If node is detached, skip this highlight safely
-          continue;
-        }
+          // Surround the highlighted text safely
+          if (!highlightedSegment.parentNode) {
+            // If node is detached, skip this highlight safely
+            continue;
+          }
           const range = document.createRange();
           range.selectNode(highlightedSegment);
           range.surroundContents(mark);
@@ -5268,22 +5270,22 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
           if (!annotationCard.parentNode) {
             document.body.appendChild(annotationCard);
           }
-          
+
           // Show popup immediately after card is added to DOM (if this is a new highlight)
           // CRITICAL: Only show popup if this is truly a NEW highlight (no annotations yet) AND not permanently closed
           if (shouldBeActive) {
             // Check if this popup is permanently closed - check multiple sources to be thorough
             const existingPopup = document.querySelector(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
-            const isPermanentlyClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id)) || 
-                                       (existingPopup && existingPopup.dataset.permanentlyClosed === 'true');
-            
+            const isPermanentlyClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id)) ||
+              (existingPopup && existingPopup.dataset.permanentlyClosed === 'true');
+
             // Also check if any popup with this highlight ID is marked as permanently closed
             const anyPopupClosed = document.querySelectorAll(`.annotation-popup[data-highlight-id="${highlight.id}"][data-permanently-closed="true"]`).length > 0;
-            
+
             // Check if highlight already has annotations - if it does, don't show popup (user already annotated it)
             const hasAnnotations = (window.highlightsToAnnotationsMap && window.highlightsToAnnotationsMap[highlight.id] && window.highlightsToAnnotationsMap[highlight.id].length > 0) ||
-                                   (highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0);
-            
+              (highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0);
+
             // Only show popup if:
             // 1. Popup is not permanently closed
             // 2. Highlight doesn't already have annotations (if it does, user already annotated it)
@@ -5296,28 +5298,28 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               requestAnimationFrame(() => {
                 // Query for the popup directly using its data attribute
                 const annotationPopup = document.querySelector(`.annotation-popup[data-highlight-id="${highlight.id}"]`);
-                
+
                 // Double-check that it's not permanently closed (race condition protection)
                 const stillClosed = (window.phrazePermanentlyClosedPopups && window.phrazePermanentlyClosedPopups.has(highlight.id)) ||
-                                   (annotationPopup && annotationPopup.dataset.permanentlyClosed === 'true');
-                
+                  (annotationPopup && annotationPopup.dataset.permanentlyClosed === 'true');
+
                 if (annotationPopup && !stillClosed && annotationPopup.dataset.permanentlyClosed !== 'true') {
                   // Close ALL other open popups first (Zotero behavior: only one popup at a time)
                   const allPopups = document.querySelectorAll('.annotation-popup');
                   allPopups.forEach(popup => {
                     // Skip if this is the popup we're about to open
                     if (popup.dataset.highlightId === highlight.id) return;
-                    
+
                     // Check if popup is currently visible (check multiple ways)
-                    const isVisible = popup.style.display === 'block' || 
-                                     popup.style.display !== 'none' ||
-                                     popup.style.opacity !== '0' ||
-                                     window.getComputedStyle(popup).display !== 'none';
-                    
+                    const isVisible = popup.style.display === 'block' ||
+                      popup.style.display !== 'none' ||
+                      popup.style.opacity !== '0' ||
+                      window.getComputedStyle(popup).display !== 'none';
+
                     if (!isVisible) return;
                     // Skip if this is the popup we're about to open
                     if (popup.dataset.highlightId === highlight.id) return;
-                    
+
                     // Close other popups (do NOT permanently close; user can reopen)
                     phrazeHidePopupElement(popup);
                     const otherHighlightId = popup.dataset.highlightId;
@@ -5338,15 +5340,15 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                   } catch (e) {
                     console.warn('Error getting highlight position, using center fallback', e);
                   }
-                  
+
                   if (highlightRect) {
                     const popupWidth = 400; // From CSS: .annotation-popup width: 400px
                     const spacing = 10; // Spacing between highlight and popup
-                    
+
                     // Try to position above the highlight first, centered horizontally
                     let preferredLeft = highlightRect.left + (highlightRect.width / 2) - (popupWidth / 2);
                     let preferredTop = highlightRect.top - spacing; // Start above highlight
-                    
+
                     positionElementInViewport(annotationPopup, {
                       preferredLeft: preferredLeft,
                       preferredTop: preferredTop,
@@ -5363,12 +5365,12 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                       position: 'fixed'
                     });
                   }
-                  
+
                   annotationPopup.style.display = 'block';
                   annotationPopup.style.visibility = 'visible';
                   annotationPopup.style.opacity = '1';
                   annotationPopup.style.pointerEvents = 'auto';
-                  
+
                   // Focus on the rich text div for immediate typing
                   requestAnimationFrame(() => {
                     const richTextDiv = annotationPopup.querySelector('[contenteditable="true"]');
@@ -5379,17 +5381,17 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                 } else {
                   // Ensure permanently closed popups stay hidden
                   if (annotationPopup) {
-                  annotationPopup.style.display = 'none';
-                  annotationPopup.style.visibility = 'hidden';
-                  annotationPopup.style.opacity = '0';
-                  annotationPopup.style.pointerEvents = 'none';
+                    annotationPopup.style.display = 'none';
+                    annotationPopup.style.visibility = 'hidden';
+                    annotationPopup.style.opacity = '0';
+                    annotationPopup.style.pointerEvents = 'none';
                     annotationPopup.dataset.permanentlyClosed = 'true';
                   }
                 }
               });
             }
           }
-          
+
           // Add document-level click handler to close sticky cards when clicking outside.
           // IMPORTANT: bind at most once per popup (multi-line highlights create multiple fragments).
           // Also, treat ANY fragment of this highlight as "clicked on highlight" (not just the current containerSpan).
@@ -5412,9 +5414,8 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
                     if (annotationCard.dataset) {
                       delete annotationCard.dataset.pinnedPlacement;
                     }
-                  } catch (_) {}
-                  annotationCard.style.opacity = 0;
-                  annotationCard.style.pointerEvents = "none";
+                  } catch (_) { }
+                  phrazeHidePopupElement(annotationCard);
                 }
               }
             };
@@ -5429,28 +5430,28 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
               document.removeEventListener('click', documentClickHandler, true);
             };
           }
-          
+
           // Add event listener to detect when card is hidden or destroyed
           const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
               if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                 const currentStyle = annotationCard.style.opacity;
                 if (currentStyle === '0' || currentStyle === '') {
-                //  console.log('🔍 Unified annotation card was hidden (opacity changed to 0)');
-                 // console.trace('Stack trace for card hiding:');
+                  //  console.log('🔍 Unified annotation card was hidden (opacity changed to 0)');
+                  // console.trace('Stack trace for card hiding:');
                 }
               }
               if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
                 for (let node of mutation.removedNodes) {
                   if (node === annotationCard) {
-                //    console.log('🔍 Unified annotation card was destroyed/removed from DOM');
-               //     console.trace('Stack trace for card destruction:');
+                    //    console.log('🔍 Unified annotation card was destroyed/removed from DOM');
+                    //     console.trace('Stack trace for card destruction:');
                   }
                 }
               }
             });
           });
-          
+
           // Start observing the card for changes
           observer.observe(annotationCard, {
             attributes: true,
@@ -5458,7 +5459,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
             subtree: false,
             attributeFilter: ['style', 'class']
           });
-          
+
           // Also observe the parent to detect removal
           observer.observe(document.body, {
             childList: true,
@@ -5466,11 +5467,11 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
           });
 
 
+        }
+        lastRange = range;
       }
-      lastRange = range;
     }
-  }
-  
+
     try {
       const sel = window.getSelection();
       if (sel && sel.removeAllRanges) {
@@ -5492,7 +5493,7 @@ export async function loadHighlights(showAllLabelsAndCodes = false, newHighlight
         // Fire-and-forget; this function already guards re-entrancy.
         void loadHighlights(pending.showAllLabelsAndCodes, pending.newHighlightId);
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
@@ -5504,34 +5505,34 @@ function refreshAnnotationCards() {
   console.log("unified refreshing annotation cards");
   const existingCards = document.querySelectorAll('.phraze-unified-annotation-card');
   existingCards.forEach(card => card.remove());
-  
+
   // Reload highlights to recreate the cards with updated annotations
   loadHighlights();
 }
 
- function getUnifiedLabelColorStyle(labelType) {
-   const builtIn = {
-     sentiment: { bg: '#ecfdf5', border: '#34d399', text: '#065f46' },
-     tone: { bg: '#eff6ff', border: '#60a5fa', text: '#1d4ed8' },
-     intent: { bg: '#fff7ed', border: '#fb923c', text: '#9a3412' },
-     emotion: { bg: '#fdf2f8', border: '#f472b6', text: '#9d174d' }
-   };
+function getUnifiedLabelColorStyle(labelType) {
+  const builtIn = {
+    sentiment: { bg: '#ecfdf5', border: '#34d399', text: '#065f46' },
+    tone: { bg: '#eff6ff', border: '#60a5fa', text: '#1d4ed8' },
+    intent: { bg: '#fff7ed', border: '#fb923c', text: '#9a3412' },
+    emotion: { bg: '#fdf2f8', border: '#f472b6', text: '#9d174d' }
+  };
 
-   const custom = { bg: '#f5f3ff', border: '#a78bfa', text: '#5b21b6' };
+  const custom = { bg: '#f5f3ff', border: '#a78bfa', text: '#5b21b6' };
 
-   const normalized = String(labelType || '').trim().toLowerCase();
-   const isBuiltIn = Object.prototype.hasOwnProperty.call(builtIn, normalized);
-   const style = isBuiltIn ? builtIn[normalized] : custom;
-   return style;
- }
+  const normalized = String(labelType || '').trim().toLowerCase();
+  const isBuiltIn = Object.prototype.hasOwnProperty.call(builtIn, normalized);
+  const style = isBuiltIn ? builtIn[normalized] : custom;
+  return style;
+}
 
- function applyUnifiedLabelPillStyle(el, labelType) {
-   if (!el) return;
-   const { bg, border, text } = getUnifiedLabelColorStyle(labelType);
-   el.style.backgroundColor = bg;
-   el.style.border = `1px solid ${border}`;
-   el.style.color = text;
- }
+function applyUnifiedLabelPillStyle(el, labelType) {
+  if (!el) return;
+  const { bg, border, text } = getUnifiedLabelColorStyle(labelType);
+  el.style.backgroundColor = bg;
+  el.style.border = `1px solid ${border}`;
+  el.style.color = text;
+}
 
 /**
  * Updates a specific annotation card with new labels and notes without recreating it
@@ -5540,24 +5541,24 @@ function refreshAnnotationCards() {
 async function updateAnnotationCard(highlightId) {
   const card = document.querySelector(`[data-highlight-id="${highlightId}"]`);
   if (!card) return;
-  
+
   // Get the labels container
   const labelsContainer = card.querySelector('.labels-container');
   if (!labelsContainer) return;
-  
+
   // Clear existing labels
   labelsContainer.innerHTML = '';
-  
+
   // Get updated annotations for this highlight
   const labelPills = [];
-  
+
   if (window.highlightsToAnnotationsMap && window.highlightsToAnnotationsMap[highlightId]) {
     const annotations = window.highlightsToAnnotationsMap[highlightId];
     for (var annotation of annotations) {
       const type = annotation.find(item => item.type)?.type || '';
       const key = annotation.find(item => item.key)?.key || '';
       const options = annotation.find(item => item.options)?.options || [];
-      
+
       if (type.toLowerCase() == "label") {
         // Format as "Key: Value"
         options.forEach(option => {
@@ -5566,7 +5567,7 @@ async function updateAnnotationCard(highlightId) {
       }
     }
   }
-  
+
   // Get highlighted text for deletion
   let highlightedText = '';
   try {
@@ -5586,10 +5587,10 @@ async function updateAnnotationCard(highlightId) {
   } catch (err) {
     console.warn('Could not get highlighted text for deletion:', err);
   }
-  
+
   if (!highlightedText && card) {
-    const containerSpan = card.closest('.phraze-highlight-container') || 
-                         document.querySelector(`mark[data-highlight-id="${highlightId}"]`)?.closest('span');
+    const containerSpan = card.closest('.phraze-highlight-container') ||
+      document.querySelector(`mark[data-highlight-id="${highlightId}"]`)?.closest('span');
     if (containerSpan) {
       const mark = containerSpan.querySelector('mark[id="PhrazeHighlight"]');
       if (mark) {
@@ -5597,7 +5598,7 @@ async function updateAnnotationCard(highlightId) {
       }
     }
   }
-  
+
   // Create label pills with "Key: Value" format and delete arrow on hover
   labelPills.forEach(({ key, value }) => {
     const labelPill = document.createElement('span');
@@ -5605,11 +5606,11 @@ async function updateAnnotationCard(highlightId) {
     labelPill.style.position = 'relative';
     labelPill.style.paddingRight = '18px';
     applyUnifiedLabelPillStyle(labelPill, key);
-    
+
     const textSpan = document.createElement('span');
     textSpan.textContent = `${key}: ${value}`;
     labelPill.appendChild(textSpan);
-    
+
     const deleteArrow = document.createElement('button');
     deleteArrow.innerHTML = '×';
     deleteArrow.type = 'button';
@@ -5634,7 +5635,7 @@ async function updateAnnotationCard(highlightId) {
       visibility: hidden;
       transition: opacity 0.15s ease, color 0.15s ease;
     `;
-    
+
     labelPill.addEventListener('mouseenter', () => {
       deleteArrow.style.opacity = '1';
       deleteArrow.style.visibility = 'visible';
@@ -5653,37 +5654,37 @@ async function updateAnnotationCard(highlightId) {
         await updateAnnotationCard(highlightId);
       }
     });
-    
+
     labelPill.appendChild(deleteArrow);
     labelsContainer.appendChild(labelPill);
   });
-  
+
   // Show empty state for labels if none exist
   if (labelPills.length === 0) {
     labelsContainer.innerHTML = '';
   }
-  
+
   // Update notes list
   const notesList = card.querySelector('.phraze-note-list');
   if (notesList) {
     // Clear existing notes
     notesList.innerHTML = '';
-    
+
     // Reload notes from storage
     try {
       const highlights = await loadFunc() || [];
       const highlight = highlights.find(h => h.id === highlightId);
-      
+
       if (highlight && highlight.notes && Array.isArray(highlight.notes) && highlight.notes.length > 0) {
         // Helper function to create a list item with text and delete button
         const createListItem = (noteText) => {
           const listItem = document.createElement('li');
-          
+
           const textSpan = document.createElement('span');
           textSpan.className = 'phraze-note-text PhrazeMark';
           textSpan.innerHTML = noteText; // Use innerHTML to render HTML tags
           listItem.appendChild(textSpan);
-          
+
           const deleteButton = document.createElement('button');
           deleteButton.className = 'phraze-note-delete-btn PhrazeMark';
           deleteButton.innerHTML = '&times;';
@@ -5701,7 +5702,7 @@ async function updateAnnotationCard(highlightId) {
           deleteButton.style.cursor = 'pointer';
           deleteButton.style.padding = '0';
           deleteButton.style.marginLeft = '5px';
-          
+
           deleteButton.addEventListener('click', async (e) => {
             e.stopPropagation();
             try {
@@ -5716,26 +5717,26 @@ async function updateAnnotationCard(highlightId) {
               console.error('Failed to delete note:', error);
             }
           });
-          
+
           listItem.appendChild(deleteButton);
           return listItem;
         };
-        
+
         // Add each note as a list item
         highlight.notes.forEach(noteText => {
           const listItem = createListItem(noteText);
           notesList.appendChild(listItem);
         });
       }
-      
+
       // Update resize handle visibility based on canvas images (after notes are loaded)
       const resizeHandle = card.querySelector('.card-resize-handle');
       let hasCanvasImages = false;
-      
+
       if (highlight && highlight.notes && Array.isArray(highlight.notes)) {
         hasCanvasImages = highlight.notes.some(note => note.includes('data:image/'));
       }
-      
+
       // Show/hide resize handle based on canvas images
       if (resizeHandle) {
         if (hasCanvasImages) {
@@ -5770,7 +5771,7 @@ async function updateAnnotationCard(highlightId) {
 function refreshAnnotationData() {
   // Get all annotation cards
   const cards = document.querySelectorAll('.phraze-unified-annotation-card');
-  
+
   cards.forEach(card => {
     const highlightId = card.dataset.highlightId;
     if (highlightId) {
@@ -5790,10 +5791,10 @@ function updateAnnotationCardButtonsVisibility() {
   // createAnnotations covers both creating and modifying annotations
   const canCreateAnnotations = isOwner || (annotationPerms && annotationPerms.createAnnotations === true);
   const canDeleteAnnotations = isOwner || (annotationPerms && annotationPerms.deleteAnnotations === true);
-  
+
   // Get all annotation cards
   const cards = document.querySelectorAll('.phraze-unified-annotation-card');
-  
+
   cards.forEach(card => {
     // Find the add note button (+ icon)
     const addNoteButton = card.querySelector('.add-note-btn');
@@ -5804,7 +5805,7 @@ function updateAnnotationCardButtonsVisibility() {
         addNoteButton.style.display = ''; // Show (use default display)
       }
     }
-    
+
     // Find the delete button (X icon)
     const deleteButton = card.querySelector('.delete-highlight-btn');
     if (deleteButton) {
@@ -5814,7 +5815,7 @@ function updateAnnotationCardButtonsVisibility() {
         deleteButton.style.display = ''; // Show (use default display)
       }
     }
-    
+
     // Find the attach button (paperclip icon)
     const attachButton = card.querySelector('.attach-highlight-btn');
     if (attachButton) {
@@ -5845,19 +5846,19 @@ async function refreshAnnotationsMap(options = {}) {
       // console.log('Skipping refresh - annotation processing in progress');
       return;
     }
-    
+
     // Get all highlights
     const highlights = await loadFunc() || [];
-    
+
     // Get updated annotation map
     const newAnnotationsMap = await getHighlightAnnotationsMap(highlights);
-    
+
     // Update the global map
     window.highlightsToAnnotationsMap = newAnnotationsMap;
-    
+
     // Refresh all annotation cards
     refreshAnnotationData();
-    
+
     console.log('Annotations map refreshed successfully');
   } catch (error) {
     console.error('Error refreshing annotations map:', error);
@@ -5874,7 +5875,7 @@ window.updateAnnotationCardButtonsVisibility = updateAnnotationCardButtonsVisibi
 window.addEventListener('message', async (event) => {
   // Only accept messages from the same origin
   if (event.origin !== window.location.origin) return;
-  
+
   if (event.data.action === 'annotationUpdated') {
     // console.log('Received annotation update from extension, refreshing...');
     await refreshAnnotationsMap();
@@ -5894,13 +5895,13 @@ let refreshInterval = null;
 
 function startPeriodicRefresh() {
   if (refreshInterval) clearInterval(refreshInterval);
-  
+
   refreshInterval = setInterval(async () => {
     // Skip if currently processing annotation to avoid conflicts
     if (window.phrazeProcessingAnnotation) {
       return;
     }
-    
+
     // Only refresh if there are annotation popups visible
     const visibleCards = document.querySelectorAll('.annotation-popup.active');
     if (visibleCards.length > 0) {
@@ -5914,17 +5915,17 @@ let lastKnownRole = null;
 function watchForRoleChanges() {
   const checkRole = () => {
     const currentRole = typeof window !== 'undefined' ? window.currentUserRole : null;
-    
+
     // If role changed, update button visibility on all cards
     if (currentRole !== lastKnownRole) {
       lastKnownRole = currentRole;
       updateAnnotationCardButtonsVisibility();
     }
   };
-  
+
   // Check immediately
   checkRole();
-  
+
   // Check periodically (every 500ms for responsive updates)
   setInterval(checkRole, 500);
 }
@@ -5989,7 +5990,7 @@ function addSelectedLabel(label, labelType, container, showToastOnDuplicate = tr
     showToast('Error: Container not found', 'error');
     return;
   }
-  
+
   // Check if label already exists in the popup container
   const existingLabels = container.querySelectorAll('.selected-label-tag');
   for (let existingLabel of existingLabels) {
@@ -6002,7 +6003,7 @@ function addSelectedLabel(label, labelType, container, showToastOnDuplicate = tr
       return; // Label already exists in popup
     }
   }
-  
+
   // Check if label already exists on the view card (annotation card)
   const annotationCard = container.closest('.annotation-popup')?.parentElement?.querySelector('.phraze-unified-annotation-card');
   if (annotationCard) {
@@ -6018,18 +6019,18 @@ function addSelectedLabel(label, labelType, container, showToastOnDuplicate = tr
       }
     }
   }
-  
+
   const labelTag = document.createElement('div');
   labelTag.className = 'selected-label-tag';
   labelTag.innerHTML = `${labelType}: ${label}<button>&times;</button>`;
   applyUnifiedLabelPillStyle(labelTag, labelType);
-  
+
   // Add remove functionality
   const removeBtn = labelTag.querySelector('button');
   removeBtn.addEventListener('click', () => {
     labelTag.remove();
   });
-  
+
   container.appendChild(labelTag);
 }
 
@@ -6042,7 +6043,7 @@ async function loadExistingLabels(highlight, container) {
   try {
     // Clear existing labels first to prevent duplicates
     container.innerHTML = '';
-    
+
     // Get the highlighted text
     let highlightedText = '';
     if (highlight && highlight.textNodes && highlight.textNodes.length > 0) {
@@ -6056,7 +6057,7 @@ async function loadExistingLabels(highlight, container) {
         }
       }
     }
-    
+
     // Fallback: try to get from DOM
     if (!highlightedText) {
       const mark = container.closest('.phraze-highlight-container')?.querySelector('mark[id="PhrazeHighlight"]');
@@ -6064,23 +6065,23 @@ async function loadExistingLabels(highlight, container) {
         highlightedText = mark.textContent;
       }
     }
-    
+
     console.log('Loading existing labels for text:', highlightedText);
-    
+
     if (highlightedText) {
       // Get annotations from annotation history for this text
       const annotationHistory = await getAnnotationHistory();
       console.log('Found annotation history:', annotationHistory);
-      
+
       annotationHistory.forEach(annotation => {
         // Handle the array structure of annotations
         const userText = annotation.find(item => item.userText)?.userText || '';
         const type = annotation.find(item => item.type)?.type || '';
         const key = annotation.find(item => item.key)?.key || '';
         const options = annotation.find(item => item.options)?.options || [];
-        
+
         console.log('Processing annotation:', { userText, type, key, options });
-        
+
         // Check if this annotation matches our highlighted text and is a label
         if (userText === highlightedText && type.toLowerCase() === 'label' && options.length > 0) {
           console.log('Adding existing label:', key, options);
@@ -6117,7 +6118,7 @@ async function addSelectedTextEntry(userText, key, type, option) {
     const highlights = await loadFunc();
     const h = (Array.isArray(highlights) ? highlights : []).find((x) => x && String(x.id) === String(globalHighlightID));
     if (h && h.userEmail) highlightOwnerEmail = String(h.userEmail);
-  } catch (_) {}
+  } catch (_) { }
 
   let createdBy = null;
   try {
@@ -6148,12 +6149,12 @@ async function addSelectedTextEntry(userText, key, type, option) {
 
   // Get the current URL
   let url = window.location.href;
-  
+
   // Get the current chat id (set by the app when chat changes)
   let currentChatId = null;
   try {
     currentChatId = localStorage.getItem('phraze_currentChatId') || null;
-  } catch (_) {}
+  } catch (_) { }
 
   const annotation = [
     { "id": Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) },
@@ -6179,7 +6180,7 @@ async function addSelectedTextEntry(userText, key, type, option) {
   // Retrieve the current annotation history from localStorage
   let annotationHistory = await getAnnotationHistory();
   let annotationIndex = -1;
-  
+
   // Parse existing values if present
   if (annotationHistory.length > 0) {
     for (let index = 0; index < annotationHistory.length; index++) {
@@ -6217,7 +6218,7 @@ async function addSelectedTextEntry(userText, key, type, option) {
       const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
       const isOwner = currentUserRole === 'owner';
       const canCreate = isOwner || (annotationPerms && annotationPerms.createAnnotations === true);
-      
+
       if (!canCreate && currentUserRole !== 'viewer') {
         throw new Error('Permission denied: You do not have permission to create/modify annotations');
       }
@@ -6229,7 +6230,7 @@ async function addSelectedTextEntry(userText, key, type, option) {
       const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
       const isOwner = currentUserRole === 'owner';
       const canCreate = isOwner || (annotationPerms && annotationPerms.createAnnotations === true);
-      
+
       if (!canCreate && currentUserRole !== 'viewer') {
         throw new Error('Permission denied: You do not have permission to create annotations');
       }
@@ -6244,11 +6245,11 @@ async function addSelectedTextEntry(userText, key, type, option) {
     const userEmail = getUserEmailDotFormat();
     const companyEmail = await getResolvedCompanyEmail();
     const projectId = getCurrentProject();
-    
+
     if (userEmail && companyEmail && projectId) {
       const companyEmailDotFormat = companyEmail.replace(/,/g, '.');
       const hasCreatePermission = await hasPermission(userEmail, companyEmailDotFormat, projectId, 'createAnnotations');
-      
+
       if (!hasCreatePermission) {
         if (typeof showToast === 'function') {
           showToast('You do not have permission to create annotations in this project', 'error');
@@ -6256,7 +6257,7 @@ async function addSelectedTextEntry(userText, key, type, option) {
         return; // Exit early if permission denied
       }
     }
-    
+
     // console.log(`No values found. Creating new annotationKey: ${annotationKey}`);
     annotationHistory.push(annotation);
     const annotationHistoryString = JSON.stringify(annotationHistory);
@@ -6267,7 +6268,7 @@ async function addSelectedTextEntry(userText, key, type, option) {
 
   // Dispatch event for annotation updates
   document.dispatchEvent(new Event('annotationUpdated'));
-  
+
   // Dispatch detailed event for statistics manager
   document.dispatchEvent(new CustomEvent('annotationAdded', {
     detail: {
@@ -6293,11 +6294,11 @@ async function addOptionToAnnotation(userText, key, type, option, index) {
   const userEmail = getUserEmailDotFormat();
   const companyEmail = await getResolvedCompanyEmail();
   const projectId = getCurrentProject();
-  
+
   if (userEmail && companyEmail && projectId) {
     const companyEmailDotFormat = companyEmail.replace(/,/g, '.');
     const hasCreatePermission = await hasPermission(userEmail, companyEmailDotFormat, projectId, 'createAnnotations');
-    
+
     if (!hasCreatePermission) {
       if (typeof showToast === 'function') {
         showToast('You do not have permission to create/modify annotations in this project', 'error');
@@ -6305,7 +6306,7 @@ async function addOptionToAnnotation(userText, key, type, option, index) {
       return; // Exit early if permission denied
     }
   }
-  
+
   console.log(`-- addOptionToAnnotation(userText = ${userText}, option = ${option}) --`);
 
   let values = await callGetItem('annotationHistory');
@@ -6335,11 +6336,11 @@ async function addOptionToAnnotation(userText, key, type, option, index) {
     try {
       const me = getCurrentUserMeta();
       if (me) upsertModifiedBy(entry, me);
-    } catch (_) {}
+    } catch (_) { }
 
     await callSetItem('annotationHistory', JSON.stringify(annotationHistory));
     console.log(`Added ${type}\nText: ${userText}\n${type}: ${key}\n${type} Type: ${option}`);
-    
+
     // Dispatch events for statistics updates
     document.dispatchEvent(new Event('annotationUpdated'));
     document.dispatchEvent(new CustomEvent('annotationAdded', {
@@ -6382,32 +6383,32 @@ async function callSetItem(key, value, prefixProjectName = true, showErrorToast 
     // console.log(`[callSetItem] Saving to path: ${path}`);
     await saveFirebaseData(path, value);
     // console.log(`Successfully saved ${key} to Firebase`);
-    
+
     // Clear from pending sync if it was there
     pendingSyncItems.delete(key);
-    
+
     return true; // Success
   } catch (error) {
     console.error(`Firebase save failed for ${key}:`, error);
-    
+
     // Check if it's a permission error
-    const isPermissionError = error?.message?.includes('Permission denied') || 
-                              error?.code === 'PERMISSION_DENIED';
-    
+    const isPermissionError = error?.message?.includes('Permission denied') ||
+      error?.code === 'PERMISSION_DENIED';
+
     if (isPermissionError && showErrorToast) {
       showToast('Unable to save - you may not have permission for this project', 'error');
     } else if (showErrorToast) {
       // Show user-friendly error for other sync failures
-      const friendlyKey = key.includes('annotationHistory') ? 'annotations' : 
-                          key.includes('highlights') ? 'highlights' : key;
+      const friendlyKey = key.includes('annotationHistory') ? 'annotations' :
+        key.includes('highlights') ? 'highlights' : key;
       showToast(`Saving ${friendlyKey} locally - will sync when connection is restored`, 'warning');
     }
-    
+
     // Fallback to localStorage
     try {
       localStorage.setItem(key, JSON.stringify(value));
       // console.log(`Successfully saved ${key} to localStorage`);
-      
+
       // Add to pending sync for retry
       if (!pendingSyncItems.has(key)) {
         pendingSyncItems.set(key, {
@@ -6418,7 +6419,7 @@ async function callSetItem(key, value, prefixProjectName = true, showErrorToast 
         // Schedule retry
         scheduleRetrySync(key);
       }
-      
+
       return false; // Saved locally but not synced
     } catch (localError) {
       console.error(`Error saving ${key} to localStorage:`, localError);
@@ -6435,21 +6436,21 @@ function scheduleRetrySync(key) {
   setTimeout(async () => {
     const item = pendingSyncItems.get(key);
     if (!item) return; // Already synced or removed
-    
+
     if (item.retries >= MAX_SYNC_RETRIES) {
       console.warn(`Max retries reached for ${key}, giving up sync`);
       pendingSyncItems.delete(key);
       return;
     }
-    
+
     item.retries++;
-    
+
     try {
       const companyEmail = await getResolvedCompanyEmail();
       const projectName = await getCurrentProject();
       const path = `Companies/${companyEmail}/projects/${projectName}/${key}`;
       await saveFirebaseData(path, item.value);
-      
+
       // Success - remove from pending
       pendingSyncItems.delete(key);
       showToast('Data synced successfully', 'success');
@@ -6469,7 +6470,7 @@ function showToast(message, type = 'info') {
   // Remove existing toasts
   const existingToasts = document.querySelectorAll('.toast-notification');
   existingToasts.forEach(toast => toast.remove());
-  
+
   // Create toast container if it doesn't exist
   let toastContainer = document.querySelector('.toast-container');
   if (!toastContainer) {
@@ -6486,7 +6487,7 @@ function showToast(message, type = 'info') {
     `;
     document.body.appendChild(toastContainer);
   }
-  
+
   // Create toast element
   const toast = document.createElement('div');
   toast.className = `toast-notification toast-${type}`;
@@ -6503,9 +6504,9 @@ function showToast(message, type = 'info') {
     animation: slideIn 0.3s ease-out;
     transform: translateX(100%);
   `;
-  
+
   toast.textContent = message;
-  
+
   // Add slide-in animation
   const style = document.createElement('style');
   style.textContent = `
@@ -6515,15 +6516,15 @@ function showToast(message, type = 'info') {
     }
   `;
   document.head.appendChild(style);
-  
+
   // Add to container
   toastContainer.appendChild(toast);
-  
+
   // Trigger animation
   setTimeout(() => {
     toast.style.transform = 'translateX(0)';
   }, 10);
-  
+
   // Auto-remove after 4 seconds
   setTimeout(() => {
     toast.style.transform = 'translateX(100%)';
@@ -6533,7 +6534,7 @@ function showToast(message, type = 'info') {
       }
     }, 300);
   }, 4000);
-  
+
   // Allow manual close on click
   toast.addEventListener('click', () => {
     toast.style.transform = 'translateX(100%)';
@@ -6554,18 +6555,18 @@ async function loadCustomLabelsIntoDropdown(dropdown, selectedContainer, toggleB
     if (customData && Object.keys(customData).length > 0) {
       // Find the create custom option to insert before it
       const createCustomOption = dropdown.querySelector('.create-custom-option');
-      
+
       // Add custom labels section header
       const customHeaderDiv = document.createElement('div');
       customHeaderDiv.className = 'label-type-header';
       customHeaderDiv.textContent = 'Custom Labels';
-      
+
       if (createCustomOption) {
         dropdown.insertBefore(customHeaderDiv, createCustomOption);
       } else {
         dropdown.appendChild(customHeaderDiv);
       }
-      
+
       // Add each custom label type and its options
       Object.entries(customData).forEach(([labelType, data]) => {
         if (data.keyType === 'label' && data.options && data.options.length > 0) {
@@ -6573,13 +6574,13 @@ async function loadCustomLabelsIntoDropdown(dropdown, selectedContainer, toggleB
           const labelTypeDiv = document.createElement('div');
           labelTypeDiv.className = 'label-type-header';
           labelTypeDiv.textContent = labelType;
-          
+
           if (createCustomOption) {
             dropdown.insertBefore(labelTypeDiv, createCustomOption);
           } else {
             dropdown.appendChild(labelTypeDiv);
           }
-          
+
           // Add the options for this label type
           data.options.forEach(option => {
             const optionDiv = document.createElement('div');
@@ -6590,7 +6591,7 @@ async function loadCustomLabelsIntoDropdown(dropdown, selectedContainer, toggleB
               dropdown.style.display = 'none';
               toggleBtn.innerHTML = 'Add Label <span>&#9662;</span>';
             });
-            
+
             if (createCustomOption) {
               dropdown.insertBefore(optionDiv, createCustomOption);
             } else {
@@ -6625,7 +6626,7 @@ async function getCustomData() {
     }
   } catch (e) {
     console.warn('Falling back to local customLabelsAndCodes due to error:', e);
-          }
+  }
   // Fallbacks
   try {
     if (typeof window !== 'undefined' && window.callGetItem) {
@@ -6639,7 +6640,7 @@ async function getCustomData() {
   } catch (error) {
     console.error('Error getting custom data:', error);
   }
-    return {};
+  return {};
 }
 
 /**
@@ -6661,15 +6662,15 @@ async function saveCustomData(data) {
     console.warn('Failed to save custom data to Firebase, will fallback:', error);
   }
   // Fallbacks
-    if (typeof window !== 'undefined' && window.callSetItem) {
-      await window.callSetItem('customLabelsAndCodes', data);
-      return;
-    }
-    if (typeof callSetItem === 'function') {
-      await callSetItem('customLabelsAndCodes', data);
-      return;
-    }
-    throw new Error('No storage method available');
+  if (typeof window !== 'undefined' && window.callSetItem) {
+    await window.callSetItem('customLabelsAndCodes', data);
+    return;
+  }
+  if (typeof callSetItem === 'function') {
+    await callSetItem('customLabelsAndCodes', data);
+    return;
+  }
+  throw new Error('No storage method available');
 }
 
 /**
@@ -6685,7 +6686,7 @@ function showCreateCustomModal(type, dropdown, selectedContainer, toggleBtn) {
     }
     return;
   }
-  
+
   // Create modal backdrop
   const backdrop = document.createElement('div');
   backdrop.style.cssText = `
@@ -6700,7 +6701,7 @@ function showCreateCustomModal(type, dropdown, selectedContainer, toggleBtn) {
     align-items: center;
     justify-content: center;
   `;
-  
+
   // Create modal
   const modal = document.createElement('div');
   modal.style.cssText = `
@@ -6713,7 +6714,7 @@ function showCreateCustomModal(type, dropdown, selectedContainer, toggleBtn) {
     border: 1px solid #e5e7eb;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   `;
-  
+
   // Modal content
   modal.innerHTML = `
     <div style="margin-bottom: 28px;">
@@ -6834,17 +6835,17 @@ function showCreateCustomModal(type, dropdown, selectedContainer, toggleBtn) {
       ">Create ${type}</button>
     </div>
   `;
-  
+
   backdrop.appendChild(modal);
   document.body.appendChild(backdrop);
-  
+
   // Add event listeners
   const typeNameInput = modal.querySelector('#customTypeName');
   const optionsContainer = modal.querySelector('#optionsContainer');
   const addOptionBtn = modal.querySelector('#addOptionBtn');
   const cancelBtn = modal.querySelector('#cancelBtn');
   const createBtn = modal.querySelector('#createBtn');
-  
+
   // Add option functionality
   addOptionBtn.addEventListener('click', () => {
     const currentOptions = optionsContainer.querySelectorAll('.option-input');
@@ -6865,18 +6866,18 @@ function showCreateCustomModal(type, dropdown, selectedContainer, toggleBtn) {
         font-family: inherit;
       `;
       optionsContainer.appendChild(newInput);
-      
+
       if (currentOptions.length === 2) {
         addOptionBtn.style.display = 'none';
       }
     }
   });
-  
+
   // Cancel button
   cancelBtn.addEventListener('click', () => {
     backdrop.remove();
   });
-  
+
   // Create button
   createBtn.addEventListener('click', async () => {
     const typeName = typeNameInput.value.trim();
@@ -6884,57 +6885,57 @@ function showCreateCustomModal(type, dropdown, selectedContainer, toggleBtn) {
     const options = Array.from(optionInputs)
       .map(input => input.value.trim())
       .filter(value => value !== '');
-    
+
     if (!typeName) {
       showToast('Please enter a type name', 'error');
       return;
     }
-    
+
     if (options.length === 0) {
       showToast('Please enter at least one option', 'error');
       return;
     }
-    
+
     try {
       // Get existing custom data
       const customData = await getCustomData();
-      
+
       // Check if type already exists
       if (customData[typeName]) {
         showToast(`${type} type "${typeName}" already exists`, 'error');
         return;
       }
-      
+
       // Add new custom type
       customData[typeName] = {
         keyType: type,
         options: options
       };
-      
+
       // Save to storage
       await saveCustomData(customData);
-      
+
       // Close modal
       backdrop.remove();
-      
+
       // Refresh dropdown
       await refreshDropdown(type, dropdown, selectedContainer, toggleBtn);
-      
+
       showToast(`Custom ${type} "${typeName}" created successfully!`, 'success');
-      
+
     } catch (error) {
       console.error('Error creating custom item:', error);
       showToast('Error creating custom item', 'error');
     }
   });
-  
+
   // Close on backdrop click
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) {
       backdrop.remove();
     }
   });
-  
+
   // Focus on type name input
   typeNameInput.focus();
 }
@@ -6945,11 +6946,11 @@ function showCreateCustomModal(type, dropdown, selectedContainer, toggleBtn) {
 async function refreshDropdown(type, dropdown, selectedContainer, toggleBtn) {
   // Clear existing dropdown content
   dropdown.innerHTML = '';
-  
+
   if (type === 'label') {
     // Reload custom labels
     await loadCustomLabelsIntoDropdown(dropdown, selectedContainer, toggleBtn);
-    
+
     // Re-add predefined labels (top 4 categories only)
     const labelMap = {
       Sentiment: ['Positive', 'Neutral', 'Negative'],
@@ -6957,13 +6958,13 @@ async function refreshDropdown(type, dropdown, selectedContainer, toggleBtn) {
       Intent: ['Question', 'Statement', 'Request', 'Feedback'],
       Emotion: ['Happy', 'Frustrated', 'Confused', 'Satisfied']
     };
-    
+
     Object.entries(labelMap).forEach(([labelType, options]) => {
       const labelTypeDiv = document.createElement('div');
       labelTypeDiv.className = 'label-type-header';
       labelTypeDiv.textContent = labelType;
       dropdown.appendChild(labelTypeDiv);
-      
+
       options.forEach(option => {
         const optionDiv = document.createElement('div');
         optionDiv.className = 'label-option';
@@ -6976,26 +6977,26 @@ async function refreshDropdown(type, dropdown, selectedContainer, toggleBtn) {
         dropdown.appendChild(optionDiv);
       });
     });
-    
+
     // Re-add create custom option - only for owners/editors
     const currentUserRole = typeof window !== 'undefined' ? window.currentUserRole : null;
     const isOwnerOrEditor = currentUserRole === 'owner' || currentUserRole === 'editor';
-    
+
     if (isOwnerOrEditor) {
-    const createCustomDiv = document.createElement('div');
-    createCustomDiv.className = 'create-custom-option';
-    createCustomDiv.textContent = '+ Create Custom Label';
-    createCustomDiv.style.cssText = `
+      const createCustomDiv = document.createElement('div');
+      createCustomDiv.className = 'create-custom-option';
+      createCustomDiv.textContent = '+ Create Custom Label';
+      createCustomDiv.style.cssText = `
       padding: 8px 12px;
       cursor: pointer;
       border-top: 1px solid #e5e7eb;
       font-weight: bold;
       color: #3b82f6;
     `;
-    createCustomDiv.addEventListener('click', () => {
-      showCreateCustomModal('label', dropdown, selectedContainer, toggleBtn);
-    });
-    dropdown.appendChild(createCustomDiv);
+      createCustomDiv.addEventListener('click', () => {
+        showCreateCustomModal('label', dropdown, selectedContainer, toggleBtn);
+      });
+      dropdown.appendChild(createCustomDiv);
     }
   }
 }

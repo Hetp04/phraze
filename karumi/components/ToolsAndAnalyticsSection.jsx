@@ -2126,50 +2126,57 @@ const ProjectOrganizationVisual = () => (
   </div>
 );
 
+const BentoRevealRow = ({ children, className = '', delayMs = 0 }) => {
+  const rowRef = useRef(null);
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (mediaQuery?.matches) {
+      setIsRevealed(true);
+      return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      setIsRevealed(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        setIsRevealed(Boolean(entry.isIntersecting));
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -18% 0px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={rowRef}
+      className={`phraze-bento-reveal ${isRevealed ? 'is-revealed' : ''} ${className}`.trim()}
+      style={{ transitionDelay: isRevealed ? `${delayMs}ms` : '0ms' }}
+    >
+      {children}
+    </div>
+  );
+};
+
 const ToolsAndAnalyticsSection = () => {
   const headerRef = useRef(null);
   const headerBottomLineRef = useRef(null);
-  const conveyorOuterRef = useRef(null);
-  const conveyorTrackRef = useRef(null);
-  const stickyInnerRef = useRef(null);
-  const rafRef = useRef(null);
-  const didSnapRef = useRef(false);
-  const snappingRef = useRef(false);
-  const lastWheelTsRef = useRef(0);
-  const wheelIdleTimerRef = useRef(null);
-  const lastWheelWasTrackpadRef = useRef(false);
-  const startRef = useRef(0);
-  const endRef = useRef(0);
-  const stickyTopPxRef = useRef(96);
-  const [conveyorX, setConveyorX] = useState(0);
-  const [conveyorMax, setConveyorMax] = useState(0);
-  const [stickyTopPx, setStickyTopPx] = useState(96);
   const [revealActive, setRevealActive] = useState(false);
-  const revealWasOutRef = useRef(true);
-  const [isSecondScreen, setIsSecondScreen] = useState(false);
-  const [secondRevealActive, setSecondRevealActive] = useState(false);
-  const secondWasOutRef = useRef(true);
 
   useEffect(() => {
-    const computeStickyTop = () => {
-      const el = stickyInnerRef.current;
-      if (!el) return;
-      const viewportH = window.innerHeight;
-      const h = el.getBoundingClientRect().height;
-      const visualOffset = 40;
-      const next = Math.max(24, Math.floor((viewportH - h) / 2) + visualOffset);
-      stickyTopPxRef.current = next;
-      setStickyTopPx(next);
-    };
-
-    computeStickyTop();
-    window.addEventListener('resize', computeStickyTop);
-    return () => window.removeEventListener('resize', computeStickyTop);
-  }, []);
-
-  useEffect(() => {
-    const sectionEl = conveyorOuterRef.current;
-    if (!sectionEl) return;
+    const el = headerRef.current;
+    if (!el) return;
 
     const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     if (mediaQuery?.matches) {
@@ -2186,48 +2193,14 @@ const ToolsAndAnalyticsSection = () => {
       (entries) => {
         const entry = entries[0];
         if (!entry) return;
-
-        if (entry.isIntersecting) {
-          if (revealWasOutRef.current) {
-            revealWasOutRef.current = false;
-            setRevealActive(false);
-            window.requestAnimationFrame(() => {
-              window.requestAnimationFrame(() => {
-                setRevealActive(true);
-              });
-            });
-          }
-        } else {
-          revealWasOutRef.current = true;
-          setRevealActive(false);
-        }
+        setRevealActive(Boolean(entry.isIntersecting));
       },
-      {
-        threshold: 0.08,
-        rootMargin: '0px 0px -10% 0px'
-      }
+      { threshold: 0.12, rootMargin: '0px 0px -18% 0px' }
     );
 
-    observer.observe(sectionEl);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (isSecondScreen) {
-      if (secondWasOutRef.current) {
-        secondWasOutRef.current = false;
-        setSecondRevealActive(false);
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            setSecondRevealActive(true);
-          });
-        });
-      }
-    } else {
-      secondWasOutRef.current = true;
-      setSecondRevealActive(false);
-    }
-  }, [isSecondScreen]);
 
   const toolItems = [
     { icon: IconTag, label: 'Labels', subLabel: 'Active' },
@@ -2236,118 +2209,6 @@ const ToolsAndAnalyticsSection = () => {
     { icon: IconSearch, label: 'Search', subLabel: 'Annotations' },
   ];
 
-  useEffect(() => {
-    const outer = conveyorOuterRef.current;
-    const track = conveyorTrackRef.current;
-    if (!outer || !track) return;
-
-    const onWheel = (e) => {
-      const absY = Math.abs(e?.deltaY ?? 0);
-      const absX = Math.abs(e?.deltaX ?? 0);
-      const deltaMode = e?.deltaMode ?? 0;
-
-      // Heuristic: trackpads typically emit many small pixel deltas (deltaMode === 0)
-      // while mouse wheels tend to emit larger step deltas.
-      const isLikelyTrackpad = deltaMode === 0 && (absY > 0 && absY < 50 || absX > 0);
-
-      lastWheelWasTrackpadRef.current = Boolean(isLikelyTrackpad);
-      lastWheelTsRef.current = Date.now();
-      if (wheelIdleTimerRef.current) {
-        window.clearTimeout(wheelIdleTimerRef.current);
-      }
-      wheelIdleTimerRef.current = window.setTimeout(() => {
-        wheelIdleTimerRef.current = null;
-      }, 200);
-    };
-
-    const compute = () => {
-      const outerRect = outer.getBoundingClientRect();
-      const pageTop = window.scrollY + outerRect.top;
-      const viewportH = window.innerHeight;
-
-      const bottomLineEl = headerBottomLineRef.current;
-      const bottomLineTopAbs = bottomLineEl ? window.scrollY + bottomLineEl.getBoundingClientRect().top : pageTop - viewportH * 0.25;
-
-      const startOffset = Math.min(110, viewportH * 0.1);
-
-      const desiredStart = bottomLineTopAbs - startOffset;
-      const stickyStart = pageTop - stickyTopPxRef.current;
-      const start = Math.max(desiredStart, stickyStart);
-      const end = Math.max(start + 1, pageTop + outer.offsetHeight - viewportH * 0.75);
-
-      const motionDelayPx = Math.min(140, viewportH * 0.14);
-      const motionStart = start + motionDelayPx;
-
-      const endHoldPx = Math.min(220, viewportH * 0.22);
-      const motionEnd = Math.max(motionStart + 1, end - endHoldPx);
-
-      startRef.current = start;
-      endRef.current = end;
-
-      const snapWindow = Math.min(140, viewportH * 0.14);
-      const resetBuffer = Math.min(220, viewportH * 0.22);
-
-      const isInSection = window.scrollY >= start - resetBuffer && window.scrollY <= end + resetBuffer;
-      if (!isInSection) {
-        didSnapRef.current = false;
-      }
-
-      const wheelIsActive = Date.now() - lastWheelTsRef.current < 200;
-      const recentlyTrackpad = lastWheelWasTrackpadRef.current && Date.now() - lastWheelTsRef.current < 600;
-      if (!recentlyTrackpad && !wheelIsActive && !didSnapRef.current && !snappingRef.current && window.scrollY > start && window.scrollY < start + snapWindow) {
-        snappingRef.current = true;
-        window.scrollTo({ top: start, behavior: 'smooth' });
-        didSnapRef.current = true;
-        window.setTimeout(() => {
-          snappingRef.current = false;
-        }, 180);
-      }
-
-      const progress = Math.min(1, Math.max(0, (window.scrollY - motionStart) / Math.max(1, motionEnd - motionStart)));
-      const outerW = Math.max(1, outer.clientWidth);
-      const maxTranslate = Math.max(0, track.scrollWidth - outerW);
-      const translateX = progress * maxTranslate;
-      setConveyorMax(maxTranslate);
-      setConveyorX(translateX);
-
-      const page = Math.round(translateX / outerW);
-      setIsSecondScreen(page === 1);
-    };
-
-    const onScroll = () => {
-      if (rafRef.current) return;
-      rafRef.current = window.requestAnimationFrame(() => {
-        rafRef.current = null;
-        compute();
-      });
-    };
-
-    compute();
-    window.addEventListener('wheel', onWheel, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', compute);
-    return () => {
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', compute);
-      if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      if (wheelIdleTimerRef.current) {
-        window.clearTimeout(wheelIdleTimerRef.current);
-        wheelIdleTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  const fadeW = 46;
-  const edgeFadeStrength = 0.32;
-  const leftFadeAmt = conveyorMax > 0 ? Math.min(1, conveyorX / 120) : 0;
-  const rightFadeAmtRaw = conveyorMax > 0 ? Math.min(1, (conveyorMax - conveyorX) / 120) : 0;
-  const rightGatePx = 36;
-  const rightGate = Math.min(1, Math.max(0, conveyorX / rightGatePx));
-  const rightFadeAmt = rightFadeAmtRaw * rightGate;
-  const leftEdgeAlpha = 1 - leftFadeAmt * edgeFadeStrength;
-  const rightEdgeAlpha = 1 - rightFadeAmt * edgeFadeStrength;
 
   const chatAnnotationVisualHtml = `<div style="width: 100%; height: 100%; background: radial-gradient(ellipse at 50% 100%, rgba(34,211,238,0.22) 0%, rgba(34,211,238,0.11) 34%, rgba(34,211,238,0.05) 58%, rgba(255,255,255,0) 80%), linear-gradient(135deg, rgb(255, 254, 252) 0%, rgb(251, 252, 253) 55%, rgb(246, 248, 251) 100%); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgb(226, 232, 240); box-shadow: rgba(0, 0, 0, 0.08) 0px 4px 16px, rgba(0, 0, 0, 0.06) 0px 2px 8px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset; position: relative;"><div style="position: absolute; inset: 0px; background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2) 0%, transparent 50%), radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.1) 0%, transparent 50%); pointer-events: none; z-index: 1;"></div><div style="position: absolute; top: 15%; right: 10%; width: 4px; height: 4px; background: rgba(255, 255, 255, 0.6); border-radius: 50%; box-shadow: rgba(255, 255, 255, 0.8) 0px 0px 6px; z-index: 1;"></div><div style="position: absolute; top: 60%; left: 8%; width: 3px; height: 3px; background: rgba(255, 255, 255, 0.4); border-radius: 50%; box-shadow: rgba(255, 255, 255, 0.6) 0px 0px 4px; z-index: 1;"></div><div style="position: absolute; top: 80%; right: 20%; width: 2px; height: 2px; background: rgba(255, 255, 255, 0.5); border-radius: 50%; box-shadow: rgba(255, 255, 255, 0.7) 0px 0px 3px; z-index: 1;"></div><div style="flex: 1 1 0%; padding: 8px; display: flex; flex-direction: column; gap: 10px; justify-content: center; position: relative; z-index: 2;"><div style="display: flex; justify-content: flex-end;"><div style="background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(248, 250, 252) 100%); border-radius: 20px 20px 6px; padding: 14px 18px; max-width: 80%; font-size: 14px; line-height: 1.5; color: rgb(55, 65, 81); border: 1px solid rgb(229, 231, 235); box-shadow: rgba(0, 0, 0, 0.08) 0px 1px 4px, rgba(255, 255, 255, 0.8) 0px 1px 0px inset; position: relative;">Can you explain <span style="background-color: rgb(254, 243, 199); padding: 2px 4px; border-radius: 4px; font-weight: 500;">machine learning</span>?</div></div><div style="display: flex; justify-content: flex-start;"><div style="display: flex; flex-direction: column; max-width: 85%;"><div style="font-size: 0.8rem; margin-bottom: 8px; font-weight: 500; color: rgb(85, 85, 85); text-align: left; padding-right: 0rem; display: flex; align-items: center; gap: 0.5rem; justify-content: flex-start; padding-left: 16px;"><span>phraze</span><div style="width: 16px; height: 16px; border-radius: 50%; background-color: rgb(100, 116, 139); display: flex; align-items: center; justify-content: center; font-size: 0.5rem; font-weight: 600; color: white; border: 1px solid rgb(71, 85, 105);">P</div></div><div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%); border-radius: 20px 20px 20px 6px; padding: 16px 20px; font-size: 14px; line-height: 1.5; color: rgb(55, 65, 81); border: 1px solid rgba(229, 231, 235, 0.5); box-shadow: rgba(0, 0, 0, 0.06) 0px 1px 4px, rgba(255, 255, 255, 0.6) 0px 1px 0px inset; backdrop-filter: blur(10px); position: relative;"><span style="background-color: rgb(219, 234, 254); padding: 2px 4px; border-radius: 4px; font-weight: 500;">Machine learning</span> is a subset of AI that enables computers to learn and make decisions from data. Key concepts include <span style="background-color: rgb(220, 252, 231); padding: 2px 4px; border-radius: 4px; font-weight: 500;">neural networks</span>, <span style="background-color: rgb(252, 231, 243); padding: 2px 4px; border-radius: 4px; font-weight: 500;">algorithms</span>, and <span style="background-color: rgb(254, 243, 199); padding: 2px 4px; border-radius: 4px; font-weight: 500;">data preprocessing</span> techniques.</div></div></div></div><div style="padding: 8px 10px; border-top: 1px solid rgba(229, 231, 235, 0.3); background: rgb(255, 255, 255); border-radius: 0px 0px 16px 16px; position: relative; z-index: 2; backdrop-filter: blur(20px); box-shadow: rgba(255, 255, 255, 0.6) 0px 1px 0px inset;"><div style="display: flex; flex-flow: wrap; gap: 12px; align-items: center; justify-content: center;"><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(254, 243, 199); border-radius: 2px;"></div><span>Technology</span></div><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(219, 234, 254); border-radius: 2px;"></div><span>AI Concepts</span></div><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(220, 252, 231); border-radius: 2px;"></div><span>Algorithms</span></div><div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgb(107, 114, 128);"><div style="width: 10px; height: 10px; background-color: rgb(252, 231, 243); border-radius: 2px;"></div><span>Methods</span></div></div></div></div>`;
 
@@ -2501,129 +2362,87 @@ const ToolsAndAnalyticsSection = () => {
         </div>
       </div>
 
-      <div ref={conveyorOuterRef} className="relative mt-10">
-        <div className="h-[240vh]">
-          <div ref={stickyInnerRef} className="sticky" style={{ top: stickyTopPx }}>
-            <div
-              className="relative overflow-hidden"
-              style={{
-                WebkitMaskImage: `linear-gradient(to right, rgba(0,0,0,${leftEdgeAlpha}) 0px, rgba(0,0,0,1) ${fadeW}px, rgba(0,0,0,1) calc(100% - ${fadeW}px), rgba(0,0,0,${rightEdgeAlpha}) 100%)`,
-                maskImage: `linear-gradient(to right, rgba(0,0,0,${leftEdgeAlpha}) 0px, rgba(0,0,0,1) ${fadeW}px, rgba(0,0,0,1) calc(100% - ${fadeW}px), rgba(0,0,0,${rightEdgeAlpha}) 100%)`,
-                WebkitMaskRepeat: 'no-repeat',
-                maskRepeat: 'no-repeat',
-                WebkitMaskSize: '100% 100%',
-                maskSize: '100% 100%',
-              }}
-            >
-              <div
-                ref={conveyorTrackRef}
-                className="flex gap-10 will-change-transform"
-                style={{ transform: `translate3d(${-conveyorX}px, 0, 0)`, transition: 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1)' }}
-              >
-                {[0, 1].map((pageIndex) => (
-                  <div key={`bento-page-${pageIndex}`} className="shrink-0 w-full">
-                    {pageIndex === 1 ? (
-                      <EmptyBentoPage revealActive={secondRevealActive} />
-                    ) : (
-                      <div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '0ms' }}>
-                            <div className="mb-6">
-                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Annotate your chats</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.</p>
-                            </div>
-
-                            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 w-full max-w-md mx-auto mt-auto">
-                              <div className="flex items-center gap-3 mb-6">
-                                <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-slate-700">
-                                  <IconWrench className="w-4 h-4" />
-                                </div>
-                                <span className="font-semibold text-slate-700 text-sm">Tools</span>
-                              </div>
-                              <div className="grid grid-cols-4 gap-4">
-                                {toolItems.map((item, idx) => (
-                                  <ToolItem
-                                    key={item.label}
-                                    icon={item.icon}
-                                    label={item.label}
-                                    subLabel={item.subLabel}
-                                    pulseDelayMs={(pageIndex * 1200) + (idx * 260)}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '140ms' }}>
-                            <div className="mb-6">
-                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Project Organization</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Keep every thread, tag, and decision structured in one place.</p>
-                            </div>
-                            <div className="flex-1 min-h-0 flex items-center justify-center">
-                              <div className="w-full">
-                                <ProjectOrganizationVisual />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '280ms' }}>
-                            <div className="mb-4">
-                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>{pageIndex % 2 === 0 ? 'Chat annotation' : 'Exports'}</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>
-                                {pageIndex % 2 === 0
-                                  ? 'Highlight key phrases in the conversation and label them instantly.'
-                                  : 'Share insights with a clean export your team can trust.'}
-                              </p>
-                            </div>
-                            <div className="flex-1 min-h-0">
-                              {pageIndex % 2 === 0 ? (
-                                <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: chatAnnotationVisualHtml }} />
-                              ) : (
-                                <div className="bg-white rounded-3xl border border-gray-100 p-6 w-full max-w-md mx-auto">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <div className="text-[11px] font-semibold text-slate-700">Export report</div>
-                                    <div className="text-[10px] font-medium text-slate-400">PDF · CSV</div>
-                                  </div>
-                                  <div className="h-10 bg-slate-50 border border-slate-100 rounded-2xl" />
-                                  <div className="mt-3 space-y-2">
-                                    <div className="h-2 bg-slate-100 rounded-full w-[88%]" />
-                                    <div className="h-2 bg-slate-100 rounded-full w-[72%]" />
-                                    <div className="h-2 bg-slate-100 rounded-full w-[80%]" />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 mt-10">
-                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-7 flex flex-col phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '420ms' }}>
-                            <div className="mb-4">
-                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Live collaboration</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>See changes merge in real time as your team annotates.</p>
-                            </div>
-                            <div className="flex-1 w-full">
-                              <LiveCollaborationCard />
-                            </div>
-                          </div>
-                          <div className={`bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-5 flex flex-col phraze-bento-reveal ${revealActive ? 'is-revealed' : ''}`} style={{ transitionDelay: '560ms' }}>
-                            <div className="mb-4">
-                              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Analyze your data</h3>
-                              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Visualize trends and uncover insights in your conversations with analytics tools.</p>
-                            </div>
-                            <div className="flex-1 flex items-center justify-center overflow-visible">
-                              <AnalyticsVisual />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+      <div className="mt-10">
+        <BentoRevealRow>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Annotate your chats</h3>
+              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Highlight, code, and take notes directly in conversations so insights are always captured, organized, and never lost.</p>
+            </div>
+            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 w-full max-w-md mx-auto mt-auto">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-slate-700">
+                  <IconWrench className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-slate-700 text-sm">Tools</span>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                {toolItems.map((item, idx) => (
+                  <ToolItem
+                    key={item.label}
+                    icon={item.icon}
+                    label={item.label}
+                    subLabel={item.subLabel}
+                    pulseDelayMs={idx * 260}
+                  />
                 ))}
               </div>
             </div>
           </div>
+
+          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Project Organization</h3>
+              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Keep every thread, tag, and decision structured in one place.</p>
+            </div>
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <div className="w-full">
+                <ProjectOrganizationVisual />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] flex flex-col relative select-none">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Chat annotation</h3>
+              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Highlight key phrases in the conversation and label them instantly.</p>
+            </div>
+            <div className="flex-1 min-h-0">
+              <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: chatAnnotationVisualHtml }} />
+            </div>
+          </div>
         </div>
+        </BentoRevealRow>
+
+        <BentoRevealRow delayMs={80}>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 mt-10">
+          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-7 flex flex-col">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Live collaboration</h3>
+              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>See changes merge in real time as your team annotates.</p>
+            </div>
+            <div className="flex-1 w-full min-h-0">
+              <LiveCollaborationCard />
+            </div>
+          </div>
+          <div className="bg-[#FAF9F6] rounded-[32px] border border-[#EBE9E4] p-8 h-[440px] md:col-span-5 flex flex-col">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Analyze your data</h3>
+              <p className="text-slate-500 text-sm font-light mt-1" style={{ fontFamily: '"Glacial Indifference", sans-serif' }}>Visualize trends and uncover insights in your conversations with analytics tools.</p>
+            </div>
+            <div className="flex-1 flex items-center justify-center overflow-visible min-h-0">
+              <AnalyticsVisual />
+            </div>
+          </div>
+        </div>
+        </BentoRevealRow>
+      </div>
+
+      <div className="mt-10">
+        <BentoRevealRow delayMs={120}>
+          <EmptyBentoPage revealActive={true} />
+        </BentoRevealRow>
       </div>
     </div>
   );

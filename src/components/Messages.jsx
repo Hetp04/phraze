@@ -15,12 +15,12 @@ const getResolvedCompanyEmail = async () => {
   const sharedCompanyEmail = localStorage.getItem("sharedCompanyEmail");
   const sharedProjectId = localStorage.getItem("sharedProjectId");
   const currentProject = localStorage.getItem("currentProject") || 'default';
-  
+
   // Only use sharedCompanyEmail if the current project matches the stored shared project
   if (sharedCompanyEmail && sharedProjectId && sharedProjectId === currentProject) {
     return sharedCompanyEmail.replace(/\./g, ',');
   }
-  
+
   // Try local cache for user's own company
   const companyEmail = localStorage.getItem("companyEmail");
   if (companyEmail) {
@@ -36,12 +36,12 @@ const getResolvedCompanyEmail = async () => {
       const companyEmail = await getFirebaseData(emailToCompanyPath);
       if (companyEmail) {
         const mappedCompany = companyEmail.replace(/\./g, ',');
-        try { localStorage.setItem("companyEmail", mappedCompany); } catch (_) {}
+        try { localStorage.setItem("companyEmail", mappedCompany); } catch (_) { }
         return mappedCompany;
       }
     }
-  } catch (_) {}
-  
+  } catch (_) { }
+
   return null;
 };
 
@@ -449,7 +449,7 @@ const Messages = ({ currentProject, currentChat }) => {
         clearTimeout(hoverClearTimeoutRef.current);
         hoverClearTimeoutRef.current = null;
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const scheduleHoverClear = () => {
@@ -901,7 +901,7 @@ const Messages = ({ currentProject, currentChat }) => {
     setLoadingGroup(true);
 
     let unsub = null;
-    const cleanup = () => { try { if (unsub) unsub(); } catch (_) {} };
+    const cleanup = () => { try { if (unsub) unsub(); } catch (_) { } };
 
     const load = async () => {
       try {
@@ -947,7 +947,7 @@ const Messages = ({ currentProject, currentChat }) => {
                   lastName = userData.lastName || null;
                   userName = userData.name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || email.split('@')[0]);
                 }
-              } catch (_) {}
+              } catch (_) { }
 
               return {
                 email,
@@ -1095,7 +1095,7 @@ const Messages = ({ currentProject, currentChat }) => {
       await set(ref(database, messagesPath), message);
     }
   };
-  
+
   const getContactMissedCount = (contact) => {
     if (!contact) return 0;
     if (contact.isEveryone || contact.email === 'everyone') {
@@ -1311,9 +1311,9 @@ const Messages = ({ currentProject, currentChat }) => {
         if (!wasComposerFocusedRef.current) {
           try {
             requestAnimationFrame(() => composerTextareaRef.current?.blur());
-          } catch (_) {}
+          } catch (_) { }
         }
-      } catch (_) {}
+      } catch (_) { }
     };
 
     window.addEventListener('phraze:attachHighlightToMessaging', handler);
@@ -1325,21 +1325,21 @@ const Messages = ({ currentProject, currentChat }) => {
     if (editingMessage && composerTextareaRef.current && composerBoxRef.current) {
       const textarea = composerTextareaRef.current;
       const container = composerBoxRef.current;
-      
+
       // Reset height to auto to get accurate scrollHeight
       textarea.style.height = 'auto';
-      
+
       const maxTextareaHeight = 128;
       const scrollHeight = textarea.scrollHeight;
       const newHeight = Math.min(scrollHeight, maxTextareaHeight);
       textarea.style.height = `${newHeight}px`;
-      
+
       // Keep the composer container height stable; only resize the textarea.
       // Long previews (reply/attached highlight) scroll within their own area.
       try {
         container.style.height = '';
-      } catch (_) {}
-      
+      } catch (_) { }
+
       // Enable scrolling if content exceeds max
       if (scrollHeight > maxTextareaHeight) {
         textarea.style.overflowY = 'auto';
@@ -1428,7 +1428,7 @@ const Messages = ({ currentProject, currentChat }) => {
     if (!searchTerm || !text) return text;
     const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     const parts = text.split(regex);
-    return parts.map((part, index) => 
+    return parts.map((part, index) =>
       regex.test(part) ? (
         <mark key={index} style={{
           backgroundColor: isActive ? '#FFD700' : '#FFEB3B', // Darker yellow for active match
@@ -1450,10 +1450,10 @@ const Messages = ({ currentProject, currentChat }) => {
     const messageBlocks = getMessageBlocks(message);
     const previewSourceText = messageBlocks ? blocksToPlainText(messageBlocks) : (message.text ? String(message.text) : '');
     if (!previewSourceText) return null;
-    
+
     const userEmail = auth.currentUser?.email;
     const isCurrentUser = message.email === userEmail;
-    
+
     // Get sender name
     let senderName = 'You';
     if (!isCurrentUser) {
@@ -1469,14 +1469,14 @@ const Messages = ({ currentProject, currentChat }) => {
         senderName = message.email?.split('@')[0] || 'Unknown';
       }
     }
-    
+
     // Process message text
     let text = previewSourceText;
     // Remove HTML tags if any
     const plainText = text.replace(/<[^>]*>/g, '');
     // Remove line breaks and normalize whitespace
     const normalizedText = plainText.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    
+
     // Return object with sender and text
     return {
       sender: senderName,
@@ -1534,20 +1534,20 @@ const Messages = ({ currentProject, currentChat }) => {
       console.error('getEmailPair: otherEmail is undefined');
       return null;
     }
-    
+
     const userEmail = auth.currentUser?.email;
     if (!userEmail) {
       console.error('getEmailPair: userEmail is undefined');
       return null;
     }
-    
+
     const otherEmailFormatted = otherEmail.replace(/\./g, ',');
     const userEmailFormatted = userEmail.replace(/\./g, ',');
-    
+
     if (otherEmail === 'everyone') {
       return 'everyone';
     }
-    
+
     if (userEmailFormatted < otherEmailFormatted) {
       return `${userEmailFormatted}-${otherEmailFormatted}`;
     } else {
@@ -1583,7 +1583,7 @@ const Messages = ({ currentProject, currentChat }) => {
     const privatePath = `privateMessages/${emailPair}/${companyEmail}/${projectId}/${topic}`;
     const privateRef = ref(database, privatePath);
     const privateSnapshot = await get(privateRef);
-    
+
     if (privateSnapshot.exists()) {
       const privateData = privateSnapshot.val();
       const messages = Object.values(privateData);
@@ -1602,7 +1602,7 @@ const Messages = ({ currentProject, currentChat }) => {
     const legacyPrivatePath = `privateMessages/${emailPair}/${projectId}/${topic}`;
     const legacyPrivateRef = ref(database, legacyPrivatePath);
     const legacyPrivateSnapshot = await get(legacyPrivateRef);
-    
+
     if (legacyPrivateSnapshot.exists()) {
       const legacyData = legacyPrivateSnapshot.val();
       const messages = Object.values(legacyData);
@@ -1620,7 +1620,7 @@ const Messages = ({ currentProject, currentChat }) => {
     const companyPath = `Companies/${companyEmail}/securedProjects/${projectId}/messages/${topic}/${emailPair}`;
     const companyRef = ref(database, companyPath);
     const companySnapshot = await get(companyRef);
-    
+
     if (companySnapshot.exists()) {
       const companyData = companySnapshot.val();
       const messages = Object.values(companyData);
@@ -1642,10 +1642,10 @@ const Messages = ({ currentProject, currentChat }) => {
   // Use stable values to avoid infinite loops
   const chatId = currentChat?.id;
   const chatTitle = currentChat?.title;
-  
+
   useEffect(() => {
     console.log('[Messages] currentChat changed:', { chatId, chatTitle });
-    
+
     // Reset initial load state when chat changes
     setIsInitialLoad(true);
 
@@ -1653,12 +1653,12 @@ const Messages = ({ currentProject, currentChat }) => {
     // Do not clear missed counts here; counts are cleared only when a specific contact is opened.
     setShowProfilePage(false);
     setSelectedContact(null);
-    
+
     if (chatId) {
       // If it's a groq chat, use groqChats-{chatId} format
       const topic = `groqChats-${chatId}`;
       console.log('[Messages] Setting topic to:', topic);
-      
+
       // Only update if it's different to avoid unnecessary re-renders
       setCurrentTopic(prevTopic => {
         if (prevTopic !== topic) {
@@ -1666,7 +1666,7 @@ const Messages = ({ currentProject, currentChat }) => {
         }
         return prevTopic;
       });
-      
+
       // Immediately set title from currentChat if available (for instant display)
       // This ensures we show the chat title right away, not "General"
       const newTitle = chatTitle || 'Untitled';
@@ -1676,7 +1676,7 @@ const Messages = ({ currentProject, currentChat }) => {
         }
         return prevTitle;
       });
-      
+
       // Fetch the chat title from Firebase (may be more up-to-date)
       const fetchChatTitle = async () => {
         try {
@@ -1684,15 +1684,15 @@ const Messages = ({ currentProject, currentChat }) => {
           if (!companyEmail || !currentProject) {
             return;
           }
-          
+
           const formattedCompanyEmailForPath = companyEmail;
           // Replace "-" with "/" in topic for Firebase path: groqChats-{id} -> groqChats/{id}
           const topicPath = topic.replace("-", "/");
           const chatPath = `Companies/${formattedCompanyEmailForPath}/projects/${currentProject}/${topicPath}/title`;
-          
+
           const chatTitleRef = ref(database, chatPath);
           const chatTitleSnapshot = await get(chatTitleRef);
-          
+
           if (chatTitleSnapshot.exists()) {
             const title = chatTitleSnapshot.val();
             setTopicTitle(prevTitle => prevTitle !== title ? title : prevTitle);
@@ -1701,7 +1701,7 @@ const Messages = ({ currentProject, currentChat }) => {
           console.error('[Messages] Error fetching chat title:', error);
         }
       };
-      
+
       fetchChatTitle();
     } else {
       // Default to general only if there's truly no chat
@@ -1764,14 +1764,14 @@ const Messages = ({ currentProject, currentChat }) => {
     // Add listeners for new contacts
     contacts.forEach((contact) => {
       if (contact.isEveryone || !contact.emailKey || !contact.userCompanyEmail) return;
-      
+
       // Skip if listener already exists
       if (contactsEmailKeys.current.has(contact.email)) return;
 
       // Use the contact's specific company email (not the resolved one)
       const userPath = `Companies/${contact.userCompanyEmail}/users/${contact.emailKey}`;
       const userRef = ref(database, userPath);
-      
+
       const listener = onValue(userRef, (snapshot) => {
         const userData = snapshot.val();
         if (userData) {
@@ -1799,15 +1799,15 @@ const Messages = ({ currentProject, currentChat }) => {
                 : c.profileImage;
               const newFirstName = userData.firstName || c.firstName;
               const newLastName = userData.lastName || c.lastName;
-              const newName = userData.name || (newFirstName && newLastName 
-                ? `${newFirstName} ${newLastName}` 
+              const newName = userData.name || (newFirstName && newLastName
+                ? `${newFirstName} ${newLastName}`
                 : newFirstName || c.name);
-              
+
               // Only update if something actually changed
-              if (c.profileImage !== newProfileImage || 
-                  c.firstName !== newFirstName || 
-                  c.lastName !== newLastName || 
-                  c.name !== newName) {
+              if (c.profileImage !== newProfileImage ||
+                c.firstName !== newFirstName ||
+                c.lastName !== newLastName ||
+                c.name !== newName) {
                 return {
                   ...c,
                   profileImage: newProfileImage,
@@ -1885,7 +1885,7 @@ const Messages = ({ currentProject, currentChat }) => {
     if (!currentProject) {
       return;
     }
-    
+
     // Use 'general' as default if currentTopic is not set
     const topicToUse = currentTopic || 'general';
 
@@ -1912,7 +1912,7 @@ const Messages = ({ currentProject, currentChat }) => {
         const everyoneRef = ref(database, everyonePath);
         const everyoneSnapshot = await get(everyoneRef);
         let everyoneMessage = { timestamp: Date.now(), text: '' };
-        
+
         if (everyoneSnapshot.exists()) {
           const everyoneData = everyoneSnapshot.val();
           const messages = Object.values(everyoneData);
@@ -2024,7 +2024,7 @@ const Messages = ({ currentProject, currentChat }) => {
             // Fetch owner user data - owner belongs to the company email
             const ownerEmailKey = ownerEmail.replace(/\./g, ',');
             let ownerUserCompanyEmail = formattedCompanyEmailForPath; // Owner is part of the company
-            
+
             // Try to get owner's actual company (in case they're from a different company)
             try {
               const ownerCompanyEmail = await getFirebaseData(`emailToCompanyDirectory/${ownerEmailKey}`);
@@ -2034,16 +2034,16 @@ const Messages = ({ currentProject, currentChat }) => {
             } catch (e) {
               // Use default company email
             }
-            
+
             const ownerUserPath = `Companies/${ownerUserCompanyEmail}/users/${ownerEmailKey}`;
             const ownerUserRef = ref(database, ownerUserPath);
             const ownerUserSnapshot = await get(ownerUserRef);
-            
+
             let ownerName = ownerEmail.split('@')[0];
             let ownerProfileImage = null;
             let ownerFirstName = null;
             let ownerLastName = null;
-            
+
             if (ownerUserSnapshot.exists()) {
               const ownerUserData = ownerUserSnapshot.val();
               if (ownerUserData.name) ownerName = ownerUserData.name;
@@ -2055,7 +2055,7 @@ const Messages = ({ currentProject, currentChat }) => {
             // Get latest message for owner
             const ownerEmailPair = await getEmailPair(ownerEmail);
             let ownerMessage = { timestamp: Date.now(), text: 'No messages yet' };
-            
+
             if (ownerEmailPair) {
               const latestMsg = await getLatestMessage(ownerEmailPair, formattedCompanyEmailForPath, currentProject, topicToUse);
               if (latestMsg) {
@@ -2106,12 +2106,12 @@ const Messages = ({ currentProject, currentChat }) => {
             if (userCompanyEmailFromDir) {
               userCompanyEmail = userCompanyEmailFromDir.replace(/\./g, ',');
             }
-            
+
             // Then fetch user data from their company
             const userPath = `Companies/${userCompanyEmail}/users/${emailKey}`;
             const userRef = ref(database, userPath);
             const userSnapshot = await get(userRef);
-            
+
             if (userSnapshot.exists()) {
               const userData = userSnapshot.val();
               if (userData.name) userName = userData.name;
@@ -2131,19 +2131,19 @@ const Messages = ({ currentProject, currentChat }) => {
           // Get latest message (check both privateMessages and company paths)
           const emailPair = await getEmailPair(userEmail2);
           if (!emailPair) continue; // Skip if email pair creation failed
-          
+
           let message = null; // Will be set to actual message or remain null for "No messages yet"
           const latestMsg = await getLatestMessage(emailPair, formattedCompanyEmailForPath, currentProject, topicToUse);
           if (latestMsg) {
             message = latestMsg;
           }
-          
+
           // Legacy code path for old message structure (keep for backward compatibility)
           if (!message) {
             const messagesPath = `Companies/${formattedCompanyEmailForPath}/securedProjects/${currentProject}/messages/${topicToUse}/${emailPair}`;
             const messagesRef = ref(database, messagesPath);
             const messagesSnapshot = await get(messagesRef);
-            
+
             if (messagesSnapshot.exists()) {
               const messagesData = messagesSnapshot.val();
               if (messagesData && typeof messagesData === 'object') {
@@ -2191,7 +2191,7 @@ const Messages = ({ currentProject, currentChat }) => {
         if (currentRequestId === loadContactsPanelRequestId.current) {
           setContacts(contactsList);
           setIsLoading(false);
-          
+
           // Set up real-time message preview listeners for all contacts
           setupMessagePreviewListeners(contactsList);
         }
@@ -2232,7 +2232,7 @@ const Messages = ({ currentProject, currentChat }) => {
 
     start();
     return () => {
-      try { if (typeof unsub === 'function') unsub(); } catch (_) {}
+      try { if (typeof unsub === 'function') unsub(); } catch (_) { }
     };
   }, [currentProject, currentTopic, auth.currentUser?.email]);
 
@@ -2354,7 +2354,7 @@ const Messages = ({ currentProject, currentChat }) => {
             try {
               const unsub = groupAvatarListenersRef.current.get(k);
               if (typeof unsub === 'function') unsub();
-            } catch (_) {}
+            } catch (_) { }
             groupAvatarListenersRef.current.delete(k);
             groupAvatarListenerMetaRef.current.delete(k);
           }
@@ -2420,7 +2420,7 @@ const Messages = ({ currentProject, currentChat }) => {
         groupAvatarListenersRef.current.forEach((unsub) => {
           try {
             if (typeof unsub === 'function') unsub();
-          } catch (_) {}
+          } catch (_) { }
         });
         groupAvatarListenersRef.current.clear();
         groupAvatarListenerMetaRef.current.clear();
@@ -2658,7 +2658,7 @@ const Messages = ({ currentProject, currentChat }) => {
       const threadsMetaPath = emailPair === 'everyone'
         ? `Companies/${companyEmail}/securedProjects/${currentProject}/messageThreads/${currentTopic}/${emailPair}`
         : `privateMessageThreads/${emailPair}/${companyEmail}/${currentProject}/${currentTopic}`;
-      
+
       // Use privateMessages path for 1-on-1 conversations (truly private, cross-company)
       // Use company path for "everyone" messages (project-wide announcements)
       // SECURITY: Include ownerCompany in path for Firebase rules to verify specific project membership
@@ -2742,21 +2742,21 @@ const Messages = ({ currentProject, currentChat }) => {
             setMessages(prevMessages => {
               // Create a map to store the latest version of each message
               const messageMap = new Map();
-              
+
               // First, add all previous messages to the map
               prevMessages.forEach(msg => {
                 if (msg && msg.messageId) {
                   messageMap.set(msg.messageId, msg);
                 }
               });
-              
+
               // Then, update with messages from Firebase (these will overwrite old versions)
               mainMessages.forEach(msg => {
                 if (msg && msg.messageId) {
                   messageMap.set(msg.messageId, msg);
                 }
               });
-              
+
               // Convert map back to array and sort
               const unique = Array.from(messageMap.values());
               return unique.sort((a, b) => {
@@ -2862,15 +2862,15 @@ const Messages = ({ currentProject, currentChat }) => {
         };
 
         onValue(scheduledQuery, scheduledListener);
-        
+
         // Store scheduled listener for cleanup
         if (messagesListenerRef.current.secondary) {
-          messagesListenerRef.current.scheduled = {ref: scheduledQuery, listener: scheduledListener};
+          messagesListenerRef.current.scheduled = { ref: scheduledQuery, listener: scheduledListener };
         } else {
           messagesListenerRef.current = {
             ref: primaryListener.ref,
             listener: primaryListener.listener,
-            scheduled: {ref: scheduledQuery, listener: scheduledListener}
+            scheduled: { ref: scheduledQuery, listener: scheduledListener }
           };
         }
       }
@@ -2925,7 +2925,7 @@ const Messages = ({ currentProject, currentChat }) => {
           const userData = await getFirebaseData(`Companies/${companyEmail}/users/${userEmailFormatted}`);
           if (userData && userData.name) userName = userData.name;
           else if (userData && userData.firstName && userData.lastName) userName = `${userData.firstName} ${userData.lastName}`;
-        } catch (_) {}
+        } catch (_) { }
 
         const blocksToSend = [...workingBlocks];
         if (hasCurrentText) {
@@ -3194,7 +3194,7 @@ const Messages = ({ currentProject, currentChat }) => {
       if (messagesScrollContainerRef.current) {
         mainScrollTopRef.current = messagesScrollContainerRef.current.scrollTop;
       }
-    } catch (_) {}
+    } catch (_) { }
 
     setEditingMessage(null);
     setReplyingTo(null);
@@ -3259,21 +3259,21 @@ const Messages = ({ currentProject, currentChat }) => {
         if (messagesScrollContainerRef.current) {
           messagesScrollContainerRef.current.scrollTop = mainScrollTopRef.current || 0;
         }
-      } catch (_) {}
+      } catch (_) { }
     }, 0);
   };
 
   // Update contact message preview in the contacts list
   const updateContactMessagePreview = (contact, newMessage) => {
     if (!contact || !newMessage) return;
-    
+
     setContacts(prevContacts => {
       return prevContacts.map(c => {
         // Match by email or emailKey
-        const isMatch = c.email === contact.email || 
-                       (contact.emailKey && c.emailKey === contact.emailKey) ||
-                       (contact.isEveryone && c.isEveryone);
-        
+        const isMatch = c.email === contact.email ||
+          (contact.emailKey && c.emailKey === contact.emailKey) ||
+          (contact.isEveryone && c.isEveryone);
+
         if (isMatch) {
           return {
             ...c,
@@ -3387,9 +3387,9 @@ const Messages = ({ currentProject, currentChat }) => {
 
               const latest = mainMessages[0];
               // Update if this is newer than what we have
-              if (!latestMessageFromPaths || 
-                  (latest.timestamp && latestMessageFromPaths.timestamp &&
-                   new Date(latest.timestamp).getTime() > new Date(latestMessageFromPaths.timestamp).getTime())) {
+              if (!latestMessageFromPaths ||
+                (latest.timestamp && latestMessageFromPaths.timestamp &&
+                  new Date(latest.timestamp).getTime() > new Date(latestMessageFromPaths.timestamp).getTime())) {
                 latestMessageFromPaths = latest;
                 updateContactMessagePreview(contact, latest);
               }
@@ -3403,9 +3403,9 @@ const Messages = ({ currentProject, currentChat }) => {
           updatePreviewFromData(snapshot.val(), true);
         };
         onValue(primaryRef, primaryListener);
-        
+
         const listeners = { primary: { ref: primaryRef, listener: primaryListener } };
-        
+
         // Set up listener for legacy path (old messages without ownerCompany)
         if (legacyPath) {
           const legacyRef = ref(database, legacyPath);
@@ -3415,7 +3415,7 @@ const Messages = ({ currentProject, currentChat }) => {
           onValue(legacyRef, legacyListener);
           listeners.legacy = { ref: legacyRef, listener: legacyListener };
         }
-        
+
         // Set up listener for secondary path (very old messages in company path)
         if (secondaryPath) {
           const secondaryRef = ref(database, secondaryPath);
@@ -3425,7 +3425,7 @@ const Messages = ({ currentProject, currentChat }) => {
           onValue(secondaryRef, secondaryListener);
           listeners.secondary = { ref: secondaryRef, listener: secondaryListener };
         }
-        
+
         messagePreviewListeners.current[contactEmail] = listeners;
       } catch (error) {
         console.error(`Error setting up message preview listener for ${contact.email}:`, error);
@@ -3445,7 +3445,7 @@ const Messages = ({ currentProject, currentChat }) => {
     setMessageSearchTerm(''); // Clear message search
     setMessageSearchResults([]);
     setCurrentMatchIndex(-1);
-    
+
     // Clean up messages listeners (primary, secondary, and legacy)
     if (messagesListenerRef.current) {
       off(messagesListenerRef.current.ref, 'value', messagesListenerRef.current.listener);
@@ -3477,8 +3477,8 @@ const Messages = ({ currentProject, currentChat }) => {
   // Navigate to previous match
   const goToPreviousMatch = () => {
     if (messageSearchResults.length === 0) return;
-    const prevIndex = currentMatchIndex <= 0 
-      ? messageSearchResults.length - 1 
+    const prevIndex = currentMatchIndex <= 0
+      ? messageSearchResults.length - 1
       : currentMatchIndex - 1;
     setCurrentMatchIndex(prevIndex);
     scrollToMatch(prevIndex);
@@ -3495,18 +3495,18 @@ const Messages = ({ currentProject, currentChat }) => {
 
     // Normalize search term: remove extra whitespace and convert to lowercase
     const searchLower = trimmedSearch.toLowerCase().replace(/\s+/g, ' ').trim();
-    
+
     const results = messages
       .map((message, index) => {
         if (!message.text) return { message, index, matches: false };
-        
+
         // Normalize message text: remove extra whitespace for better matching
         const messageText = message.text.toLowerCase().replace(/\s+/g, ' ').trim();
-        
+
         // Security: Only search in message text (already filtered by Firebase rules)
         // Check for substring match in normalized text
         const matches = messageText.includes(searchLower);
-        
+
         return { message, index, matches };
       })
       .filter(result => result.matches)
@@ -3539,7 +3539,7 @@ const Messages = ({ currentProject, currentChat }) => {
         off(messagesListenerRef.current.ref, 'value', messagesListenerRef.current.listener);
         messagesListenerRef.current = null;
       }
-      
+
       // Clean up all message preview listeners
       Object.values(messagePreviewListeners.current).forEach((listeners) => {
         // Handle new structure with primary/secondary/legacy
@@ -3574,69 +3574,69 @@ const Messages = ({ currentProject, currentChat }) => {
     const hasText = inputValue.trim().length > 0;
     const shouldShowIcons = true; // Always show icons
 
-  const isThreadView = Boolean(activeThread?.threadId);
-  const threadParentMessage = isThreadView
-    ? (allMessages.find((m) => m && m.messageId === activeThread.threadId) || messages.find((m) => m && m.messageId === activeThread.threadId) || null)
-    : null;
-  const threadReplies = isThreadView
-    ? allMessages.filter((m) => m && m.threadId === activeThread.threadId)
-      .sort((a, b) => {
-        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return timeA - timeB;
-      })
-    : [];
-  const visibleMessages = isThreadView ? threadReplies : messages;
+    const isThreadView = Boolean(activeThread?.threadId);
+    const threadParentMessage = isThreadView
+      ? (allMessages.find((m) => m && m.messageId === activeThread.threadId) || messages.find((m) => m && m.messageId === activeThread.threadId) || null)
+      : null;
+    const threadReplies = isThreadView
+      ? allMessages.filter((m) => m && m.threadId === activeThread.threadId)
+        .sort((a, b) => {
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return timeA - timeB;
+        })
+      : [];
+    const visibleMessages = isThreadView ? threadReplies : messages;
 
-  const composerExpandedHeight = '200px';
-  const composerCollapsedHeight = '104px';
-  const highlightPreviewMaxHeight = '148px';
-  const composerBottomReservePx = 58;
-  const highlightMaxHeightInComposer = `calc(${composerExpandedHeight} - ${composerBottomReservePx}px)`;
+    const composerExpandedHeight = '200px';
+    const composerCollapsedHeight = '104px';
+    const highlightPreviewMaxHeight = '148px';
+    const composerBottomReservePx = 58;
+    const highlightMaxHeightInComposer = `calc(${composerExpandedHeight} - ${composerBottomReservePx}px)`;
 
-  const composerBoxStyle = {
-    flex: 1,
-    minWidth: 0,
-    position: 'relative',
-    backgroundColor: '#ffffff',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    padding: '12px',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-    overflow: 'hidden',
-    flexShrink: 0
-  };
+    const composerBoxStyle = {
+      flex: 1,
+      minWidth: 0,
+      position: 'relative',
+      backgroundColor: '#ffffff',
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      padding: '12px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-start',
+      overflow: 'hidden',
+      flexShrink: 0
+    };
 
-  const previewsWrapStyle = {
-    overflowX: 'hidden',
-    overflowY: 'hidden',
-    // Reserve space below for textarea + footer controls.
-    maxHeight: attachedHighlight?.text ? highlightMaxHeightInComposer : '96px',
-    marginBottom: '6px',
-    flexShrink: 0,
-    flex: 1,
-    minHeight: 0
-  };
+    const previewsWrapStyle = {
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      // Reserve space below for textarea + footer controls.
+      maxHeight: attachedHighlight?.text ? highlightMaxHeightInComposer : '96px',
+      marginBottom: '6px',
+      flexShrink: 0,
+      flex: 1,
+      minHeight: 0
+    };
 
-  const attachedHighlightCardStyle = {
-    padding: '10px 12px',
-    backgroundColor: '#f7f7f8',
-    border: '1px solid #e5e7eb',
-    borderLeft: '3px solid #6b7280',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    flexShrink: 0,
-    marginBottom: replyingTo ? '10px' : 0,
-    maxHeight: '100%',
-    overflowY: 'auto',
-    scrollbarWidth: 'thin'
-  };
+    const attachedHighlightCardStyle = {
+      padding: '10px 12px',
+      backgroundColor: '#f7f7f8',
+      border: '1px solid #e5e7eb',
+      borderLeft: '3px solid #6b7280',
+      borderRadius: '8px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px',
+      flexShrink: 0,
+      marginBottom: replyingTo ? '10px' : 0,
+      maxHeight: '100%',
+      overflowY: 'auto',
+      scrollbarWidth: 'thin'
+    };
 
-  return (
+    return (
       <div className="messages-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <style>{`
           /* Hide scrollbars but keep scrolling functionality for Messages component */
@@ -3804,408 +3804,32 @@ const Messages = ({ currentProject, currentChat }) => {
           }
         `}</style>
         <div style={{
-          padding: '0', 
-      display: 'flex', 
-      flexDirection: 'column', 
+          padding: '0',
+          display: 'flex',
+          flexDirection: 'column',
           height: '100%',
           backgroundColor: '#ffffff'
         }}>
-        {/* Microsoft Teams Style Header */}
-      <div style={{
-          padding: '8px 16px',
-          borderBottom: '1px solid #edebe9',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          backgroundColor: '#ffffff',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          minHeight: '56px'
-        }}>
-          {/* Left: Back Button */}
-          <button
-            onClick={isThreadView ? closeThread : handleBackClick}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#323130',
-              padding: '8px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              transition: 'background-color 0.1s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              width: '32px',
-              height: '32px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f2f1';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            title={isThreadView ? 'Back to messages' : 'Back'}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-          </button>
-
-          {/* Center: Avatar + Name + Presence */}
-          <div 
-            onClick={() => handleContactClick(selectedContact)}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              cursor: 'pointer',
-              minWidth: 0
-            }}
-          >
-            {/* Avatar with Presence Indicator */}
-        <div style={{
-              position: 'relative',
-              flexShrink: 0
-            }}>
-              {selectedContact.isEveryone ? (
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: '#edebe9',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="20" 
-                    height="20" 
-                    viewBox="0 0 48 48"
-                    style={{ color: '#605e5c' }}
-                  >
-                    <path fill="currentColor" d="M11.5 11a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM15 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12Zm14.5 6a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM33 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12ZM4 22.446A3.446 3.446 0 0 1 7.446 19h9.624a7.947 7.947 0 0 0-.93 2.5H7.446a.946.946 0 0 0-.946.946v.429c0 .27.003 1.933 1.019 3.505c.896 1.388 2.723 2.92 6.684 3.102a5.469 5.469 0 0 0-2.464 2.223c-3.222-.632-5.18-2.203-6.32-3.968C4 25.54 4 23.27 4 22.877v-.43Zm29.797 7.036a5.469 5.469 0 0 1 2.464 2.223c3.222-.632 5.18-2.203 6.32-3.968C44 25.54 44 23.27 44 22.877v-.43A3.446 3.446 0 0 0 40.554 19H30.93c.44.763.76 1.605.93 2.5h8.694c.522 0 .946.424.946.946v.429c0 .27-.003 1.933-1.019 3.505c-.896 1.388-2.723 2.92-6.684 3.102ZM24 19.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7ZM18 23a6 6 0 1 1 12 0a6 6 0 0 1-12 0Zm-5 11.446A3.446 3.446 0 0 1 16.446 31h15.108A3.446 3.446 0 0 1 35 34.446v.431c0 .394 0 2.663-1.419 4.86C32.098 42.033 29.233 44 24 44s-8.098-1.967-9.581-4.263C13 37.54 13 35.27 13 34.877v-.431Z"/>
-                  </svg>
-                </div>
-              ) : selectedContact.isGroupChat ? (
-                <div style={{ width: '48px', height: '48px', position: 'relative', flexShrink: 0 }}>
-                  {(() => {
-                    const keys = Array.isArray(selectedContact.memberPreviewKeys) ? selectedContact.memberPreviewKeys : [];
-                    const stack = keys.slice(0, 3);
-                    const size = 30;
-                    const offsets = [0, 12, 24];
-                    const colors = ['#e5e7eb', '#d1d5db', '#cbd5e1'];
-
-                    if (stack.length === 0) {
-                      return (
-                        <div style={{
-                          width: '48px',
-                          height: '48px',
-                          borderRadius: '50%',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #e5e7eb',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#6b7280',
-                          fontWeight: 700
-                        }}>
-                          G
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div style={{ width: '48px', height: '48px', position: 'relative' }}>
-                        {stack.map((k, i) => {
-                          const emailKey = String(k || '').toLowerCase();
-                          const cached = groupAvatarCache ? groupAvatarCache[emailKey] : null;
-                          const displayName = cached?.name || `${cached?.firstName || ''} ${cached?.lastName || ''}`.trim() || String(emailKey).replace(/,/g, '.');
-                          const initials = (() => {
-                            const first = String(cached?.firstName || '').trim();
-                            const last = String(cached?.lastName || '').trim();
-                            if (first && last) return (first[0] + last[0]).toUpperCase();
-                            if (displayName) {
-                              const parts = String(displayName).trim().split(' ').filter(Boolean);
-                              if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                              return String(displayName).charAt(0).toUpperCase();
-                            }
-                            return 'U';
-                          })();
-                          const profileImage = cached?.profileImage || null;
-
-                          return (
-                            <div
-                              key={`${selectedContact.groupId || selectedContact.email}-header-stack-${k}-${i}`}
-                              style={{
-                                position: 'absolute',
-                                left: offsets[i],
-                                top: offsets[i] / 2,
-                                width: `${size}px`,
-                                height: `${size}px`,
-                                borderRadius: '50%',
-                                backgroundColor: '#e5e7eb',
-                                border: '2px solid #ffffff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                overflow: 'hidden',
-                                boxSizing: 'border-box',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                              }}
-                              title={displayName}
-                            >
-                              {profileImage ? (
-                                <img
-                                  src={profileImage}
-                                  alt={displayName}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                  onError={(e) => {
-                                    try {
-                                      e.currentTarget.style.display = 'none';
-                                      const fallback = e.currentTarget.nextElementSibling;
-                                      if (fallback) fallback.style.display = 'flex';
-                                    } catch (_) {}
-                                  }}
-                                  onLoad={(e) => {
-                                    try {
-                                      e.currentTarget.style.display = 'block';
-                                      const fallback = e.currentTarget.nextElementSibling;
-                                      if (fallback) fallback.style.display = 'none';
-                                    } catch (_) {}
-                                  }}
-                                />
-                              ) : null}
-                              <div style={{
-                                display: profileImage ? 'none' : 'flex',
-                                width: '100%',
-                                height: '100%',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: `hsl(${String(emailKey || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                                color: 'white',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                textTransform: 'uppercase',
-                                lineHeight: '1',
-                                position: 'absolute',
-                                top: 0,
-                                left: 0
-                              }}>
-                                {initials}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <div
-                  title={selectedContact.name}
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    border: '1px solid #edebe9',
-                    overflow: 'hidden',
-                    backgroundColor: '#e5e7eb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative'
-                  }}
-                >
-                  <img
-                    src={selectedContact.profileImage || ''}
-                    alt={selectedContact.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: selectedContact.profileImage ? 'block' : 'none'
-                    }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling;
-                      if (fallback) fallback.style.display = 'flex';
-                    }}
-                    onLoad={(e) => {
-                      e.currentTarget.style.display = 'block';
-                      const fallback = e.currentTarget.nextElementSibling;
-                      if (fallback) fallback.style.display = 'none';
-                    }}
-                  />
-                  <div style={{
-                    display: selectedContact.profileImage ? 'none' : 'flex',
-                    width: '100%',
-                    height: '100%',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: `hsl(${String(selectedContact.email || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                    color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
-                  }}>
-                    {(() => {
-                      const firstInitial = selectedContact.firstName && selectedContact.firstName.trim()
-                        ? selectedContact.firstName.trim()[0].toUpperCase()
-                        : '';
-                      const lastInitial = selectedContact.lastName && selectedContact.lastName.trim()
-                        ? selectedContact.lastName.trim()[0].toUpperCase()
-                        : '';
-                      if (firstInitial && lastInitial) {
-                        return firstInitial + lastInitial;
-                      } else if (firstInitial) {
-                        return firstInitial + firstInitial;
-                      }
-                      return 'U';
-                    })()}
-                  </div>
-                </div>
-              )}
-              {/* Presence Status Indicator - uses same contactStatus as text below */}
-              {!selectedContact.isEveryone && !selectedContact.isGroupChat && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '-2px',
-                  right: '0px',
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: getPresenceColor(contactStatus),
-                  border: '2px solid white',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                }} title={statusLabel} />
-              )}
-            </div>
-
-            {/* Name and Presence Text */}
-            <div style={{
-              flex: 1,
-              minWidth: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              gap: '2px'
-            }}>
-              <div style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: '#111827',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                {isThreadView ? 'Thread' : (selectedContact ? getContactDisplayName(selectedContact) : 'Messages')}
-              </div>
-              <div style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                {isThreadView
-                  ? (threadParentMessage?.name || threadParentMessage?.email?.split('@')[0] || 'Parent message')
-                  : (selectedContact?.isEveryone
-                    ? 'Project-wide announcements'
-                    : (contactStatuses[selectedContact?.emailKey] || { status: 'offline', lastSeenAt: null }).label)
-                }
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Action Icons */}
+          {/* Microsoft Teams Style Header */}
           <div style={{
+            padding: '8px 16px',
+            borderBottom: '1px solid #edebe9',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            flexShrink: 0
+            gap: '12px',
+            backgroundColor: '#ffffff',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            minHeight: '56px'
           }}>
-            {/* Search Icon */}
+            {/* Left: Back Button */}
             <button
-              onClick={() => {
-                setShowMessageSearch(!showMessageSearch);
-                if (!showMessageSearch) {
-                  setTimeout(() => {
-                    if (messageSearchInputRef.current) {
-                      messageSearchInputRef.current.focus();
-                    }
-                  }, 100);
-                } else {
-                  setMessageSearchTerm('');
-                  setMessageSearchResults([]);
-                  setCurrentMatchIndex(-1);
-                }
-              }}
-              style={{
-                background: showMessageSearch ? '#f3f2f1' : 'transparent',
-                border: 'none',
-                color: showMessageSearch ? '#323130' : '#605e5c',
-                padding: '8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                transition: 'background-color 0.1s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '32px',
-                height: '32px'
-              }}
-              onMouseEnter={(e) => {
-                if (!showMessageSearch) {
-                  e.currentTarget.style.backgroundColor = '#f3f2f1';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!showMessageSearch) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-              title="Search messages"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
-            </button>
-
-            {/* More Options Icon */}
-            <button
+              onClick={isThreadView ? closeThread : handleBackClick}
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#605e5c',
+                color: '#323130',
                 padding: '8px',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -4213,6 +3837,7 @@ const Messages = ({ currentProject, currentChat }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
                 width: '32px',
                 height: '32px'
               }}
@@ -4222,12 +3847,12 @@ const Messages = ({ currentProject, currentChat }) => {
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
-              title="More options"
+              title={isThreadView ? 'Back to messages' : 'Back'}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -4235,331 +3860,334 @@ const Messages = ({ currentProject, currentChat }) => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="12" cy="5" r="1"></circle>
-                <circle cx="12" cy="19" r="1"></circle>
+                <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
-          </div>
-        </div>
 
-        {showScheduleModal && (
-          <div
-            className="schedule-modal"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) closeScheduleModal();
-            }}
-          >
-            <div className="schedule-modal-content">
-              <div className="schedule-modal-header">
-                <span className="schedule-modal-title">Schedule Message</span>
-                <button className="schedule-modal-close" onClick={closeScheduleModal} title="Close">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-
-              <div className="schedule-modal-body">
-                <div className="schedule-datetime-section">
-                  <div style={{ flex: 1 }}>
-                    <label className="schedule-label" htmlFor="schedule-date">Date</label>
-                    <input
-                      id="schedule-date"
-                      type="date"
-                      className="schedule-input"
-                      value={scheduleDate}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setScheduleDate(v);
-                        validateScheduleTime(v, scheduleTime);
-                      }}
-                      required
-                    />
+            {/* Center: Avatar + Name + Presence */}
+            <div
+              onClick={() => handleContactClick(selectedContact)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                minWidth: 0
+              }}
+            >
+              {/* Avatar with Presence Indicator */}
+              <div style={{
+                position: 'relative',
+                flexShrink: 0
+              }}>
+                {selectedContact.isEveryone ? (
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#edebe9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 48 48"
+                      style={{ color: '#605e5c' }}
+                    >
+                      <path fill="currentColor" d="M11.5 11a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM15 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12Zm14.5 6a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM33 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12ZM4 22.446A3.446 3.446 0 0 1 7.446 19h9.624a7.947 7.947 0 0 0-.93 2.5H7.446a.946.946 0 0 0-.946.946v.429c0 .27.003 1.933 1.019 3.505c.896 1.388 2.723 2.92 6.684 3.102a5.469 5.469 0 0 0-2.464 2.223c-3.222-.632-5.18-2.203-6.32-3.968C4 25.54 4 23.27 4 22.877v-.43Zm29.797 7.036a5.469 5.469 0 0 1 2.464 2.223c3.222-.632 5.18-2.203 6.32-3.968C44 25.54 44 23.27 44 22.877v-.43A3.446 3.446 0 0 0 40.554 19H30.93c.44.763.76 1.605.93 2.5h8.694c.522 0 .946.424.946.946v.429c0 .27-.003 1.933-1.019 3.505c-.896 1.388-2.723 2.92-6.684 3.102ZM24 19.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7ZM18 23a6 6 0 1 1 12 0a6 6 0 0 1-12 0Zm-5 11.446A3.446 3.446 0 0 1 16.446 31h15.108A3.446 3.446 0 0 1 35 34.446v.431c0 .394 0 2.663-1.419 4.86C32.098 42.033 29.233 44 24 44s-8.098-1.967-9.581-4.263C13 37.54 13 35.27 13 34.877v-.431Z" />
+                    </svg>
                   </div>
+                ) : selectedContact.isGroupChat ? (
+                  <div style={{ width: '48px', height: '48px', position: 'relative', flexShrink: 0 }}>
+                    {(() => {
+                      const keys = Array.isArray(selectedContact.memberPreviewKeys) ? selectedContact.memberPreviewKeys : [];
+                      const stack = keys.slice(0, 3);
+                      const size = 30;
+                      const offsets = [0, 12, 24];
+                      const colors = ['#e5e7eb', '#d1d5db', '#cbd5e1'];
 
-                  <div style={{ flex: 1 }}>
-                    <label className="schedule-label" htmlFor="schedule-time">Time</label>
-                    <input
-                      id="schedule-time"
-                      type="time"
-                      className="schedule-input"
-                      value={scheduleTime}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setScheduleTime(v);
-                        validateScheduleTime(scheduleDate, v);
-                      }}
-                      required
-                    />
+                      if (stack.length === 0) {
+                        return (
+                          <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #e5e7eb',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#6b7280',
+                            fontWeight: 700
+                          }}>
+                            G
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ width: '48px', height: '48px', position: 'relative' }}>
+                          {stack.map((k, i) => {
+                            const emailKey = String(k || '').toLowerCase();
+                            const cached = groupAvatarCache ? groupAvatarCache[emailKey] : null;
+                            const displayName = cached?.name || `${cached?.firstName || ''} ${cached?.lastName || ''}`.trim() || String(emailKey).replace(/,/g, '.');
+                            const initials = (() => {
+                              const first = String(cached?.firstName || '').trim();
+                              const last = String(cached?.lastName || '').trim();
+                              if (first && last) return (first[0] + last[0]).toUpperCase();
+                              if (displayName) {
+                                const parts = String(displayName).trim().split(' ').filter(Boolean);
+                                if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                                return String(displayName).charAt(0).toUpperCase();
+                              }
+                              return 'U';
+                            })();
+                            const profileImage = cached?.profileImage || null;
+
+                            return (
+                              <div
+                                key={`${selectedContact.groupId || selectedContact.email}-header-stack-${k}-${i}`}
+                                style={{
+                                  position: 'absolute',
+                                  left: offsets[i],
+                                  top: offsets[i] / 2,
+                                  width: `${size}px`,
+                                  height: `${size}px`,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#e5e7eb',
+                                  border: '2px solid #ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  overflow: 'hidden',
+                                  boxSizing: 'border-box',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                }}
+                                title={displayName}
+                              >
+                                {profileImage ? (
+                                  <img
+                                    src={profileImage}
+                                    alt={displayName}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    onError={(e) => {
+                                      try {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextElementSibling;
+                                        if (fallback) fallback.style.display = 'flex';
+                                      } catch (_) { }
+                                    }}
+                                    onLoad={(e) => {
+                                      try {
+                                        e.currentTarget.style.display = 'block';
+                                        const fallback = e.currentTarget.nextElementSibling;
+                                        if (fallback) fallback.style.display = 'none';
+                                      } catch (_) { }
+                                    }}
+                                  />
+                                ) : null}
+                                <div style={{
+                                  display: profileImage ? 'none' : 'flex',
+                                  width: '100%',
+                                  height: '100%',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: `hsl(${String(emailKey || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                                  color: 'white',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                  lineHeight: '1',
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0
+                                }}>
+                                  {initials}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
-                </div>
-
-                {scheduleValidationMessage ? (
+                ) : (
                   <div
-                    className="schedule-validation-message"
+                    title={selectedContact.name}
                     style={{
-                      display: 'block',
-                      backgroundColor: scheduleValidationMessage.startsWith('Message scheduled') ? '#ecfdf5' : '#fef2f2',
-                      color: scheduleValidationMessage.startsWith('Message scheduled') ? '#065f46' : '#b91c1c',
-                      border: scheduleValidationMessage.startsWith('Message scheduled') ? '1px solid #a7f3d0' : '1px solid #fecaca'
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      border: '1px solid #edebe9',
+                      overflow: 'hidden',
+                      backgroundColor: '#e5e7eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
                     }}
                   >
-                    {scheduleValidationMessage}
+                    <img
+                      src={selectedContact.profileImage || ''}
+                      alt={selectedContact.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: selectedContact.profileImage ? 'block' : 'none'
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                      onLoad={(e) => {
+                        e.currentTarget.style.display = 'block';
+                        const fallback = e.currentTarget.nextElementSibling;
+                        if (fallback) fallback.style.display = 'none';
+                      }}
+                    />
+                    <div style={{
+                      display: selectedContact.profileImage ? 'none' : 'flex',
+                      width: '100%',
+                      height: '100%',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: `hsl(${String(selectedContact.email || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0
+                    }}>
+                      {(() => {
+                        const firstInitial = selectedContact.firstName && selectedContact.firstName.trim()
+                          ? selectedContact.firstName.trim()[0].toUpperCase()
+                          : '';
+                        const lastInitial = selectedContact.lastName && selectedContact.lastName.trim()
+                          ? selectedContact.lastName.trim()[0].toUpperCase()
+                          : '';
+                        if (firstInitial && lastInitial) {
+                          return firstInitial + lastInitial;
+                        } else if (firstInitial) {
+                          return firstInitial + firstInitial;
+                        }
+                        return 'U';
+                      })()}
+                    </div>
                   </div>
-                ) : null}
+                )}
+                {/* Presence Status Indicator - uses same contactStatus as text below */}
+                {!selectedContact.isEveryone && !selectedContact.isGroupChat && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    right: '0px',
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: getPresenceColor(contactStatus),
+                    border: '2px solid white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                  }} title={statusLabel} />
+                )}
               </div>
 
-              <div className="schedule-modal-footer">
-                <button className="schedule-btn schedule-btn-cancel" onClick={closeScheduleModal}>
-                  Cancel
-                </button>
-                <button
-                  className="schedule-btn schedule-btn-confirm"
-                  onClick={handleConfirmSchedule}
-                  disabled={(() => {
-                    if (!scheduleDate || !scheduleTime) return false;
-                    const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
-                    return scheduledDateTime <= new Date();
-                  })()}
-                >
-                  Schedule
-                </button>
+              {/* Name and Presence Text */}
+              <div style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '2px'
+              }}>
+                <div style={{
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#111827',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {isThreadView ? 'Thread' : (selectedContact ? getContactDisplayName(selectedContact) : 'Messages')}
+                </div>
+                <div style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  {isThreadView
+                    ? (threadParentMessage?.name || threadParentMessage?.email?.split('@')[0] || 'Parent message')
+                    : (selectedContact?.isEveryone
+                      ? 'Project-wide announcements'
+                      : (contactStatuses[selectedContact?.emailKey] || { status: 'offline', lastSeenAt: null }).label)
+                  }
+                </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Message Search Bar */}
-        {showMessageSearch && (
-          <div style={{
-            padding: '12px 16px',
-            backgroundColor: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0
-          }}>
+            {/* Right: Action Icons */}
             <div style={{
-              position: 'relative',
-              flex: 1,
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              gap: '4px',
+              flexShrink: 0
             }}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#9ca3af',
-                  pointerEvents: 'none',
-                  zIndex: 1
-                }}
-              >
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
-              <input
-                ref={messageSearchInputRef}
-                type="text"
-                placeholder="Search messages..."
-                value={messageSearchTerm}
-                onChange={(e) => setMessageSearchTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (e.shiftKey) {
-                      goToPreviousMatch();
-                    } else {
-                      goToNextMatch();
-                    }
-                  } else if (e.key === 'Escape') {
-                    setShowMessageSearch(false);
+              {/* Search Icon */}
+              <button
+                onClick={() => {
+                  setShowMessageSearch(!showMessageSearch);
+                  if (!showMessageSearch) {
+                    setTimeout(() => {
+                      if (messageSearchInputRef.current) {
+                        messageSearchInputRef.current.focus();
+                      }
+                    }, 100);
+                  } else {
                     setMessageSearchTerm('');
                     setMessageSearchResults([]);
                     setCurrentMatchIndex(-1);
                   }
                 }}
                 style={{
-                  width: '100%',
-                  padding: '12px 12px 12px 36px',
+                  background: showMessageSearch ? '#f3f2f1' : 'transparent',
                   border: 'none',
-                  backgroundColor: '#f3f4f6',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)',
-                  boxSizing: 'border-box'
+                  color: showMessageSearch ? '#323130' : '#605e5c',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.1s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px'
                 }}
-                onFocus={(e) => {
-                  e.target.style.backgroundColor = '#f3f4f6';
+                onMouseEnter={(e) => {
+                  if (!showMessageSearch) {
+                    e.currentTarget.style.backgroundColor = '#f3f2f1';
+                  }
                 }}
-                onBlur={(e) => {
-                  e.target.style.backgroundColor = '#f3f4f6';
+                onMouseLeave={(e) => {
+                  if (!showMessageSearch) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
                 }}
-              />
-            </div>
-            {messageSearchResults.length > 0 && (
-              <div style={{
-                fontSize: '13px',
-                color: '#605e5c',
-                whiteSpace: 'nowrap',
-                paddingRight: '8px'
-              }}>
-                {currentMatchIndex + 1} of {messageSearchResults.length}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Messages content area */}
-        <div
-          ref={messagesScrollContainerRef}
-          style={{
-          flex: '1 1 auto',
-          padding: '16px 12px',
-          overflowY: 'auto',
-          backgroundColor: '#ffffff',
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          position: 'relative'
-        }}>
-          {isThreadView && threadParentMessage && (
-            <div style={{
-              padding: '12px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '10px',
-              backgroundColor: '#fafafa',
-              marginBottom: '12px'
-            }}>
-              <div style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                {threadParentMessage.name || threadParentMessage.email?.split('@')[0] || 'User'}
-              </div>
-              <div style={{ whiteSpace: 'pre-wrap', fontSize: '14px', color: '#111827' }}>
-                {threadParentMessage.text || ''}
-              </div>
-            </div>
-          )}
-
-          {isLoadingMessages ? (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              flex: 1,
-              padding: '60px 20px',
-              minHeight: 0
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                border: '3px solid #e5e7eb',
-                borderTopColor: '#0078d4',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                marginBottom: '16px'
-              }}></div>
-              <div style={{
-          color: '#6b7280',
-                fontSize: '15px',
-                fontWeight: 500
-        }}>
-              Loading messages...
-              </div>
-        </div>
-          ) : visibleMessages.length === 0 ? (
-        <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              flex: '1 1 auto',
-              padding: '60px 20px',
-              minHeight: 0,
-              textAlign: 'center'
-            }}>
-              {/* Message Icon */}
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                backgroundColor: '#f3f4f6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '24px'
-              }}>
+                title="Search messages"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="40"
-                  height="40"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#9ca3af"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-              </div>
-              
-              {/* Main Message */}
-              <div style={{
-                color: '#111827',
-                fontSize: '18px',
-                fontWeight: 600,
-                marginBottom: '8px'
-              }}>
-                {isThreadView ? 'No replies yet' : 'No messages yet'}
-              </div>
-              
-              {/* Subtitle */}
-              <div style={{
-                color: '#6b7280',
-          fontSize: '14px',
-                maxWidth: '320px',
-                lineHeight: '1.5',
-                marginBottom: '24px'
-              }}>
-                {isThreadView ? 'Be the first to reply in this thread' : 'Start the conversation by sending a message below'}
-              </div>
-              
-              {/* Hint */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: '#9ca3af',
-                fontSize: '12px',
-                padding: '8px 12px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px'
-              }}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -4567,1342 +4195,371 @@ const Messages = ({ currentProject, currentChat }) => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
                 </svg>
-                <span>Type your message in the input below</span>
+              </button>
+
+              {/* More Options Icon */}
+              <button
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#605e5c',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.1s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f2f1';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+                title="More options"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="12" cy="5" r="1"></circle>
+                  <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {showScheduleModal && (
+            <div
+              className="schedule-modal"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) closeScheduleModal();
+              }}
+            >
+              <div className="schedule-modal-content">
+                <div className="schedule-modal-header">
+                  <span className="schedule-modal-title">Schedule Message</span>
+                  <button className="schedule-modal-close" onClick={closeScheduleModal} title="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="schedule-modal-body">
+                  <div className="schedule-datetime-section">
+                    <div style={{ flex: 1 }}>
+                      <label className="schedule-label" htmlFor="schedule-date">Date</label>
+                      <input
+                        id="schedule-date"
+                        type="date"
+                        className="schedule-input"
+                        value={scheduleDate}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setScheduleDate(v);
+                          validateScheduleTime(v, scheduleTime);
+                        }}
+                        required
+                      />
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <label className="schedule-label" htmlFor="schedule-time">Time</label>
+                      <input
+                        id="schedule-time"
+                        type="time"
+                        className="schedule-input"
+                        value={scheduleTime}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setScheduleTime(v);
+                          validateScheduleTime(scheduleDate, v);
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {scheduleValidationMessage ? (
+                    <div
+                      className="schedule-validation-message"
+                      style={{
+                        display: 'block',
+                        backgroundColor: scheduleValidationMessage.startsWith('Message scheduled') ? '#ecfdf5' : '#fef2f2',
+                        color: scheduleValidationMessage.startsWith('Message scheduled') ? '#065f46' : '#b91c1c',
+                        border: scheduleValidationMessage.startsWith('Message scheduled') ? '1px solid #a7f3d0' : '1px solid #fecaca'
+                      }}
+                    >
+                      {scheduleValidationMessage}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="schedule-modal-footer">
+                  <button className="schedule-btn schedule-btn-cancel" onClick={closeScheduleModal}>
+                    Cancel
+                  </button>
+                  <button
+                    className="schedule-btn schedule-btn-confirm"
+                    onClick={handleConfirmSchedule}
+                    disabled={(() => {
+                      if (!scheduleDate || !scheduleTime) return false;
+                      const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+                      return scheduledDateTime <= new Date();
+                    })()}
+                  >
+                    Schedule
+                  </button>
+                </div>
               </div>
             </div>
-          ) : messageSearchTerm && messageSearchResults.length === 0 ? (
+          )}
+
+          {/* Message Search Bar */}
+          {showMessageSearch && (
             <div style={{
+              padding: '12px 16px',
+              backgroundColor: '#ffffff',
               display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
               alignItems: 'center',
-              flex: 1,
-              padding: '60px 20px',
-              textAlign: 'center'
+              gap: '8px',
+              flexShrink: 0
             }}>
-              {/* Search Icon */}
               <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                backgroundColor: '#fef3c7',
+                position: 'relative',
+                flex: 1,
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '20px'
+                alignItems: 'center'
               }}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="32"
-                  height="32"
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#9ca3af',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
                 >
                   <circle cx="11" cy="11" r="8"></circle>
                   <path d="m21 21-4.35-4.35"></path>
                 </svg>
-              </div>
-              
-              {/* Main Message */}
-              <div style={{
-                color: '#111827',
-                fontSize: '17px',
-                fontWeight: 600,
-                marginBottom: '8px'
-              }}>
-                No messages found
-              </div>
-              
-              {/* Search Term */}
-              <div style={{
-                color: '#6b7280',
-              fontSize: '14px',
-                maxWidth: '320px',
-                lineHeight: '1.5'
-            }}>
-                No messages match <span style={{ fontWeight: 600, color: '#374151' }}>"{messageSearchTerm}"</span>
-              </div>
-            </div>
-          ) : (
-            (() => {
-              const currentUserEmail = auth.currentUser?.email;
-              const hasMissedSince = typeof missedSinceTs === 'number' && !Number.isNaN(missedSinceTs);
-              const missedDividerIndex = (hasMissedSince && currentUserEmail)
-                ? messages.findIndex((m) => {
-                  if (!m?.timestamp) return false;
-                  if (m.email === currentUserEmail) return false;
-                  const ts = new Date(m.timestamp).getTime();
-                  return ts > missedSinceTs;
-                })
-                : -1;
-
-              return visibleMessages.map((message, index) => {
-              const isCurrentUser = message.email === auth.currentUser?.email;
-              const messageDate = message.timestamp ? new Date(message.timestamp) : null;
-              const messageId = message.messageId || index;
-              const isMatch = messageSearchResults.includes(index);
-              const isCurrentMatch = isMatch && currentMatchIndex >= 0 && messageSearchResults[currentMatchIndex] === index;
-              const isHovered = hoveredMessageId === messageId;
-              const isBeingEdited = editingMessage?.messageId === messageId;
-              const isPendingScheduled = Boolean(message.isScheduled && isCurrentUser);
-              
-              // Check if we should show timestamp (show for first message or if time gap is significant)
-              const prevMessage = index > 0 ? visibleMessages[index - 1] : null;
-              const prevMessageDate = prevMessage?.timestamp ? new Date(prevMessage.timestamp) : null;
-              const showTimestamp = !prevMessageDate || 
-                (messageDate && prevMessageDate && 
-                 (messageDate.getTime() - prevMessageDate.getTime() > 5 * 60 * 1000)); // 5 minutes gap
-              
-              // Check if we should show date separator (different day from previous message)
-              const showDateSeparator = index === 0 || (messageDate && prevMessageDate && isDifferentDay(messageDate, prevMessageDate));
-              
-              // Check if this message is part of a group (same sender as previous message)
-              const prevIsCurrentUser = prevMessage?.email === auth.currentUser?.email;
-              const isGrouped = prevMessage && 
-                prevIsCurrentUser === isCurrentUser && 
-                !showDateSeparator && 
-                (!showTimestamp || (messageDate && prevMessageDate && 
-                 (messageDate.getTime() - prevMessageDate.getTime() <= 2 * 60 * 1000))); // 2 minutes for grouping
-              
-              return (
-                <React.Fragment key={messageId}>
-                  {!isThreadView && missedDividerIndex >= 0 && index === missedDividerIndex && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: '100%',
-                      margin: '12px 0',
-                      padding: '0 12px'
-                    }}>
-                      <div style={{ flex: 1, height: '1px', backgroundColor: '#fecaca' }}></div>
-                      <div style={{
-                        padding: '0 12px',
-                        fontSize: '12px',
-                        color: '#991b1b',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap'
-                      }}>
-                        Missed messages
-                      </div>
-                      <div style={{ flex: 1, height: '1px', backgroundColor: '#fecaca' }}></div>
-                    </div>
-                  )}
-                  {/* Date Separator */}
-                  {!isThreadView && showDateSeparator && messageDate && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: '100%',
-                      margin: '16px 0',
-                      padding: '0 12px'
-                    }}>
-                      <div style={{
-                        flex: 1,
-                        height: '1px',
-                        backgroundColor: '#e5e7eb'
-                      }}></div>
-                      <div style={{
-                        padding: '0 12px',
-                        fontSize: '12px',
-                        color: '#6b7280',
-                        fontWeight: 500,
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {formatDateSeparator(messageDate)}
-                      </div>
-                      <div style={{
-                        flex: 1,
-                        height: '1px',
-                        backgroundColor: '#e5e7eb'
-                      }}></div>
-                    </div>
-                  )}
-                  
-                  <div
-                    ref={(el) => {
-                      if (el) {
-                        messageSearchRefs.current[messageId] = el;
+                <input
+                  ref={messageSearchInputRef}
+                  type="text"
+                  placeholder="Search messages..."
+                  value={messageSearchTerm}
+                  onChange={(e) => setMessageSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (e.shiftKey) {
+                        goToPreviousMatch();
+                      } else {
+                        goToNextMatch();
                       }
-                    }}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: isCurrentUser ? 'flex-end' : 'flex-start',
-                      width: '100%',
-                      padding: '0 12px',
-                      boxSizing: 'border-box',
-                      marginBottom: isGrouped ? '2px' : '8px',
-                      marginTop: showTimestamp && prevMessage ? '10px' : '0px',
-                      scrollMarginTop: '80px',
-                      position: 'relative'
-                    }}
-                  >
-                    {/* Timestamp above message */}
-                    {showTimestamp && messageDate && !selectedContact?.isEveryone && !selectedContact?.isGroupChat && !(message.isScheduled && isCurrentUser) && (
-                      <div style={{
-                        fontSize: '11px',
-                        color: '#6b7280',
-                        marginBottom: '8px',
-                        padding: 0,
-                        textAlign: isCurrentUser ? 'right' : 'left',
-                        fontVariantNumeric: 'tabular-nums',
-                        alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                        maxWidth: '78%'
-                      }}>
-                        {formatTime(messageDate)}
-                      </div>
-                    )}
-                    
-                    {message.isScheduled && isCurrentUser && (
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        color: '#c2410c',
-                        backgroundColor: '#fff7ed',
-                        border: '1px solid #ffedd5',
-                        borderRadius: '999px',
-                        padding: '2px 8px',
-                        marginBottom: '6px'
-                      }}>
-                        {formatScheduledForLabel(message.scheduledAt)}
-                      </div>
-                    )}
-
-                    {(() => {
-                      const userKey = (auth.currentUser?.email || '').replace(/\./g, ',');
-                      const reactionEntries = (!message.isScheduled ? QUICK_REACTIONS
-                        .map((emoji) => {
-                          const users = (message.reactions && message.reactions[emoji]) ? message.reactions[emoji] : null;
-                          const count = users ? Object.keys(users).length : 0;
-                          return { emoji, count, hasReacted: Boolean(users && users[userKey]) };
-                        })
-                        .filter((x) => x.count > 0) : []);
-
-                      return (
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: isCurrentUser ? 'row-reverse' : 'row',
-                          alignItems: 'flex-end',
-                          justifyContent: isCurrentUser ? 'flex-end' : 'flex-start',
-                          gap: '10px',
-                          maxWidth: '78%',
-                          alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                          marginBottom: reactionEntries.length > 0 ? '16px' : 0
-                        }}>
-                          {(selectedContact?.isEveryone || selectedContact?.isGroupChat) && !isCurrentUser && (
-                            <div style={{
-                              width: '34px',
-                              height: '34px',
-                              borderRadius: '50%',
-                              backgroundColor: !isGrouped && getMessageSenderProfileImage(message)
-                                ? 'transparent'
-                                : `hsl(${String((isCurrentUser ? auth.currentUser?.email : message.email) || 'u').charCodeAt(0) * 10 % 360}, 65%, 65%)`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              overflow: 'hidden',
-                              border: '1px solid #e5e7eb',
-                              flexShrink: 0,
-                              visibility: isGrouped ? 'hidden' : 'visible'
-                            }}>
-                              {!isGrouped && getMessageSenderProfileImage(message) ? (
-                                <img
-                                  src={getMessageSenderProfileImage(message)}
-                                  alt={(isCurrentUser ? getCurrentUserDisplayName() : getMessageSenderDisplayName(message)) || 'User'}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span style={{
-                                  color: '#ffffff',
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  letterSpacing: '0.4px',
-                                  textTransform: 'uppercase',
-                                  lineHeight: '1'
-                                }}>
-                                  {(() => {
-                                    const n = isCurrentUser ? getCurrentUserDisplayName() : getMessageSenderDisplayName(message);
-                                    if (n) {
-                                      const parts = String(n).trim().split(' ').filter(Boolean);
-                                      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                                      return String(n).charAt(0).toUpperCase();
-                                    }
-                                    const e = String((isCurrentUser ? auth.currentUser?.email : message.email) || 'U');
-                                    return e.charAt(0).toUpperCase();
-                                  })()}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          <div
-                            style={{
-                              position: 'relative',
-                              width: '100%',
-                              maxWidth: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: isCurrentUser ? 'flex-end' : 'flex-start',
-                              minWidth: 0
-                            }}
-                            onMouseEnter={() => {
-                              cancelHoverClear();
-                              setHoveredMessageId(messageId);
-                            }}
-                            onMouseLeave={() => {
-                              scheduleHoverClear();
-                            }}
-                          >
-                            {(selectedContact?.isEveryone || selectedContact?.isGroupChat) && !isGrouped && (
-                              <div style={{
-                                fontSize: '12px',
-                                fontWeight: 400,
-                                color: '#6b7280',
-                                marginBottom: '4px',
-                                textAlign: isCurrentUser ? 'right' : 'left',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'normal'
-                              }}>
-                                <span style={{
-                                  fontWeight: 400,
-                                  color: '#6b7280'
-                                }}>
-                                  {isCurrentUser
-                                    ? (getMessageSenderDisplayName(message) || getCurrentUserDisplayName() || 'User')
-                                    : (getMessageSenderDisplayName(message) || 'User')}
-                                </span>
-                                <span style={{
-                                  fontWeight: 400,
-                                  color: '#6b7280',
-                                  marginLeft: '8px'
-                                }}>
-                                  {messageDate && formatTime(messageDate)}
-                                </span>
-                              </div>
-                            )}
-                          <div
-                            style={{
-                              padding: '8px 14px',
-                              borderRadius: isGrouped ? (isCurrentUser ? '12px 12px 4px 12px' : '12px 12px 12px 4px') : '12px',
-                              backgroundColor: isPendingScheduled
-                                ? '#fff7ed'
-                                : (isCurrentUser ? (isBeingEdited ? '#e0e0e0' : '#0078d4') : '#f3f4f6'),
-                              border: isPendingScheduled ? '1px solid #ffedd5' : 'none',
-                              color: isPendingScheduled
-                                ? '#111827'
-                                : (isCurrentUser ? '#ffffff' : '#111827'),
-                              fontSize: '14px',
-                              lineHeight: '1.4',
-                              wordWrap: 'break-word',
-                              display: 'inline-block',
-                              position: 'relative',
-                              opacity: isBeingEdited ? 0.6 : 1,
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                      {/* Reply Preview - show if this message is a reply */}
-                      {message.replyTo && (
-                        <div
-                          style={{
-                            marginBottom: '10px',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => {
-                            // Scroll to the replied message
-                            const repliedMessage = visibleMessages.find(m => m.messageId === message.replyTo.messageId);
-                            if (repliedMessage) {
-                              const repliedIndex = visibleMessages.indexOf(repliedMessage);
-                              if (messageSearchRefs.current[repliedMessage.messageId || repliedIndex]) {
-                                messageSearchRefs.current[repliedMessage.messageId || repliedIndex].scrollIntoView({ 
-                                  behavior: 'smooth', 
-                                  block: 'center' 
-                                });
-                              }
-                            }
-                          }}
-                          title="Click to jump to original message"
-                        >
-                          {/* Label row */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            letterSpacing: '0.2px',
-                            color: isCurrentUser ? 'rgba(255, 255, 255, 0.85)' : '#6b7280',
-                            marginBottom: '6px'
-                          }}>
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              style={{
-                                color: isCurrentUser ? 'rgba(255, 255, 255, 0.75)' : '#9ca3af',
-                                flexShrink: 0
-                              }}
-                            >
-                              <polyline points="9 17 4 12 9 7"></polyline>
-                              <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
-                            </svg>
-                            <span style={{ whiteSpace: 'nowrap' }}>
-                              Replying to {message.replyTo.name || message.replyTo.email?.split('@')[0] || 'User'}
-                            </span>
-                          </div>
-
-                          {/* Quoted block */}
-                          <div style={{
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            border: isCurrentUser ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(0, 0, 0, 0.06)',
-                            backgroundColor: isCurrentUser ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.04)',
-                            borderLeft: isCurrentUser ? '3px solid rgba(255, 255, 255, 0.35)' : '3px solid rgba(17, 24, 39, 0.18)'
-                          }}>
-                            <div style={{
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              color: isCurrentUser ? 'rgba(255, 255, 255, 0.9)' : '#374151',
-                              marginBottom: '2px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {message.replyTo.name || message.replyTo.email?.split('@')[0] || 'User'}
-                            </div>
-                            <div style={{
-                              fontSize: '12px',
-                              color: isCurrentUser ? 'rgba(255, 255, 255, 0.78)' : '#6b7280',
-                              lineHeight: '1.35',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {message.replyTo.text}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {message.attachment?.type === 'highlight' && message.attachment?.text && (
-                        <div
-                          style={{
-                            display: 'block',
-                            marginBottom: (message.attachment?.type === 'document' && message.attachment?.docId) || message.text ? '8px' : 0,
-                            backgroundColor: isCurrentUser ? 'rgba(255,255,255,0.12)' : '#f7f7f8',
-                            border: isCurrentUser ? '1px solid rgba(255,255,255,0.18)' : '1px solid #e5e7eb',
-                            borderLeft: isCurrentUser ? '3px solid rgba(255,255,255,0.55)' : '3px solid #6b7280',
-                            borderRadius: '10px',
-                            padding: '10px 12px'
-                          }}
-                        >
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            color: isCurrentUser ? 'rgba(255,255,255,0.9)' : '#6b7280',
-                            marginBottom: '6px'
-                          }}>
-                            <span style={{ lineHeight: 1 }}>📎</span>
-                            <span>Attached highlight</span>
-                          </div>
-                          <div style={{
-                            fontSize: '13px',
-                            lineHeight: 1.45,
-                            color: isCurrentUser ? 'rgba(255,255,255,0.9)' : '#374151',
-                            fontStyle: 'italic',
-                            whiteSpace: 'pre-wrap'
-                          }}>
-                            {`"${String(message.attachment.text)}"`}
-                          </div>
-                        </div>
-                      )}
-
-                      {message.attachment?.type === 'document' && message.attachment?.docId && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            padding: '10px 12px',
-                            borderRadius: '10px',
-                            backgroundColor: isCurrentUser ? 'rgba(255,255,255,0.12)' : '#ffffff',
-                            border: isCurrentUser ? '1px solid rgba(255,255,255,0.18)' : '1px solid #e5e7eb',
-                            cursor: 'pointer',
-                            marginBottom: message.text ? '8px' : 0
-                          }}
-                          onClick={async () => {
-                            try {
-                              const companyEmail = await getResolvedCompanyEmail();
-                              const contactEmail = selectedContact?.isEveryone
-                                ? 'everyone'
-                                : (selectedContact?.email || selectedContact?.emailKey?.replace(/,/g, '.'));
-                              if (!companyEmail || !currentProject || !currentTopic || !contactEmail) return;
-                              const emailPair = await getEmailPair(contactEmail);
-                              if (!emailPair) return;
-                              const docPath = `Companies/${companyEmail}/securedProjects/${currentProject}/documents/${currentTopic}/${emailPair}/${message.attachment.docId}`;
-                              const snap = await get(ref(database, docPath));
-                              if (snap.exists()) {
-                                const doc = snap.val();
-                                if (doc?.dataUrl) openDataUrlInNewTab(doc.dataUrl);
-                              }
-                            } catch (_) {
-                              // Best-effort
-                            }
-                          }}
-                        >
-                          <div style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '10px',
-                            backgroundColor: isCurrentUser ? 'rgba(255,255,255,0.18)' : '#f3f4f6',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            color: isCurrentUser ? 'rgba(255,255,255,0.9)' : '#374151'
-                          }}>
-                            {(message.attachment.extension || 'FILE').slice(0, 4)}
-                          </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{
-                              fontSize: '13px',
-                              fontWeight: 600,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {message.attachment.name || 'Attachment'}
-                            </div>
-                            <div style={{
-                              fontSize: '12px',
-                              opacity: isCurrentUser ? 0.85 : 0.7
-                            }}>
-                              {(message.attachment.extension || 'FILE')} • {formatFileSize(message.attachment.size)}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Toolbar - show for all messages on hover */}
-                      {isHovered && !isBeingEdited && (!message.isScheduled || (isCurrentUser && message.scheduledId)) && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '-40px',
-                          right: isCurrentUser ? 0 : 'auto',
-                          left: isCurrentUser ? 'auto' : 0,
-                          display: 'flex',
-                          gap: '2px',
-                          backgroundColor: '#ffffff',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '12px',
-                          padding: '6px',
-                          zIndex: 10,
-                          opacity: 1
-                        }}
-                        onMouseEnter={() => {
-                          cancelHoverClear();
-                          setHoveredMessageId(messageId);
-                        }}
-                        onMouseLeave={() => {
-                          scheduleHoverClear();
-                        }}
-                        >
-                          {message.isScheduled && isCurrentUser && message.scheduledId && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openRescheduleModal(message.scheduledId, message);
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '6px 8px',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#6b7280',
-                                transition: 'all 0.15s ease',
-                                minWidth: '32px',
-                                height: '32px'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#f3f4f6';
-                                e.currentTarget.style.color = '#374151';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                                e.currentTarget.style.color = '#6b7280';
-                              }}
-                              title="Reschedule"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                              </svg>
-                            </button>
-                          )}
-
-                          {!message.isScheduled && QUICK_REACTIONS.map((emoji) => {
-                            const userKey = (auth.currentUser?.email || '').replace(/\./g, ',');
-                            const hasReacted = Boolean(message.reactions && message.reactions[emoji] && message.reactions[emoji][userKey]);
-                            return (
-                              <button
-                                key={emoji}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleReaction(message, emoji);
-                                }}
-                                style={{
-                                  background: hasReacted ? '#f3f4f6' : 'transparent',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  padding: '6px 8px',
-                                  borderRadius: '6px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: '#111827',
-                                  transition: 'all 0.15s ease',
-                                  minWidth: '32px',
-                                  height: '32px',
-                                  fontSize: '16px',
-                                  lineHeight: 1
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = hasReacted ? '#e5e7eb' : '#f3f4f6';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = hasReacted ? '#f3f4f6' : 'transparent';
-                                }}
-                                title={`React ${emoji}`}
-                              >
-                                {emoji}
-                              </button>
-                            );
-                          })}
-
-                          {!message.isScheduled && (
-                            <>
-                          {/* Thread Button - available for all messages */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openThread(message);
-                            }}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '6px 8px',
-                              borderRadius: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#6b7280',
-                              transition: 'all 0.15s ease',
-                              minWidth: '32px',
-                              height: '32px'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#f3f4f6';
-                              e.currentTarget.style.color = '#374151';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = '#6b7280';
-                            }}
-                            title="Thread"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
-                            </svg>
-                          </button>
-
-                          {/* Reply Button - available for all messages */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startReply(message);
-                            }}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '6px 8px',
-                              borderRadius: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#6b7280',
-                              transition: 'all 0.15s ease',
-                              minWidth: '32px',
-                              height: '32px'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#f3f4f6';
-                              e.currentTarget.style.color = '#374151';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = '#6b7280';
-                            }}
-                            title="Reply"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="9 17 4 12 9 7"></polyline>
-                              <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
-                            </svg>
-                          </button>
-                          
-                          {/* Copy Button - only for current user's messages */}
-                          {isCurrentUser && (
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await navigator.clipboard.writeText(message.text || '');
-                                  // Show temporary feedback
-                                  const btn = e.currentTarget;
-                                  const originalTitle = btn.getAttribute('title');
-                                  btn.setAttribute('title', 'Copied!');
-                                  setTimeout(() => {
-                                    btn.setAttribute('title', originalTitle);
-                                  }, 2000);
-                                } catch (err) {
-                                  console.error('Failed to copy:', err);
-                                }
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '6px 8px',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#6b7280',
-                                transition: 'all 0.15s ease',
-                                minWidth: '32px',
-                                height: '32px'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#f3f4f6';
-                                e.currentTarget.style.color = '#374151';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                                e.currentTarget.style.color = '#6b7280';
-                              }}
-                              title="Copy message"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                              </svg>
-                            </button>
-                          )}
-
-                            {/* Edit Button - only for current user's messages */}
-                            {isCurrentUser && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startEditMessage(message);
-                                }}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  padding: '6px 8px',
-                                  borderRadius: '6px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: '#6b7280',
-                                  transition: 'all 0.15s ease',
-                                  minWidth: '32px',
-                                  height: '32px'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                                  e.currentTarget.style.color = '#374151';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = 'transparent';
-                                  e.currentTarget.style.color = '#6b7280';
-                                }}
-                                title="Edit"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M12 20h9"></path>
-                                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
-                                </svg>
-                              </button>
-                            )}
-                            </>
-                          )}
-                        </div>
-                      )}
-                      
-                      <div style={{ whiteSpace: 'pre-wrap' }}>
-                        {(() => {
-                          const blocks = getMessageBlocks(message);
-                          if (!blocks) {
-                            const t = message.text || '';
-                            return messageSearchTerm && String(t).toLowerCase().includes(messageSearchTerm.toLowerCase())
-                              ? highlightText(String(t), messageSearchTerm, isCurrentMatch)
-                              : t;
-                          }
-
-                          return (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                              {blocks.map((b, idx) => {
-                                const content = String(b.text || '');
-                                if (b.type === 'code') {
-                                  return (
-                                    <div
-                                      key={`${messageId}-block-${idx}`}
-                                      style={{
-                                        backgroundColor: '#0b1220',
-                                        border: '1px solid rgba(148, 163, 184, 0.25)',
-                                        borderRadius: '10px',
-                                        padding: '10px 12px',
-                                        overflowX: 'auto'
-                                      }}
-                                    >
-                                      <pre style={{
-                                        margin: 0,
-                                        whiteSpace: 'pre',
-                                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                                        fontSize: '13px',
-                                        lineHeight: '1.55',
-                                        color: '#e5e7eb'
-                                      }}>
-                                        {content}
-                                      </pre>
-                                    </div>
-                                  );
-                                }
-
-                                return (
-                                  <div key={`${messageId}-block-${idx}`} style={{ whiteSpace: 'pre-wrap' }}>
-                                    {messageSearchTerm && content.toLowerCase().includes(messageSearchTerm.toLowerCase())
-                                      ? highlightText(content, messageSearchTerm, isCurrentMatch)
-                                      : content}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {!isThreadView && (() => {
-                        const threadId = message.messageId;
-                        const replyCountFromMsgs = allMessages.filter((m) => m && m.threadId === threadId).length;
-                        const metaExists = Boolean(threadMetas && threadMetas[threadId]);
-                        const replyCount = replyCountFromMsgs;
-                        if (!metaExists && replyCount <= 0) return null;
-
-                        return (
-                          <div
-                            onClick={() => openThread(message)}
-                            style={{
-                              marginTop: '8px',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              color: isCurrentUser ? 'rgba(255, 255, 255, 0.9)' : '#2563eb',
-                              cursor: 'pointer',
-                              userSelect: 'none'
-                            }}
-                            title="Open thread"
-                          >
-                            {replyCount > 0 ? `${replyCount} repl${replyCount === 1 ? 'y' : 'ies'}` : 'Thread'}
-                          </div>
-                        );
-                      })()}
-                      {message.editedAt && (
-                        <div style={{
-                          fontSize: '10px',
-                          marginTop: '4px',
-                          opacity: 0.6,
-                          fontStyle: 'italic'
-                        }}>
-                          (edited)
-                        </div>
-                      )}
-
-                          {reactionEntries.length > 0 && (
-                            <div style={{
-                              position: 'absolute',
-                              right: '10px',
-                              bottom: '-16px',
-                              display: 'flex',
-                              gap: '6px',
-                              flexWrap: 'nowrap',
-                              pointerEvents: 'auto'
-                            }}>
-                              {reactionEntries.map(({ emoji, count, hasReacted }) => (
-                                <button
-                                  key={emoji}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleReaction(message, emoji);
-                                  }}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    padding: '3px 8px',
-                                    borderRadius: '999px',
-                                    backgroundColor: hasReacted ? '#eef2ff' : 'rgba(255, 255, 255, 0.96)',
-                                    border: hasReacted ? '1px solid rgba(37, 99, 235, 0.35)' : '1px solid rgba(0, 0, 0, 0.10)',
-                                    boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    color: '#111827',
-                                    lineHeight: 1,
-                                    transform: 'translateY(0px)',
-                                    transition: 'transform 120ms ease, background-color 120ms ease'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)';
-                                    if (!hasReacted) e.currentTarget.style.backgroundColor = '#f9fafb';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0px) scale(1)';
-                                    e.currentTarget.style.backgroundColor = hasReacted ? '#eef2ff' : 'rgba(255, 255, 255, 0.96)';
-                                  }}
-                                  title="Toggle reaction"
-                                >
-                                  <span style={{ fontSize: '14px', lineHeight: 1 }}>{emoji}</span>
-                                  <span style={{ fontWeight: 600, color: '#6b7280' }}>{count}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </React.Fragment>
-              );
-              });
-            })()
-          )}
-          <div ref={messagesEndRef} />
-      </div>
-
-        {/* Chat Input Bar - Professional ChatGPT-style */}
-      <div style={{ 
-          borderTop: '1px solid #e5e7eb',
-          backgroundColor: '#ffffff',
-          flexShrink: 0,
-          flexGrow: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          width: '100%',
-          // Let the composer grow upward (the composer box itself already has a maxHeight)
-          overflow: 'visible'
-        }}>
-          {/* Edit Mode Indicator */}
-          {editingMessage && (
-            <div style={{
-              padding: '8px 16px',
-              backgroundColor: '#fef3c7',
-              borderBottom: '1px solid #fde68a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '13px',
-              color: '#92400e'
-            }}>
-              <span>✏️ Editing message</span>
-              <button
-                onClick={cancelEdit}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#92400e',
-                  cursor: 'pointer',
+                    } else if (e.key === 'Escape') {
+                      setShowMessageSearch(false);
+                      setMessageSearchTerm('');
+                      setMessageSearchResults([]);
+                      setCurrentMatchIndex(-1);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 12px 12px 36px',
+                    border: 'none',
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.backgroundColor = '#f3f4f6';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.backgroundColor = '#f3f4f6';
+                  }}
+                />
+              </div>
+              {messageSearchResults.length > 0 && (
+                <div style={{
                   fontSize: '13px',
-                  textDecoration: 'underline',
-                  padding: '4px 8px'
-                }}
-              >
-                Cancel
-              </button>
+                  color: '#605e5c',
+                  whiteSpace: 'nowrap',
+                  paddingRight: '8px'
+                }}>
+                  {currentMatchIndex + 1} of {messageSearchResults.length}
+                </div>
+              )}
             </div>
           )}
-          
-          <div style={{
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0px',
-            position: 'relative'
-          }}>
-          {/* Message Input Field - Full Width */}
-          <div
-            ref={composerBoxRef}
-            style={{
-              ...composerBoxStyle,
-              // Let the composer grow upwards with content, but cap it to keep footer controls visible.
-              minHeight: composerCollapsedHeight,
-              maxHeight: (attachedHighlight?.text || replyingTo) ? composerExpandedHeight : composerCollapsedHeight,
-              height: (attachedHighlight?.text || replyingTo) ? composerExpandedHeight : composerCollapsedHeight
-            }}>
-            {/* Previews area (scrolls independently so footer icons stay visible) */}
-            {(attachedHighlight?.text || replyingTo) && (
-              <div
-                style={previewsWrapStyle}
-              >
-                {attachedHighlight && attachedHighlight.text && (
-                  <div style={attachedHighlightCardStyle}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px'
-                    }}>
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: '#6b7280',
-                        fontSize: '12px',
-                        fontWeight: 700
-                      }}>
-                        <span style={{ lineHeight: 1 }}>📎</span>
-                        <span>Attached highlight</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setAttachedHighlight(null)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#9ca3af',
-                          cursor: 'pointer',
-                          padding: '0 4px',
-                          fontSize: '16px',
-                          lineHeight: 1
-                        }}
-                        title="Remove"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div style={{
-                      fontSize: '13px',
-                      lineHeight: 1.4,
-                      color: '#374151',
-                      fontStyle: 'italic',
-                      whiteSpace: 'pre-wrap'
-                    }}>
-                      {`"${attachedHighlight.text}"`}
-                    </div>
-                  </div>
-                )}
 
-                {/* Reply Preview Indicator - Inside Chat Box */}
-                {replyingTo && (
-                  <div style={{
-                    padding: '10px 12px',
-                    backgroundColor: '#fafafa',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    flexShrink: 0
-                  }}>
-                {/* Top Row: Sender name + timestamp | Close button */}
+          {/* Messages content area */}
+          <div
+            ref={messagesScrollContainerRef}
+            style={{
+              flex: '1 1 auto',
+              padding: '16px 12px',
+              overflowY: 'auto',
+              backgroundColor: '#ffffff',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              position: 'relative'
+            }}>
+            {isThreadView && threadParentMessage && (
+              <div style={{
+                padding: '12px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '10px',
+                backgroundColor: '#fafafa',
+                marginBottom: '12px'
+              }}>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  {threadParentMessage.name || threadParentMessage.email?.split('@')[0] || 'User'}
+                </div>
+                <div style={{ whiteSpace: 'pre-wrap', fontSize: '14px', color: '#111827' }}>
+                  {threadParentMessage.text || ''}
+                </div>
+              </div>
+            )}
+
+            {isLoadingMessages ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flex: 1,
+                padding: '60px 20px',
+                minHeight: 0
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  border: '3px solid #e5e7eb',
+                  borderTopColor: '#0078d4',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  marginBottom: '16px'
+                }}></div>
+                <div style={{
+                  color: '#6b7280',
+                  fontSize: '15px',
+                  fontWeight: 500
+                }}>
+                  Loading messages...
+                </div>
+              </div>
+            ) : visibleMessages.length === 0 ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flex: '1 1 auto',
+                padding: '60px 20px',
+                minHeight: 0,
+                textAlign: 'center'
+              }}>
+                {/* Message Icon */}
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f3f4f6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '24px'
+                }}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#9ca3af"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+
+                {/* Main Message */}
+                <div style={{
+                  color: '#111827',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  marginBottom: '8px'
+                }}>
+                  {isThreadView ? 'No replies yet' : 'No messages yet'}
+                </div>
+
+                {/* Subtitle */}
+                <div style={{
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  maxWidth: '320px',
+                  lineHeight: '1.5',
+                  marginBottom: '24px'
+                }}>
+                  {isThreadView ? 'Be the first to reply in this thread' : 'Start the conversation by sending a message below'}
+                </div>
+
+                {/* Hint */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flex: 1,
-                    minWidth: 0
-                  }}>
-                    <span style={{
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      color: '#111827'
-                    }}>
-                      {replyingTo.name || replyingTo.email?.split('@')[0] || 'User'}
-                    </span>
-                    {replyingTo.timestamp && (
-                      <span style={{
-                        fontSize: '12px',
-                        color: '#9ca3af',
-                        fontWeight: 400
-                      }}>
-                        {formatReplyTimestamp(replyingTo.timestamp)}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={cancelReply}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#9ca3af',
-                      cursor: 'pointer',
-                      padding: '4px 6px',
-                      borderRadius: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      fontSize: '18px',
-                      lineHeight: '1',
-                      transition: 'background-color 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                    title="Cancel reply"
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                {/* Bottom Row: Quoted message text */}
-                <div style={{
-                  fontSize: '13px',
-                  color: '#6b7280',
-                  lineHeight: '1.4',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  paddingRight: '24px'
-                }}>
-                  {replyingTo.text}
-                </div>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div style={{
-              padding: '0',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-start',
-              flexShrink: 0,
-              marginTop: 'auto'
-          }}>
-            <div
-              style={composerMode === 'code' ? {
-                backgroundColor: '#0b1220',
-                border: '1px solid rgba(148, 163, 184, 0.25)',
-                borderRadius: '8px',
-                padding: '6px 10px',
-                boxSizing: 'border-box',
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center'
-              } : undefined}
-            >
-            <textarea
-              ref={composerTextareaRef}
-              className="messages-textarea"
-              placeholder={editingMessage ? "Edit your message..." : replyingTo ? "Type your reply..." : (attachedHighlight?.text ? "" : "Message")}
-              value={inputValue}
-              autoCorrect={composerMode === 'code' ? 'off' : 'on'}
-              autoCapitalize={composerMode === 'code' ? 'none' : 'sentences'}
-              spellCheck={composerMode !== 'code'}
-              onFocus={() => {
-                wasComposerFocusedRef.current = true;
-              }}
-              onBlur={() => {
-                wasComposerFocusedRef.current = false;
-              }}
-              onChange={(e) => {
-                const nextValue = e.target.value;
-                setInputValue(nextValue);
-
-                // If input is empty, snap back to the compact single-line composer immediately.
-                if (!nextValue.trim()) {
-                  resetComposerLayout();
-                  return;
-                }
-                const textarea = e.target;
-                textarea.style.height = 'auto';
-                const maxTextareaHeight = 128; // leave room for footer row inside the box
-                const maxContainerHeight = 220;
-                const scrollHeight = textarea.scrollHeight;
-                const newHeight = Math.min(scrollHeight, maxTextareaHeight);
-                textarea.style.height = `${newHeight}px`;
-
-                if (scrollHeight > maxTextareaHeight) {
-                  textarea.style.overflowY = 'auto';
-                } else {
-                  textarea.style.overflowY = 'hidden';
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (hasText) {
-                    handleSendMessage();
-                  }
-                }
-              }}
-              style={{
-                width: '100%',
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                fontSize: '15px',
-                fontFamily: composerMode === 'code' ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' : 'system-ui, -apple-system, sans-serif',
-                color: composerMode === 'code' ? '#e5e7eb' : '#111827',
-                caretColor: composerMode === 'code' ? '#e5e7eb' : '#111827',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderRadius: 0,
-                lineHeight: '1.5',
-                padding: 0,
-                margin: 0,
-                overflowX: 'hidden',
-                overflowY: 'auto',
-                maxHeight: '128px',
-                minHeight: '24px'
-              }}
-              rows={1}
-            />
-            </div>
-            
-            {/* Footer Icons Row - Inside Text Box */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: '4px',
-              marginTop: '6px',
-              flexShrink: 0
-            }}>
-              {composerMode === 'code' && (
-                <div style={{
-                  marginRight: 'auto',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '4px 10px',
-                  borderRadius: '999px',
-                  backgroundColor: '#fff7ed',
-                  border: '1px solid #ffedd5',
-                  color: '#c2410c',
+                  gap: '6px',
+                  color: '#9ca3af',
                   fontSize: '12px',
-                  fontWeight: 600
+                  padding: '8px 12px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '8px'
                 }}>
-                  <span>Code block</span>
-                  <button
-                    type="button"
-                    onClick={() => toggleComposerMode('text')}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#c2410c',
-                      cursor: 'pointer',
-                      padding: 0,
-                      fontSize: '14px',
-                      lineHeight: '1'
-                    }}
-                    title="Exit code mode"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-              {/* Plus Icon (Attachments) with Menu */}
-              <div ref={plusMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="*/*"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    sendAttachmentFiles(e.target?.files);
-                    setShowPlusMenu(false);
-                    if (e.target) e.target.value = '';
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    setShowPlusMenu(!showPlusMenu);
-                  }}
-                  style={{
-                    background: showPlusMenu ? '#f3f4f6' : 'transparent',
-                    border: 'none',
-                    color: showPlusMenu ? '#374151' : '#6b7280',
-                    padding: '6px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
-                    flexShrink: 0
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!showPlusMenu) {
-                      e.currentTarget.style.backgroundColor = '#f3f4f6';
-                      e.currentTarget.style.color = '#374151';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!showPlusMenu) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = '#6b7280';
-                    }
-                  }}
-                  title="More options"
-                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -5910,307 +4567,1650 @@ const Messages = ({ currentProject, currentChat }) => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
                   </svg>
-                </button>
-                
-                {/* Plus Menu Dropdown */}
-                <div
-                  className="plus-menu"
+                  <span>Type your message in the input below</span>
+                </div>
+              </div>
+            ) : messageSearchTerm && messageSearchResults.length === 0 ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flex: 1,
+                padding: '60px 20px',
+                textAlign: 'center'
+              }}>
+                {/* Search Icon */}
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fef3c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '20px'
+                }}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#f59e0b"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
+                </div>
+
+                {/* Main Message */}
+                <div style={{
+                  color: '#111827',
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  marginBottom: '8px'
+                }}>
+                  No messages found
+                </div>
+
+                {/* Search Term */}
+                <div style={{
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  maxWidth: '320px',
+                  lineHeight: '1.5'
+                }}>
+                  No messages match <span style={{ fontWeight: 600, color: '#374151' }}>"{messageSearchTerm}"</span>
+                </div>
+              </div>
+            ) : (
+              (() => {
+                const currentUserEmail = auth.currentUser?.email;
+                const hasMissedSince = typeof missedSinceTs === 'number' && !Number.isNaN(missedSinceTs);
+                const missedDividerIndex = (hasMissedSince && currentUserEmail)
+                  ? messages.findIndex((m) => {
+                    if (!m?.timestamp) return false;
+                    if (m.email === currentUserEmail) return false;
+                    const ts = new Date(m.timestamp).getTime();
+                    return ts > missedSinceTs;
+                  })
+                  : -1;
+
+                return visibleMessages.map((message, index) => {
+                  const isCurrentUser = message.email === auth.currentUser?.email;
+                  const messageDate = message.timestamp ? new Date(message.timestamp) : null;
+                  const messageId = message.messageId || index;
+                  const isMatch = messageSearchResults.includes(index);
+                  const isCurrentMatch = isMatch && currentMatchIndex >= 0 && messageSearchResults[currentMatchIndex] === index;
+                  const isHovered = hoveredMessageId === messageId;
+                  const isBeingEdited = editingMessage?.messageId === messageId;
+                  const isPendingScheduled = Boolean(message.isScheduled && isCurrentUser);
+
+                  // Check if we should show timestamp (show for first message or if time gap is significant)
+                  const prevMessage = index > 0 ? visibleMessages[index - 1] : null;
+                  const prevMessageDate = prevMessage?.timestamp ? new Date(prevMessage.timestamp) : null;
+                  const showTimestamp = !prevMessageDate ||
+                    (messageDate && prevMessageDate &&
+                      (messageDate.getTime() - prevMessageDate.getTime() > 5 * 60 * 1000)); // 5 minutes gap
+
+                  // Check if we should show date separator (different day from previous message)
+                  const showDateSeparator = index === 0 || (messageDate && prevMessageDate && isDifferentDay(messageDate, prevMessageDate));
+
+                  // Check if this message is part of a group (same sender as previous message)
+                  const prevIsCurrentUser = prevMessage?.email === auth.currentUser?.email;
+                  const isGrouped = prevMessage &&
+                    prevIsCurrentUser === isCurrentUser &&
+                    !showDateSeparator &&
+                    (!showTimestamp || (messageDate && prevMessageDate &&
+                      (messageDate.getTime() - prevMessageDate.getTime() <= 2 * 60 * 1000))); // 2 minutes for grouping
+
+                  return (
+                    <React.Fragment key={messageId}>
+                      {!isThreadView && missedDividerIndex >= 0 && index === missedDividerIndex && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          width: '100%',
+                          margin: '12px 0',
+                          padding: '0 12px'
+                        }}>
+                          <div style={{ flex: 1, height: '1px', backgroundColor: '#fecaca' }}></div>
+                          <div style={{
+                            padding: '0 12px',
+                            fontSize: '12px',
+                            color: '#991b1b',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Missed messages
+                          </div>
+                          <div style={{ flex: 1, height: '1px', backgroundColor: '#fecaca' }}></div>
+                        </div>
+                      )}
+                      {/* Date Separator */}
+                      {!isThreadView && showDateSeparator && messageDate && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          width: '100%',
+                          margin: '16px 0',
+                          padding: '0 12px'
+                        }}>
+                          <div style={{
+                            flex: 1,
+                            height: '1px',
+                            backgroundColor: '#e5e7eb'
+                          }}></div>
+                          <div style={{
+                            padding: '0 12px',
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {formatDateSeparator(messageDate)}
+                          </div>
+                          <div style={{
+                            flex: 1,
+                            height: '1px',
+                            backgroundColor: '#e5e7eb'
+                          }}></div>
+                        </div>
+                      )}
+
+                      <div
+                        ref={(el) => {
+                          if (el) {
+                            messageSearchRefs.current[messageId] = el;
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: isCurrentUser ? 'flex-end' : 'flex-start',
+                          width: '100%',
+                          padding: '0 12px',
+                          boxSizing: 'border-box',
+                          marginBottom: isGrouped ? '2px' : '8px',
+                          marginTop: showTimestamp && prevMessage ? '10px' : '0px',
+                          scrollMarginTop: '80px',
+                          position: 'relative'
+                        }}
+                      >
+                        {/* Timestamp above message */}
+                        {showTimestamp && messageDate && !selectedContact?.isEveryone && !selectedContact?.isGroupChat && !(message.isScheduled && isCurrentUser) && (
+                          <div style={{
+                            fontSize: '11px',
+                            color: '#6b7280',
+                            marginBottom: '8px',
+                            padding: 0,
+                            textAlign: isCurrentUser ? 'right' : 'left',
+                            fontVariantNumeric: 'tabular-nums',
+                            alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                            maxWidth: '78%'
+                          }}>
+                            {formatTime(messageDate)}
+                          </div>
+                        )}
+
+                        {message.isScheduled && isCurrentUser && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            color: '#c2410c',
+                            backgroundColor: '#fff7ed',
+                            border: '1px solid #ffedd5',
+                            borderRadius: '999px',
+                            padding: '2px 8px',
+                            marginBottom: '6px'
+                          }}>
+                            {formatScheduledForLabel(message.scheduledAt)}
+                          </div>
+                        )}
+
+                        {(() => {
+                          const userKey = (auth.currentUser?.email || '').replace(/\./g, ',');
+                          const reactionEntries = (!message.isScheduled ? QUICK_REACTIONS
+                            .map((emoji) => {
+                              const users = (message.reactions && message.reactions[emoji]) ? message.reactions[emoji] : null;
+                              const count = users ? Object.keys(users).length : 0;
+                              return { emoji, count, hasReacted: Boolean(users && users[userKey]) };
+                            })
+                            .filter((x) => x.count > 0) : []);
+
+                          return (
+                            <div style={{
+                              display: 'flex',
+                              flexDirection: isCurrentUser ? 'row-reverse' : 'row',
+                              alignItems: 'flex-end',
+                              justifyContent: isCurrentUser ? 'flex-end' : 'flex-start',
+                              gap: '10px',
+                              maxWidth: '78%',
+                              alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                              marginBottom: reactionEntries.length > 0 ? '16px' : 0
+                            }}>
+                              {(selectedContact?.isEveryone || selectedContact?.isGroupChat) && !isCurrentUser && (
+                                <div style={{
+                                  width: '34px',
+                                  height: '34px',
+                                  borderRadius: '50%',
+                                  backgroundColor: !isGrouped && getMessageSenderProfileImage(message)
+                                    ? 'transparent'
+                                    : `hsl(${String((isCurrentUser ? auth.currentUser?.email : message.email) || 'u').charCodeAt(0) * 10 % 360}, 65%, 65%)`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  overflow: 'hidden',
+                                  border: '1px solid #e5e7eb',
+                                  flexShrink: 0,
+                                  visibility: isGrouped ? 'hidden' : 'visible'
+                                }}>
+                                  {!isGrouped && getMessageSenderProfileImage(message) ? (
+                                    <img
+                                      src={getMessageSenderProfileImage(message)}
+                                      alt={(isCurrentUser ? getCurrentUserDisplayName() : getMessageSenderDisplayName(message)) || 'User'}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <span style={{
+                                      color: '#ffffff',
+                                      fontSize: '12px',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.4px',
+                                      textTransform: 'uppercase',
+                                      lineHeight: '1'
+                                    }}>
+                                      {(() => {
+                                        const n = isCurrentUser ? getCurrentUserDisplayName() : getMessageSenderDisplayName(message);
+                                        if (n) {
+                                          const parts = String(n).trim().split(' ').filter(Boolean);
+                                          if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                                          return String(n).charAt(0).toUpperCase();
+                                        }
+                                        const e = String((isCurrentUser ? auth.currentUser?.email : message.email) || 'U');
+                                        return e.charAt(0).toUpperCase();
+                                      })()}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              <div
+                                style={{
+                                  position: 'relative',
+                                  width: '100%',
+                                  maxWidth: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: isCurrentUser ? 'flex-end' : 'flex-start',
+                                  minWidth: 0
+                                }}
+                                onMouseEnter={() => {
+                                  cancelHoverClear();
+                                  setHoveredMessageId(messageId);
+                                }}
+                                onMouseLeave={() => {
+                                  scheduleHoverClear();
+                                }}
+                              >
+                                {(selectedContact?.isEveryone || selectedContact?.isGroupChat) && !isGrouped && (
+                                  <div style={{
+                                    fontSize: '12px',
+                                    fontWeight: 400,
+                                    color: '#6b7280',
+                                    marginBottom: '4px',
+                                    textAlign: isCurrentUser ? 'right' : 'left',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'normal'
+                                  }}>
+                                    <span style={{
+                                      fontWeight: 400,
+                                      color: '#6b7280'
+                                    }}>
+                                      {isCurrentUser
+                                        ? (getMessageSenderDisplayName(message) || getCurrentUserDisplayName() || 'User')
+                                        : (getMessageSenderDisplayName(message) || 'User')}
+                                    </span>
+                                    <span style={{
+                                      fontWeight: 400,
+                                      color: '#6b7280',
+                                      marginLeft: '8px'
+                                    }}>
+                                      {messageDate && formatTime(messageDate)}
+                                    </span>
+                                  </div>
+                                )}
+                                <div
+                                  style={{
+                                    padding: '8px 14px',
+                                    borderRadius: isGrouped ? (isCurrentUser ? '12px 12px 4px 12px' : '12px 12px 12px 4px') : '12px',
+                                    backgroundColor: isPendingScheduled
+                                      ? '#fff7ed'
+                                      : (isCurrentUser ? (isBeingEdited ? '#e0e0e0' : '#0078d4') : '#f3f4f6'),
+                                    border: isPendingScheduled ? '1px solid #ffedd5' : 'none',
+                                    color: isPendingScheduled
+                                      ? '#111827'
+                                      : (isCurrentUser ? '#ffffff' : '#111827'),
+                                    fontSize: '14px',
+                                    lineHeight: '1.4',
+                                    wordWrap: 'break-word',
+                                    display: 'inline-block',
+                                    position: 'relative',
+                                    opacity: isBeingEdited ? 0.6 : 1,
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  {/* Reply Preview - show if this message is a reply */}
+                                  {message.replyTo && (
+                                    <div
+                                      style={{
+                                        marginBottom: '10px',
+                                        cursor: 'pointer'
+                                      }}
+                                      onClick={() => {
+                                        // Scroll to the replied message
+                                        const repliedMessage = visibleMessages.find(m => m.messageId === message.replyTo.messageId);
+                                        if (repliedMessage) {
+                                          const repliedIndex = visibleMessages.indexOf(repliedMessage);
+                                          if (messageSearchRefs.current[repliedMessage.messageId || repliedIndex]) {
+                                            messageSearchRefs.current[repliedMessage.messageId || repliedIndex].scrollIntoView({
+                                              behavior: 'smooth',
+                                              block: 'center'
+                                            });
+                                          }
+                                        }
+                                      }}
+                                      title="Click to jump to original message"
+                                    >
+                                      {/* Label row */}
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        letterSpacing: '0.2px',
+                                        color: isCurrentUser ? 'rgba(255, 255, 255, 0.85)' : '#6b7280',
+                                        marginBottom: '6px'
+                                      }}>
+                                        <svg
+                                          width="12"
+                                          height="12"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          style={{
+                                            color: isCurrentUser ? 'rgba(255, 255, 255, 0.75)' : '#9ca3af',
+                                            flexShrink: 0
+                                          }}
+                                        >
+                                          <polyline points="9 17 4 12 9 7"></polyline>
+                                          <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+                                        </svg>
+                                        <span style={{ whiteSpace: 'nowrap' }}>
+                                          Replying to {message.replyTo.name || message.replyTo.email?.split('@')[0] || 'User'}
+                                        </span>
+                                      </div>
+
+                                      {/* Quoted block */}
+                                      <div style={{
+                                        padding: '8px 10px',
+                                        borderRadius: '8px',
+                                        border: isCurrentUser ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(0, 0, 0, 0.06)',
+                                        backgroundColor: isCurrentUser ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.04)',
+                                        borderLeft: isCurrentUser ? '3px solid rgba(255, 255, 255, 0.35)' : '3px solid rgba(17, 24, 39, 0.18)'
+                                      }}>
+                                        <div style={{
+                                          fontSize: '12px',
+                                          fontWeight: 600,
+                                          color: isCurrentUser ? 'rgba(255, 255, 255, 0.9)' : '#374151',
+                                          marginBottom: '2px',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap'
+                                        }}>
+                                          {message.replyTo.name || message.replyTo.email?.split('@')[0] || 'User'}
+                                        </div>
+                                        <div style={{
+                                          fontSize: '12px',
+                                          color: isCurrentUser ? 'rgba(255, 255, 255, 0.78)' : '#6b7280',
+                                          lineHeight: '1.35',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap'
+                                        }}>
+                                          {message.replyTo.text}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {message.attachment?.type === 'highlight' && message.attachment?.text && (
+                                    <div
+                                      style={{
+                                        display: 'block',
+                                        marginBottom: (message.attachment?.type === 'document' && message.attachment?.docId) || message.text ? '8px' : 0,
+                                        backgroundColor: isCurrentUser ? 'rgba(255,255,255,0.12)' : '#f7f7f8',
+                                        border: isCurrentUser ? '1px solid rgba(255,255,255,0.18)' : '1px solid #e5e7eb',
+                                        borderLeft: isCurrentUser ? '3px solid rgba(255,255,255,0.55)' : '3px solid #6b7280',
+                                        borderRadius: '10px',
+                                        padding: '10px 12px'
+                                      }}
+                                    >
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontSize: '12px',
+                                        fontWeight: 700,
+                                        color: isCurrentUser ? 'rgba(255,255,255,0.9)' : '#6b7280',
+                                        marginBottom: '6px'
+                                      }}>
+                                        <span style={{ lineHeight: 1 }}>📎</span>
+                                        <span>Attached highlight</span>
+                                      </div>
+                                      <div style={{
+                                        fontSize: '13px',
+                                        lineHeight: 1.45,
+                                        color: isCurrentUser ? 'rgba(255,255,255,0.9)' : '#374151',
+                                        fontStyle: 'italic',
+                                        whiteSpace: 'pre-wrap'
+                                      }}>
+                                        {`"${String(message.attachment.text)}"`}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {message.attachment?.type === 'document' && message.attachment?.docId && (
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '10px 12px',
+                                        borderRadius: '10px',
+                                        backgroundColor: isCurrentUser ? 'rgba(255,255,255,0.12)' : '#ffffff',
+                                        border: isCurrentUser ? '1px solid rgba(255,255,255,0.18)' : '1px solid #e5e7eb',
+                                        cursor: 'pointer',
+                                        marginBottom: message.text ? '8px' : 0
+                                      }}
+                                      onClick={async () => {
+                                        try {
+                                          const companyEmail = await getResolvedCompanyEmail();
+                                          const contactEmail = selectedContact?.isEveryone
+                                            ? 'everyone'
+                                            : (selectedContact?.email || selectedContact?.emailKey?.replace(/,/g, '.'));
+                                          if (!companyEmail || !currentProject || !currentTopic || !contactEmail) return;
+                                          const emailPair = await getEmailPair(contactEmail);
+                                          if (!emailPair) return;
+                                          const docPath = `Companies/${companyEmail}/securedProjects/${currentProject}/documents/${currentTopic}/${emailPair}/${message.attachment.docId}`;
+                                          const snap = await get(ref(database, docPath));
+                                          if (snap.exists()) {
+                                            const doc = snap.val();
+                                            if (doc?.dataUrl) openDataUrlInNewTab(doc.dataUrl);
+                                          }
+                                        } catch (_) {
+                                          // Best-effort
+                                        }
+                                      }}
+                                    >
+                                      <div style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '10px',
+                                        backgroundColor: isCurrentUser ? 'rgba(255,255,255,0.18)' : '#f3f4f6',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: isCurrentUser ? 'rgba(255,255,255,0.9)' : '#374151'
+                                      }}>
+                                        {(message.attachment.extension || 'FILE').slice(0, 4)}
+                                      </div>
+                                      <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div style={{
+                                          fontSize: '13px',
+                                          fontWeight: 600,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap'
+                                        }}>
+                                          {message.attachment.name || 'Attachment'}
+                                        </div>
+                                        <div style={{
+                                          fontSize: '12px',
+                                          opacity: isCurrentUser ? 0.85 : 0.7
+                                        }}>
+                                          {(message.attachment.extension || 'FILE')} • {formatFileSize(message.attachment.size)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Toolbar - show for all messages on hover */}
+                                  {isHovered && !isBeingEdited && (!message.isScheduled || (isCurrentUser && message.scheduledId)) && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: '-40px',
+                                      right: isCurrentUser ? 0 : 'auto',
+                                      left: isCurrentUser ? 'auto' : 0,
+                                      display: 'flex',
+                                      gap: '2px',
+                                      backgroundColor: '#ffffff',
+                                      border: '1px solid #e5e7eb',
+                                      borderRadius: '12px',
+                                      padding: '6px',
+                                      zIndex: 10,
+                                      opacity: 1
+                                    }}
+                                      onMouseEnter={() => {
+                                        cancelHoverClear();
+                                        setHoveredMessageId(messageId);
+                                      }}
+                                      onMouseLeave={() => {
+                                        scheduleHoverClear();
+                                      }}
+                                    >
+                                      {message.isScheduled && isCurrentUser && message.scheduledId && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openRescheduleModal(message.scheduledId, message);
+                                          }}
+                                          style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '6px 8px',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#6b7280',
+                                            transition: 'all 0.15s ease',
+                                            minWidth: '32px',
+                                            height: '32px'
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                            e.currentTarget.style.color = '#374151';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                            e.currentTarget.style.color = '#6b7280';
+                                          }}
+                                          title="Reschedule"
+                                        >
+                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                          </svg>
+                                        </button>
+                                      )}
+
+                                      {!message.isScheduled && QUICK_REACTIONS.map((emoji) => {
+                                        const userKey = (auth.currentUser?.email || '').replace(/\./g, ',');
+                                        const hasReacted = Boolean(message.reactions && message.reactions[emoji] && message.reactions[emoji][userKey]);
+                                        return (
+                                          <button
+                                            key={emoji}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleReaction(message, emoji);
+                                            }}
+                                            style={{
+                                              background: hasReacted ? '#f3f4f6' : 'transparent',
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              padding: '6px 8px',
+                                              borderRadius: '6px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              color: '#111827',
+                                              transition: 'all 0.15s ease',
+                                              minWidth: '32px',
+                                              height: '32px',
+                                              fontSize: '16px',
+                                              lineHeight: 1
+                                            }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.backgroundColor = hasReacted ? '#e5e7eb' : '#f3f4f6';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.backgroundColor = hasReacted ? '#f3f4f6' : 'transparent';
+                                            }}
+                                            title={`React ${emoji}`}
+                                          >
+                                            {emoji}
+                                          </button>
+                                        );
+                                      })}
+
+                                      {!message.isScheduled && (
+                                        <>
+                                          {/* Thread Button - available for all messages */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openThread(message);
+                                            }}
+                                            style={{
+                                              background: 'transparent',
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              padding: '6px 8px',
+                                              borderRadius: '6px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              color: '#6b7280',
+                                              transition: 'all 0.15s ease',
+                                              minWidth: '32px',
+                                              height: '32px'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                              e.currentTarget.style.color = '#374151';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.backgroundColor = 'transparent';
+                                              e.currentTarget.style.color = '#6b7280';
+                                            }}
+                                            title="Thread"
+                                          >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                              <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                                            </svg>
+                                          </button>
+
+                                          {/* Reply Button - available for all messages */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              startReply(message);
+                                            }}
+                                            style={{
+                                              background: 'transparent',
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              padding: '6px 8px',
+                                              borderRadius: '6px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              color: '#6b7280',
+                                              transition: 'all 0.15s ease',
+                                              minWidth: '32px',
+                                              height: '32px'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                              e.currentTarget.style.color = '#374151';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.backgroundColor = 'transparent';
+                                              e.currentTarget.style.color = '#6b7280';
+                                            }}
+                                            title="Reply"
+                                          >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                              <polyline points="9 17 4 12 9 7"></polyline>
+                                              <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+                                            </svg>
+                                          </button>
+
+                                          {/* Copy Button - only for current user's messages */}
+                                          {isCurrentUser && (
+                                            <button
+                                              onClick={async (e) => {
+                                                e.stopPropagation();
+                                                try {
+                                                  await navigator.clipboard.writeText(message.text || '');
+                                                  // Show temporary feedback
+                                                  const btn = e.currentTarget;
+                                                  const originalTitle = btn.getAttribute('title');
+                                                  btn.setAttribute('title', 'Copied!');
+                                                  setTimeout(() => {
+                                                    btn.setAttribute('title', originalTitle);
+                                                  }, 2000);
+                                                } catch (err) {
+                                                  console.error('Failed to copy:', err);
+                                                }
+                                              }}
+                                              style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                padding: '6px 8px',
+                                                borderRadius: '6px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#6b7280',
+                                                transition: 'all 0.15s ease',
+                                                minWidth: '32px',
+                                                height: '32px'
+                                              }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                                e.currentTarget.style.color = '#374151';
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                e.currentTarget.style.color = '#6b7280';
+                                              }}
+                                              title="Copy message"
+                                            >
+                                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                              </svg>
+                                            </button>
+                                          )}
+
+                                          {/* Edit Button - only for current user's messages */}
+                                          {isCurrentUser && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                startEditMessage(message);
+                                              }}
+                                              style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                padding: '6px 8px',
+                                                borderRadius: '6px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#6b7280',
+                                                transition: 'all 0.15s ease',
+                                                minWidth: '32px',
+                                                height: '32px'
+                                              }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                                e.currentTarget.style.color = '#374151';
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                e.currentTarget.style.color = '#6b7280';
+                                              }}
+                                              title="Edit"
+                                            >
+                                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M12 20h9"></path>
+                                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+                                              </svg>
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                                    {(() => {
+                                      const blocks = getMessageBlocks(message);
+                                      if (!blocks) {
+                                        const t = message.text || '';
+                                        return messageSearchTerm && String(t).toLowerCase().includes(messageSearchTerm.toLowerCase())
+                                          ? highlightText(String(t), messageSearchTerm, isCurrentMatch)
+                                          : t;
+                                      }
+
+                                      return (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                          {blocks.map((b, idx) => {
+                                            const content = String(b.text || '');
+                                            if (b.type === 'code') {
+                                              return (
+                                                <div
+                                                  key={`${messageId}-block-${idx}`}
+                                                  style={{
+                                                    backgroundColor: '#0b1220',
+                                                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                                                    borderRadius: '10px',
+                                                    padding: '10px 12px',
+                                                    overflowX: 'auto'
+                                                  }}
+                                                >
+                                                  <pre style={{
+                                                    margin: 0,
+                                                    whiteSpace: 'pre',
+                                                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                                                    fontSize: '13px',
+                                                    lineHeight: '1.55',
+                                                    color: '#e5e7eb'
+                                                  }}>
+                                                    {content}
+                                                  </pre>
+                                                </div>
+                                              );
+                                            }
+
+                                            return (
+                                              <div key={`${messageId}-block-${idx}`} style={{ whiteSpace: 'pre-wrap' }}>
+                                                {messageSearchTerm && content.toLowerCase().includes(messageSearchTerm.toLowerCase())
+                                                  ? highlightText(content, messageSearchTerm, isCurrentMatch)
+                                                  : content}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+
+                                  {!isThreadView && (() => {
+                                    const threadId = message.messageId;
+                                    const replyCountFromMsgs = allMessages.filter((m) => m && m.threadId === threadId).length;
+                                    const metaExists = Boolean(threadMetas && threadMetas[threadId]);
+                                    const replyCount = replyCountFromMsgs;
+                                    if (!metaExists && replyCount <= 0) return null;
+
+                                    return (
+                                      <div
+                                        onClick={() => openThread(message)}
+                                        style={{
+                                          marginTop: '8px',
+                                          fontSize: '12px',
+                                          fontWeight: 600,
+                                          color: isCurrentUser ? 'rgba(255, 255, 255, 0.9)' : '#2563eb',
+                                          cursor: 'pointer',
+                                          userSelect: 'none'
+                                        }}
+                                        title="Open thread"
+                                      >
+                                        {replyCount > 0 ? `${replyCount} repl${replyCount === 1 ? 'y' : 'ies'}` : 'Thread'}
+                                      </div>
+                                    );
+                                  })()}
+                                  {message.editedAt && (
+                                    <div style={{
+                                      fontSize: '10px',
+                                      marginTop: '4px',
+                                      opacity: 0.6,
+                                      fontStyle: 'italic'
+                                    }}>
+                                      (edited)
+                                    </div>
+                                  )}
+
+                                  {reactionEntries.length > 0 && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      right: '10px',
+                                      bottom: '-16px',
+                                      display: 'flex',
+                                      gap: '6px',
+                                      flexWrap: 'nowrap',
+                                      pointerEvents: 'auto'
+                                    }}>
+                                      {reactionEntries.map(({ emoji, count, hasReacted }) => (
+                                        <button
+                                          key={emoji}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleReaction(message, emoji);
+                                          }}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '3px 8px',
+                                            borderRadius: '999px',
+                                            backgroundColor: hasReacted ? '#eef2ff' : 'rgba(255, 255, 255, 0.96)',
+                                            border: hasReacted ? '1px solid rgba(37, 99, 235, 0.35)' : '1px solid rgba(0, 0, 0, 0.10)',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            color: '#111827',
+                                            lineHeight: 1,
+                                            transform: 'translateY(0px)',
+                                            transition: 'transform 120ms ease, background-color 120ms ease'
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)';
+                                            if (!hasReacted) e.currentTarget.style.backgroundColor = '#f9fafb';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(0px) scale(1)';
+                                            e.currentTarget.style.backgroundColor = hasReacted ? '#eef2ff' : 'rgba(255, 255, 255, 0.96)';
+                                          }}
+                                          title="Toggle reaction"
+                                        >
+                                          <span style={{ fontSize: '14px', lineHeight: 1 }}>{emoji}</span>
+                                          <span style={{ fontWeight: 600, color: '#6b7280' }}>{count}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </React.Fragment>
+                  );
+                });
+              })()
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Chat Input Bar - Professional ChatGPT-style */}
+          <div style={{
+            borderTop: '1px solid #e5e7eb',
+            backgroundColor: '#ffffff',
+            flexShrink: 0,
+            flexGrow: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            width: '100%',
+            // Let the composer grow upward (the composer box itself already has a maxHeight)
+            overflow: 'visible'
+          }}>
+            {/* Edit Mode Indicator */}
+            {editingMessage && (
+              <div style={{
+                padding: '8px 16px',
+                backgroundColor: '#fef3c7',
+                borderBottom: '1px solid #fde68a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '13px',
+                color: '#92400e'
+              }}>
+                <span>✏️ Editing message</span>
+                <button
+                  onClick={cancelEdit}
                   style={{
-                    position: 'absolute',
-                    right: 0,
-                    bottom: '44px',
-                    width: '220px',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '10px',
-                    boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
-                    padding: '6px',
-                    zIndex: 50,
-                    display: showPlusMenu ? 'block' : 'none'
+                    background: 'none',
+                    border: 'none',
+                    color: '#92400e',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    textDecoration: 'underline',
+                    padding: '4px 8px'
                   }}
                 >
-            {/* Attach File Option */}
-            <button
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px 12px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                color: '#111827',
-                fontSize: '14px',
-                transition: 'background-color 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={() => {
-                fileInputRef.current?.click();
-                setShowPlusMenu(false);
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ flexShrink: 0, color: '#6b7280' }}
-              >
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.82l8.49-8.48" />
-              </svg>
-              <span>Attach file</span>
-            </button>
+                  Cancel
+                </button>
+              </div>
+            )}
 
-            {/* Code Block Option */}
-            <button
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px 12px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                color: '#111827',
-                fontSize: '14px',
-                transition: 'background-color 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={() => {
-                setShowPlusMenu(false);
-                toggleComposerMode('code');
-                try {
-                  setTimeout(() => composerTextareaRef.current?.focus(), 0);
-                } catch (_) {}
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ flexShrink: 0, color: '#6b7280' }}
-              >
-                <polyline points="16 18 22 12 16 6"></polyline>
-                <polyline points="8 6 2 12 8 18"></polyline>
-              </svg>
-              <span>Code block</span>
-            </button>
-            
-            {/* Schedule Send Option - Always show */}
-            <button
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px 12px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                color: '#111827',
-                fontSize: '14px',
-                transition: 'background-color 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={() => {
-                setShowPlusMenu(false);
-                openScheduleModalWithDefaults();
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ flexShrink: 0, color: '#6b7280' }}
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-              <span>Schedule send</span>
-            </button>
-          </div>
-                </div>
-              
-              {/* Microphone Icon */}
-              <button
+            <div style={{
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0px',
+              position: 'relative'
+            }}>
+              {/* Message Input Field - Full Width */}
+              <div
+                ref={composerBoxRef}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#6b7280',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
+                  ...composerBoxStyle,
+                  // Let the composer grow upwards with content, but cap it to keep footer controls visible.
+                  minHeight: composerCollapsedHeight,
+                  maxHeight: (attachedHighlight?.text || replyingTo) ? composerExpandedHeight : composerCollapsedHeight,
+                  height: (attachedHighlight?.text || replyingTo) ? composerExpandedHeight : composerCollapsedHeight
+                }}>
+                {/* Previews area (scrolls independently so footer icons stay visible) */}
+                {(attachedHighlight?.text || replyingTo) && (
+                  <div
+                    style={previewsWrapStyle}
+                  >
+                    {attachedHighlight && attachedHighlight.text && (
+                      <div style={attachedHighlightCardStyle}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px'
+                        }}>
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            color: '#6b7280',
+                            fontSize: '12px',
+                            fontWeight: 700
+                          }}>
+                            <span style={{ lineHeight: 1 }}>📎</span>
+                            <span>Attached highlight</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAttachedHighlight(null)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#9ca3af',
+                              cursor: 'pointer',
+                              padding: '0 4px',
+                              fontSize: '16px',
+                              lineHeight: 1
+                            }}
+                            title="Remove"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div style={{
+                          fontSize: '13px',
+                          lineHeight: 1.4,
+                          color: '#374151',
+                          fontStyle: 'italic',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          {`"${attachedHighlight.text}"`}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reply Preview Indicator - Inside Chat Box */}
+                    {replyingTo && (
+                      <div style={{
+                        padding: '10px 12px',
+                        backgroundColor: '#fafafa',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        flexShrink: 0
+                      }}>
+                        {/* Top Row: Sender name + timestamp | Close button */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%'
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flex: 1,
+                            minWidth: 0
+                          }}>
+                            <span style={{
+                              fontSize: '13px',
+                              fontWeight: 500,
+                              color: '#111827'
+                            }}>
+                              {replyingTo.name || replyingTo.email?.split('@')[0] || 'User'}
+                            </span>
+                            {replyingTo.timestamp && (
+                              <span style={{
+                                fontSize: '12px',
+                                color: '#9ca3af',
+                                fontWeight: 400
+                              }}>
+                                {formatReplyTimestamp(replyingTo.timestamp)}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={cancelReply}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#9ca3af',
+                              cursor: 'pointer',
+                              padding: '4px 6px',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              fontSize: '18px',
+                              lineHeight: '1',
+                              transition: 'background-color 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f3f4f6';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                            title="Cancel reply"
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                        {/* Bottom Row: Quoted message text */}
+                        <div style={{
+                          fontSize: '13px',
+                          color: '#6b7280',
+                          lineHeight: '1.4',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          paddingRight: '24px'
+                        }}>
+                          {replyingTo.text}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{
+                  padding: '0',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  flexShrink: 0
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  e.currentTarget.style.color = '#374151';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#6b7280';
-                }}
-                title="Voice message"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                  <line x1="12" y1="19" x2="12" y2="23"></line>
-                  <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
-              </button>
-              
-              {/* Rich Text Icon */}
-              <button
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#6b7280',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  flexShrink: 0
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  e.currentTarget.style.color = '#374151';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#6b7280';
-                }}
-                title="Rich text"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 20h16"></path>
-                  <path d="M6 16l6-12 6 12"></path>
-                  <path d="M8 12h8"></path>
-                </svg>
-              </button>
-              
-              {/* Send Icon */}
-              <button
-                onClick={handleSendMessage}
-                disabled={!hasText}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: hasText ? '#111827' : '#6b7280',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  cursor: hasText ? 'pointer' : 'default',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-start',
                   flexShrink: 0,
-                  opacity: hasText ? 1 : 0.6
-                }}
-                onMouseEnter={(e) => {
-                  if (hasText) {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    e.currentTarget.style.color = '#111827';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (hasText) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#111827';
-                  }
-                }}
-                title="Send"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-              </button>
-            </div>
+                  marginTop: 'auto'
+                }}>
+                  <div
+                    style={composerMode === 'code' ? {
+                      backgroundColor: '#0b1220',
+                      border: '1px solid rgba(148, 163, 184, 0.25)',
+                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      boxSizing: 'border-box',
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center'
+                    } : undefined}
+                  >
+                    <textarea
+                      ref={composerTextareaRef}
+                      className="messages-textarea"
+                      placeholder={editingMessage ? "Edit your message..." : replyingTo ? "Type your reply..." : (attachedHighlight?.text ? "" : "Message")}
+                      value={inputValue}
+                      autoCorrect={composerMode === 'code' ? 'off' : 'on'}
+                      autoCapitalize={composerMode === 'code' ? 'none' : 'sentences'}
+                      spellCheck={composerMode !== 'code'}
+                      onFocus={() => {
+                        wasComposerFocusedRef.current = true;
+                      }}
+                      onBlur={() => {
+                        wasComposerFocusedRef.current = false;
+                      }}
+                      onChange={(e) => {
+                        const nextValue = e.target.value;
+                        setInputValue(nextValue);
+
+                        // If input is empty, snap back to the compact single-line composer immediately.
+                        if (!nextValue.trim()) {
+                          resetComposerLayout();
+                          return;
+                        }
+                        const textarea = e.target;
+                        textarea.style.height = 'auto';
+                        const maxTextareaHeight = 128; // leave room for footer row inside the box
+                        const maxContainerHeight = 220;
+                        const scrollHeight = textarea.scrollHeight;
+                        const newHeight = Math.min(scrollHeight, maxTextareaHeight);
+                        textarea.style.height = `${newHeight}px`;
+
+                        if (scrollHeight > maxTextareaHeight) {
+                          textarea.style.overflowY = 'auto';
+                        } else {
+                          textarea.style.overflowY = 'hidden';
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (hasText) {
+                            handleSendMessage();
+                          }
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        outline: 'none',
+                        resize: 'none',
+                        fontSize: '15px',
+                        fontFamily: composerMode === 'code' ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' : 'system-ui, -apple-system, sans-serif',
+                        color: composerMode === 'code' ? '#e5e7eb' : '#111827',
+                        caretColor: composerMode === 'code' ? '#e5e7eb' : '#111827',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        borderRadius: 0,
+                        lineHeight: '1.5',
+                        padding: 0,
+                        margin: 0,
+                        overflowX: 'hidden',
+                        overflowY: 'auto',
+                        maxHeight: '128px',
+                        minHeight: '24px'
+                      }}
+                      rows={1}
+                    />
+                  </div>
+
+                  {/* Footer Icons Row - Inside Text Box */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginTop: '6px',
+                    flexShrink: 0
+                  }}>
+                    {composerMode === 'code' && (
+                      <div style={{
+                        marginRight: 'auto',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '4px 10px',
+                        borderRadius: '999px',
+                        backgroundColor: '#fff7ed',
+                        border: '1px solid #ffedd5',
+                        color: '#c2410c',
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}>
+                        <span>Code block</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleComposerMode('text')}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#c2410c',
+                            cursor: 'pointer',
+                            padding: 0,
+                            fontSize: '14px',
+                            lineHeight: '1'
+                          }}
+                          title="Exit code mode"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                    {/* Plus Icon (Attachments) with Menu */}
+                    <div ref={plusMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="*/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          sendAttachmentFiles(e.target?.files);
+                          setShowPlusMenu(false);
+                          if (e.target) e.target.value = '';
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          setShowPlusMenu(!showPlusMenu);
+                        }}
+                        style={{
+                          background: showPlusMenu ? '#f3f4f6' : 'transparent',
+                          border: 'none',
+                          color: showPlusMenu ? '#374151' : '#6b7280',
+                          padding: '6px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
+                          flexShrink: 0
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!showPlusMenu) {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                            e.currentTarget.style.color = '#374151';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!showPlusMenu) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = '#6b7280';
+                          }
+                        }}
+                        title="More options"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      </button>
+
+                      {/* Plus Menu Dropdown */}
+                      <div
+                        className="plus-menu"
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          bottom: '44px',
+                          width: '220px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '10px',
+                          boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+                          padding: '6px',
+                          zIndex: 50,
+                          display: showPlusMenu ? 'block' : 'none'
+                        }}
+                      >
+                        {/* Attach File Option */}
+                        <button
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 12px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#111827',
+                            fontSize: '14px',
+                            transition: 'background-color 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          onClick={() => {
+                            fileInputRef.current?.click();
+                            setShowPlusMenu(false);
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{ flexShrink: 0, color: '#6b7280' }}
+                          >
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.82l8.49-8.48" />
+                          </svg>
+                          <span>Attach file</span>
+                        </button>
+
+                        {/* Code Block Option */}
+                        <button
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 12px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#111827',
+                            fontSize: '14px',
+                            transition: 'background-color 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          onClick={() => {
+                            setShowPlusMenu(false);
+                            toggleComposerMode('code');
+                            try {
+                              setTimeout(() => composerTextareaRef.current?.focus(), 0);
+                            } catch (_) { }
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{ flexShrink: 0, color: '#6b7280' }}
+                          >
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                          </svg>
+                          <span>Code block</span>
+                        </button>
+
+                        {/* Schedule Send Option - Always show */}
+                        <button
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 12px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#111827',
+                            fontSize: '14px',
+                            transition: 'background-color 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          onClick={() => {
+                            setShowPlusMenu(false);
+                            openScheduleModalWithDefaults();
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{ flexShrink: 0, color: '#6b7280' }}
+                          >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                          </svg>
+                          <span>Schedule send</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Microphone Icon */}
+                    <button
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#6b7280',
+                        padding: '6px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        flexShrink: 0
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        e.currentTarget.style.color = '#374151';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#6b7280';
+                      }}
+                      title="Voice message"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                      </svg>
+                    </button>
+
+                    {/* Rich Text Icon */}
+                    <button
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#6b7280',
+                        padding: '6px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        flexShrink: 0
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        e.currentTarget.style.color = '#374151';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#6b7280';
+                      }}
+                      title="Rich text"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M4 20h16"></path>
+                        <path d="M6 16l6-12 6 12"></path>
+                        <path d="M8 12h8"></path>
+                      </svg>
+                    </button>
+
+                    {/* Send Icon */}
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!hasText}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: hasText ? '#111827' : '#6b7280',
+                        padding: '6px',
+                        borderRadius: '6px',
+                        cursor: hasText ? 'pointer' : 'default',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        flexShrink: 0,
+                        opacity: hasText ? 1 : 0.6
+                      }}
+                      onMouseEnter={(e) => {
+                        if (hasText) {
+                          e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          e.currentTarget.style.color = '#111827';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (hasText) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color = '#111827';
+                        }
+                      }}
+                      title="Send"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
         </div>
       </div>
     );
@@ -6218,11 +6218,11 @@ const Messages = ({ currentProject, currentChat }) => {
 
   // Contacts List View
   return (
-    <div className="messages-container" style={{ 
-      padding: '12px', 
+    <div className="messages-container" style={{
+      padding: '12px',
       paddingBottom: '72px',
-      display: 'flex', 
-      flexDirection: 'column', 
+      display: 'flex',
+      flexDirection: 'column',
       height: '100%',
       position: 'relative'
     }}>
@@ -6247,8 +6247,8 @@ const Messages = ({ currentProject, currentChat }) => {
       </div>
 
       {/* Search Bar */}
-      <div style={{ 
-        position: 'relative', 
+      <div style={{
+        position: 'relative',
         marginBottom: '12px'
       }}>
         <svg
@@ -6301,13 +6301,13 @@ const Messages = ({ currentProject, currentChat }) => {
       </div>
 
       {/* Contacts List */}
-      <div style={{ 
-        flex: 1, 
+      <div style={{
+        flex: 1,
         overflowY: 'auto',
         padding: '0'
       }}>
         {isLoading ? (
-          <div style={{ 
+          <div style={{
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
@@ -6328,12 +6328,12 @@ const Messages = ({ currentProject, currentChat }) => {
               color: '#6b7280',
               fontSize: '15px',
               fontWeight: 500
-          }}>
-            Loading contacts...
+            }}>
+              Loading contacts...
             </div>
           </div>
         ) : filteredContacts.length === 0 ? (
-          <div style={{ 
+          <div style={{
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
@@ -6369,7 +6369,7 @@ const Messages = ({ currentProject, currentChat }) => {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
             </div>
-            
+
             {/* Main Message */}
             <div style={{
               color: '#111827',
@@ -6379,7 +6379,7 @@ const Messages = ({ currentProject, currentChat }) => {
             }}>
               {searchTerm ? 'No contacts found' : 'No contacts in this project'}
             </div>
-            
+
             {/* Subtitle */}
             <div style={{
               color: '#6b7280',
@@ -6387,7 +6387,7 @@ const Messages = ({ currentProject, currentChat }) => {
               maxWidth: '280px',
               lineHeight: '1.5'
             }}>
-              {searchTerm 
+              {searchTerm
                 ? 'Try adjusting your search terms'
                 : 'Contacts will appear here when they join this project'}
             </div>
@@ -6430,278 +6430,278 @@ const Messages = ({ currentProject, currentChat }) => {
                   justifyContent: 'center',
                   flexShrink: 0
                 }}>
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                    width="20" 
-                    height="20" 
-                  viewBox="0 0 48 48"
-                  style={{
-                    color: '#6b7280'
-                  }}
-                >
-                  <path fill="currentColor" d="M11.5 11a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM15 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12Zm14.5 6a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM33 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12ZM4 22.446A3.446 3.446 0 0 1 7.446 19h9.624a7.947 7.947 0 0 0-.93 2.5H7.446a.946.946 0 0 0-.946.946v.429c0 .27.003 1.933 1.019 3.505c.896 1.388 2.723 2.92 6.684 3.102a5.469 5.469 0 0 0-2.464 2.223c-3.222-.632-5.18-2.203-6.32-3.968C4 25.54 4 23.27 4 22.877v-.43Zm29.797 7.036a5.469 5.469 0 0 1 2.464 2.223c3.222-.632 5.18-2.203 6.32-3.968C44 25.54 44 23.27 44 22.877v-.43A3.446 3.446 0 0 0 40.554 19H30.93c.44.763.76 1.605.93 2.5h8.694c.522 0 .946.424.946.946v.429c0 .27-.003 1.933-1.019 3.505c-.896 1.388-2.723 2.92-6.684 3.102ZM24 19.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7ZM18 23a6 6 0 1 1 12 0a6 6 0 0 1-12 0Zm-5 11.446A3.446 3.446 0 0 1 16.446 31h15.108A3.446 3.446 0 0 1 35 34.446v.431c0 .394 0 2.663-1.419 4.86C32.098 42.033 29.233 44 24 44s-8.098-1.967-9.581-4.263C13 37.54 13 35.27 13 34.877v-.431Z"/>
-                </svg>
-              </div>
-            ) : contact.isGroupChat ? (
-              <div style={{ width: '40px', height: '40px', position: 'relative', flexShrink: 0 }}>
-                {(() => {
-                  const keys = Array.isArray(contact.memberPreviewKeys) ? contact.memberPreviewKeys : [];
-                  const stack = keys.slice(0, 3);
-                  const size = 24;
-                  const offsets = [0, 12, 24];
-                  const colors = ['#e5e7eb', '#d1d5db', '#cbd5e1'];
-                  if (stack.length === 0) {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 48 48"
+                    style={{
+                      color: '#6b7280'
+                    }}
+                  >
+                    <path fill="currentColor" d="M11.5 11a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM15 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12Zm14.5 6a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0ZM33 5a6 6 0 1 0 0 12a6 6 0 0 0 0-12ZM4 22.446A3.446 3.446 0 0 1 7.446 19h9.624a7.947 7.947 0 0 0-.93 2.5H7.446a.946.946 0 0 0-.946.946v.429c0 .27.003 1.933 1.019 3.505c.896 1.388 2.723 2.92 6.684 3.102a5.469 5.469 0 0 0-2.464 2.223c-3.222-.632-5.18-2.203-6.32-3.968C4 25.54 4 23.27 4 22.877v-.43Zm29.797 7.036a5.469 5.469 0 0 1 2.464 2.223c3.222-.632 5.18-2.203 6.32-3.968C44 25.54 44 23.27 44 22.877v-.43A3.446 3.446 0 0 0 40.554 19H30.93c.44.763.76 1.605.93 2.5h8.694c.522 0 .946.424.946.946v.429c0 .27-.003 1.933-1.019 3.505c-.896 1.388-2.723 2.92-6.684 3.102ZM24 19.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7ZM18 23a6 6 0 1 1 12 0a6 6 0 0 1-12 0Zm-5 11.446A3.446 3.446 0 0 1 16.446 31h15.108A3.446 3.446 0 0 1 35 34.446v.431c0 .394 0 2.663-1.419 4.86C32.098 42.033 29.233 44 24 44s-8.098-1.967-9.581-4.263C13 37.54 13 35.27 13 34.877v-.431Z" />
+                  </svg>
+                </div>
+              ) : contact.isGroupChat ? (
+                <div style={{ width: '40px', height: '40px', position: 'relative', flexShrink: 0 }}>
+                  {(() => {
+                    const keys = Array.isArray(contact.memberPreviewKeys) ? contact.memberPreviewKeys : [];
+                    const stack = keys.slice(0, 3);
+                    const size = 24;
+                    const offsets = [0, 12, 24];
+                    const colors = ['#e5e7eb', '#d1d5db', '#cbd5e1'];
+                    if (stack.length === 0) {
+                      return (
+                        <div style={{
+                          width: '40px', height: '40px', borderRadius: '14px',
+                          backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#6b7280', fontWeight: 700
+                        }}>
+                          G
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div style={{
-                        width: '40px', height: '40px', borderRadius: '14px',
-                        backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#6b7280', fontWeight: 700
-                      }}>
-                        G
+                      <div style={{ width: '40px', height: '40px', position: 'relative' }}>
+                        {stack.map((k, i) => (
+                          (() => {
+                            const emailKey = String(k || '').toLowerCase();
+                            const cached = groupAvatarCache ? groupAvatarCache[emailKey] : null;
+                            const displayName = cached?.name || `${cached?.firstName || ''} ${cached?.lastName || ''}`.trim() || String(emailKey).replace(/,/g, '.');
+                            const initials = (() => {
+                              const first = String(cached?.firstName || '').trim();
+                              const last = String(cached?.lastName || '').trim();
+                              if (first && last) return (first[0] + last[0]).toUpperCase();
+                              if (displayName) {
+                                const parts = String(displayName).trim().split(' ').filter(Boolean);
+                                if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                                return String(displayName).charAt(0).toUpperCase();
+                              }
+                              return 'U';
+                            })();
+                            const profileImage = cached?.profileImage || null;
+
+                            return (
+                              <div
+                                key={`${contact.groupId || contact.email}-stack-${k}-${i}`}
+                                style={{
+                                  position: 'absolute',
+                                  left: offsets[i],
+                                  top: offsets[i] / 2,
+                                  width: `${size}px`,
+                                  height: `${size}px`,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#e5e7eb',
+                                  border: '2px solid #ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  overflow: 'hidden',
+                                  boxSizing: 'border-box',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                }}
+                                title={displayName}
+                              >
+                                {profileImage ? (
+                                  <img
+                                    src={profileImage}
+                                    alt={displayName}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    onError={(e) => {
+                                      try {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextElementSibling;
+                                        if (fallback) fallback.style.display = 'flex';
+                                      } catch (_) { }
+                                    }}
+                                    onLoad={(e) => {
+                                      try {
+                                        e.currentTarget.style.display = 'block';
+                                        const fallback = e.currentTarget.nextElementSibling;
+                                        if (fallback) fallback.style.display = 'none';
+                                      } catch (_) { }
+                                    }}
+                                  />
+                                ) : null}
+                                <div style={{
+                                  display: profileImage ? 'none' : 'flex',
+                                  width: '100%',
+                                  height: '100%',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: `hsl(${String(emailKey || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                                  color: 'white',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0
+                                }}>
+                                  {initials}
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ))}
                       </div>
                     );
-                  }
-
-                  return (
-                    <div style={{ width: '40px', height: '40px', position: 'relative' }}>
-                      {stack.map((k, i) => (
-                        (() => {
-                          const emailKey = String(k || '').toLowerCase();
-                          const cached = groupAvatarCache ? groupAvatarCache[emailKey] : null;
-                          const displayName = cached?.name || `${cached?.firstName || ''} ${cached?.lastName || ''}`.trim() || String(emailKey).replace(/,/g, '.');
-                          const initials = (() => {
-                            const first = String(cached?.firstName || '').trim();
-                            const last = String(cached?.lastName || '').trim();
-                            if (first && last) return (first[0] + last[0]).toUpperCase();
-                            if (displayName) {
-                              const parts = String(displayName).trim().split(' ').filter(Boolean);
-                              if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                              return String(displayName).charAt(0).toUpperCase();
-                            }
-                            return 'U';
-                          })();
-                          const profileImage = cached?.profileImage || null;
-
-                          return (
-                        <div
-                          key={`${contact.groupId || contact.email}-stack-${k}-${i}`}
-                          style={{
-                            position: 'absolute',
-                            left: offsets[i],
-                            top: offsets[i] / 2,
-                            width: `${size}px`,
-                            height: `${size}px`,
-                            borderRadius: '50%',
-                            backgroundColor: '#e5e7eb',
-                            border: '2px solid #ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflow: 'hidden',
-                            boxSizing: 'border-box',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                          }}
-                          title={displayName}
-                        >
-                          {profileImage ? (
-                            <img
-                              src={profileImage}
-                              alt={displayName}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                              onError={(e) => {
-                                try {
-                                  e.currentTarget.style.display = 'none';
-                                  const fallback = e.currentTarget.nextElementSibling;
-                                  if (fallback) fallback.style.display = 'flex';
-                                } catch (_) {}
-                              }}
-                              onLoad={(e) => {
-                                try {
-                                  e.currentTarget.style.display = 'block';
-                                  const fallback = e.currentTarget.nextElementSibling;
-                                  if (fallback) fallback.style.display = 'none';
-                                } catch (_) {}
-                              }}
-                            />
-                          ) : null}
-                          <div style={{
-                            display: profileImage ? 'none' : 'flex',
-                            width: '100%',
-                            height: '100%',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: `hsl(${String(emailKey || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                            color: 'white',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0
-                          }}>
-                            {initials}
-                          </div>
-                        </div>
-                          );
-                        })()
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            ) : (
-              <div style={{
-                position: 'relative',
-                flexShrink: 0
-              }}>
-                <div
-                  title={contact.name}
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    backgroundColor: '#e5e7eb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    position: 'relative'
-                  }}
-                >
-                  <img
-                    src={contact.profileImage || ''}
-                    alt={contact.name}
+                  })()}
+                </div>
+              ) : (
+                <div style={{
+                  position: 'relative',
+                  flexShrink: 0
+                }}>
+                  <div
+                    title={contact.name}
                     style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      backgroundColor: '#e5e7eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                      position: 'relative'
+                    }}
+                  >
+                    <img
+                      src={contact.profileImage || ''}
+                      alt={contact.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: contact.profileImage ? 'block' : 'none'
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                      onLoad={(e) => {
+                        e.currentTarget.style.display = 'block';
+                        const fallback = e.currentTarget.nextElementSibling;
+                        if (fallback) fallback.style.display = 'none';
+                      }}
+                    />
+                    <div style={{
+                      display: contact.profileImage ? 'none' : 'flex',
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
-                      display: contact.profileImage ? 'block' : 'none'
-                    }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling;
-                      if (fallback) fallback.style.display = 'flex';
-                    }}
-                    onLoad={(e) => {
-                      e.currentTarget.style.display = 'block';
-                      const fallback = e.currentTarget.nextElementSibling;
-                      if (fallback) fallback.style.display = 'none';
-                    }}
-                  />
-                  <div style={{
-                    display: contact.profileImage ? 'none' : 'flex',
-                    width: '100%',
-                    height: '100%',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: `hsl(${String(contact.email || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                    color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
-                  }}>
-                    {(() => {
-                      const firstInitial = contact.firstName && contact.firstName.trim()
-                        ? contact.firstName.trim()[0].toUpperCase()
-                        : '';
-                      const lastInitial = contact.lastName && contact.lastName.trim()
-                        ? contact.lastName.trim()[0].toUpperCase()
-                        : '';
-                      if (firstInitial && lastInitial) {
-                        return firstInitial + lastInitial;
-                      } else if (firstInitial) {
-                        return firstInitial + firstInitial;
-                      }
-                      return 'U';
-                    })()}
-                  </div>
-                </div>
-                {/* Presence Status Indicator */}
-                {contactStatuses[contact.email] && !contact.isGroupChat && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '-2px',
-                    right: '0px',
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: getPresenceColor(contactStatuses[contact.email]),
-                    border: '2px solid white',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                  }} title={getPresenceLabel(contactStatuses[contact.email])} />
-                )}
-              </div>
-            )}
-
-            {/* Contact Info */}
-            <div style={{ 
-              flex: 1, 
-              minWidth: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              gap: '4px',
-              paddingRight: '8px'
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'baseline',
-                gap: '8px'
-              }}>
-                <span style={{
-                  fontWeight: 600,
-                  color: '#111827',
-                  fontSize: '15px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  lineHeight: '1.3'
-                }}>
-                  {getContactDisplayName(contact)}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  {getContactMissedCount(contact) > 0 && (
-                    <span
-                      style={{
-                        backgroundColor: '#ef4444',
-                        color: 'white',
-                        borderRadius: '10px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        padding: '2px 6px',
-                        minWidth: '18px',
-                        height: '18px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        lineHeight: '1'
-                      }}
-                    >
-                      {getContactMissedCount(contact) > 99 ? '99+' : getContactMissedCount(contact)}
-                    </span>
-                  )}
-                  {contact.message && contact.message.timestamp && (
-                    <span style={{
-                      fontSize: '11px',
-                      color: '#9ca3af',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                      fontWeight: 400,
-                      lineHeight: '1.3',
-                      fontVariantNumeric: 'tabular-nums',
-                      minWidth: '96px',
-                      textAlign: 'right',
-                      display: 'inline-block'
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: `hsl(${String(contact.email || 'U').charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0
                     }}>
-                      {formatTime(contact.message.timestamp)}
-                    </span>
+                      {(() => {
+                        const firstInitial = contact.firstName && contact.firstName.trim()
+                          ? contact.firstName.trim()[0].toUpperCase()
+                          : '';
+                        const lastInitial = contact.lastName && contact.lastName.trim()
+                          ? contact.lastName.trim()[0].toUpperCase()
+                          : '';
+                        if (firstInitial && lastInitial) {
+                          return firstInitial + lastInitial;
+                        } else if (firstInitial) {
+                          return firstInitial + firstInitial;
+                        }
+                        return 'U';
+                      })()}
+                    </div>
+                  </div>
+                  {/* Presence Status Indicator */}
+                  {contactStatuses[contact.email] && !contact.isGroupChat && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '0px',
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: getPresenceColor(contactStatuses[contact.email]),
+                      border: '2px solid white',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }} title={getPresenceLabel(contactStatuses[contact.email])} />
                   )}
+                </div>
+              )}
+
+              {/* Contact Info */}
+              <div style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '4px',
+                paddingRight: '8px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  gap: '8px'
+                }}>
+                  <span style={{
+                    fontWeight: 600,
+                    color: '#111827',
+                    fontSize: '15px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: '1.3'
+                  }}>
+                    {getContactDisplayName(contact)}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    {getContactMissedCount(contact) > 0 && (
+                      <span
+                        style={{
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          borderRadius: '10px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '2px 6px',
+                          minWidth: '18px',
+                          height: '18px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          lineHeight: '1'
+                        }}
+                      >
+                        {getContactMissedCount(contact) > 99 ? '99+' : getContactMissedCount(contact)}
+                      </span>
+                    )}
+                    {contact.message && contact.message.timestamp && (
+                      <span style={{
+                        fontSize: '11px',
+                        color: '#9ca3af',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        fontWeight: 400,
+                        lineHeight: '1.3',
+                        fontVariantNumeric: 'tabular-nums',
+                        minWidth: '96px',
+                        textAlign: 'right',
+                        display: 'inline-block'
+                      }}>
+                        {formatTime(contact.message.timestamp)}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {contact.message && contact.message.text ? (() => {
@@ -6718,12 +6718,12 @@ const Messages = ({ currentProject, currentChat }) => {
                       </div>
                     );
                   }
-                  
+
                   // Truncate text to 50 characters
-                  const truncatedText = preview.text.length > 50 
-                    ? preview.text.substring(0, 50) + '...' 
+                  const truncatedText = preview.text.length > 50
+                    ? preview.text.substring(0, 50) + '...'
                     : preview.text;
-                  
+
                   return (
                     <div style={{
                       fontSize: '13px',
@@ -6771,7 +6771,7 @@ const Messages = ({ currentProject, currentChat }) => {
         onClick={() => {
           try {
             window.dispatchEvent(new CustomEvent('phraze:createGroupChat'));
-          } catch (_) {}
+          } catch (_) { }
         }}
         aria-label="Create group chat"
         title="Create group chat"

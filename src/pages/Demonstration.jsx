@@ -10,7 +10,7 @@ import { getFirebaseData, saveFirebaseData, isLoggedIn, showToast, getMainCompan
 import { useLocation, useNavigate } from 'react-router-dom';
 import { listenToUserPresence, getPresenceColor, getPresenceLabel } from '../utils/presence';
 import { reportTyping, stopTyping, initializeTypingForConversation, listenToTyping, formatTypingIndicator } from '../utils/typing';
-import { loadHighlights, setMainCompanyEmail, saveHighlight, clearHighlights, loadHighlightsForText, createUnifiedAnnotationCard, phrazeHideAnyOtherPopups, phrazeShowPopupElement, phrazeHydrateAnnotationPopupFromStorage, upsertRegionAnnotation } from '../utils/highlighting';
+import { loadHighlights, setMainCompanyEmail, saveHighlight, clearHighlights, loadHighlightsForText, createUnifiedAnnotationCard, phrazeHideAnyOtherPopups, phrazeShowPopupElement, phrazeHydrateAnnotationPopupFromStorage, phrazeClearPermanentlyClosed, upsertRegionAnnotation } from '../utils/highlighting';
 import { DEFAULT_PERMISSIONS } from '../utils/permissionConstants';
 // import { initContactsPanel, setMessagingUserEmail, setMessagingUserName, setMessagingCurrentProject, setFirebaseFunctions } from '../utils/messaging';
 import { useExtension } from "../context/ExtensionContext";
@@ -18,15 +18,15 @@ import { useAuth } from "../context/AuthContext";
 import html2canvas from 'html2canvas';
 import AdvancedSearchOverlay from '../components/AdvancedSearchOverlay';
 import { getImagePath } from '../utils/assetPaths';
-import Activity from '../components/Activity';
 import Messages from '../components/Messages';
+import Activity from '../components/Activity';
 
 
 // Import Groq SDK
 import Groq from 'groq-sdk';
 import waveformSvg from '../../extension/img/waveform.svg';
 import { BsNutFill } from 'react-icons/bs';
-import { HiShieldCheck, HiPencil, HiEye, HiSearch, HiX, HiTrash } from 'react-icons/hi';
+import { HiShieldCheck, HiPencil, HiEye, HiSearch, HiX, HiTrash, HiChat } from 'react-icons/hi';
 import { HiOutlineShieldCheck, HiOutlinePencil, HiOutlineEye, HiOutlineTrash } from 'react-icons/hi';
 
 // Groq API configuration
@@ -82,28 +82,28 @@ function AuthModal({ onClose, onGuestContinue }) {
 // Fuzzy search helper - calculates similarity score between two strings
 function fuzzyMatch(str, query) {
   if (!query) return { matches: true, score: 0 };
-  
+
   str = str.toLowerCase();
   query = query.toLowerCase();
-  
+
   // Exact match
   if (str === query) return { matches: true, score: 100 };
-  
+
   // Starts with query
   if (str.startsWith(query)) return { matches: true, score: 90 };
-  
+
   // Contains query
   if (str.includes(query)) return { matches: true, score: 70 };
-  
+
   // Initials match (e.g., "js" matches "John Smith")
   const words = str.split(/\s+/);
   const initials = words.map(w => w.charAt(0)).join('');
   if (initials.startsWith(query)) return { matches: true, score: 60 };
-  
+
   // Fuzzy match - allows for typos
   // Simple Levenshtein-based approach: check if edit distance is small enough
   const maxDistance = Math.floor(query.length / 3) + 1;
-  
+
   // Check if any substring of str matches with small edit distance
   for (let i = 0; i <= str.length - query.length + maxDistance; i++) {
     const substr = str.substring(i, i + query.length + maxDistance);
@@ -112,7 +112,7 @@ function fuzzyMatch(str, query) {
       return { matches: true, score: 50 - distance * 10 };
     }
   }
-  
+
   // Check each word individually
   for (const word of words) {
     if (word.length >= query.length - 1) {
@@ -122,7 +122,7 @@ function fuzzyMatch(str, query) {
       }
     }
   }
-  
+
   return { matches: false, score: 0 };
 }
 
@@ -130,7 +130,7 @@ function fuzzyMatch(str, query) {
 function levenshteinDistance(a, b) {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
-  
+
   const matrix = [];
   for (let i = 0; i <= b.length; i++) {
     matrix[i] = [i];
@@ -138,7 +138,7 @@ function levenshteinDistance(a, b) {
   for (let j = 0; j <= a.length; j++) {
     matrix[0][j] = j;
   }
-  
+
   for (let i = 1; i <= b.length; i++) {
     for (let j = 1; j <= a.length; j++) {
       if (b.charAt(i - 1) === a.charAt(j - 1)) {
@@ -152,7 +152,7 @@ function levenshteinDistance(a, b) {
       }
     }
   }
-  
+
   return matrix[b.length][a.length];
 }
 
@@ -175,7 +175,7 @@ const LABEL_GROUPS = {
 function getUserInitialsFromName(firstName, lastName, fallbackName) {
   const firstInitial = firstName && firstName.trim() ? firstName.trim()[0].toUpperCase() : '';
   const lastInitial = lastName && lastName.trim() ? lastName.trim()[0].toUpperCase() : '';
-  
+
   if (firstInitial && lastInitial) {
     return firstInitial + lastInitial;
   } else if (firstInitial) {
@@ -191,7 +191,7 @@ function getUserInitialsFromName(firstName, lastName, fallbackName) {
 // Helper function to generate user initials from display name string (for backward compatibility)
 function getUserInitials(userDisplayName) {
   if (!userDisplayName) return 'U';
-  
+
   const names = userDisplayName.trim().split(' ');
   if (names.length === 1) {
     return names[0].substring(0, 2).toUpperCase();
@@ -203,33 +203,33 @@ function getUserInitials(userDisplayName) {
 function QuotedMessageContent({ quote, isPreview = false }) {
   const contentRef = useRef(null);
   const [highlightedContent, setHighlightedContent] = useState(quote.content || '');
-  
+
   useEffect(() => {
     const applyHighlights = async () => {
       if (!quote.highlights || quote.highlights.length === 0) {
         setHighlightedContent(quote.content || '');
         return;
       }
-      
+
       try {
         // Apply highlights directly from quote.highlights array
         let highlightedText = quote.content || '';
         const highlightRanges = [];
-        
+
         // Find all highlight ranges in the text
         for (const highlight of quote.highlights) {
           if (!highlight.textNodes || highlight.textNodes.length === 0) continue;
-          
+
           for (const textNode of highlight.textNodes) {
             if (!textNode.highlightedRanges || textNode.highlightedRanges.length === 0) continue;
-            
+
             // Get the highlighted text from the ranges
             for (const range of textNode.highlightedRanges) {
               if (range.length >= 3) {
                 const start = range[1];
                 const end = range[2];
                 const highlightedSegment = textNode.wholeText.substring(start, end);
-                
+
                 // Find this segment in our text
                 const segmentIndex = highlightedText.indexOf(highlightedSegment);
                 if (segmentIndex !== -1) {
@@ -244,22 +244,22 @@ function QuotedMessageContent({ quote, isPreview = false }) {
             }
           }
         }
-        
+
         // Sort ranges by start position (descending to avoid index shifting)
         highlightRanges.sort((a, b) => b.start - a.start);
-        
+
         // Apply highlights from end to beginning to avoid index shifting
         for (const range of highlightRanges) {
           const before = highlightedText.substring(0, range.start);
           const colorAttr = (range.highlight && range.highlight.color) ? ` style="--highlight-color: ${range.highlight.color}"` : '';
           const highlighted = `<mark class="PhrazeHighlight PhrazeMark selectable" data-highlight-id="${range.highlight.id}"${colorAttr}>${range.text}</mark>`;
           const after = highlightedText.substring(range.end);
-          
+
           highlightedText = before + highlighted + after;
         }
-        
+
         setHighlightedContent(highlightedText);
-        
+
         // After content is set, create annotation cards for each highlight (only in sent messages, not preview)
         if (contentRef.current && !isPreview) {
           // Wait for DOM to update - use requestAnimationFrame for better timing
@@ -269,17 +269,17 @@ function QuotedMessageContent({ quote, isPreview = false }) {
               if (!window.highlightsToAnnotationsMap) {
                 window.highlightsToAnnotationsMap = {};
               }
-              
+
               // Add annotations to the map
               if (quote.annotationsMap) {
                 Object.keys(quote.annotationsMap).forEach(highlightId => {
                   window.highlightsToAnnotationsMap[highlightId] = quote.annotationsMap[highlightId];
                 });
               }
-              
+
               // Find all highlight marks in the content (scoped to this component)
               const highlightMarks = contentRef.current.querySelectorAll('mark[data-highlight-id]');
-              
+
               // Process each highlight mark
               for (const mark of highlightMarks) {
                 const highlightId = mark.getAttribute('data-highlight-id');
@@ -294,12 +294,12 @@ function QuotedMessageContent({ quote, isPreview = false }) {
                       containerSpan.className = 'phraze-highlight-container PhrazeMark unselectable';
                       containerSpan.style.position = 'relative';
                       containerSpan.style.display = 'inline';
-                      
+
                       // Wrap the mark with the container
                       mark.parentNode.insertBefore(containerSpan, mark);
                       containerSpan.appendChild(mark);
                     }
-                    
+
                     // Check if annotation card already exists (scoped to this container)
                     const existingCard = containerSpan.querySelector(`.phraze-unified-annotation-card[data-highlight-id="${highlightId}"]`);
                     if (!existingCard) {
@@ -307,11 +307,11 @@ function QuotedMessageContent({ quote, isPreview = false }) {
                       if (window.getComputedStyle(containerSpan).position === 'static') {
                         containerSpan.style.position = 'relative';
                       }
-                      
+
                       // Create unified annotation card
                       try {
                         const annotationCard = await createUnifiedAnnotationCard(highlight, containerSpan);
-                        
+
                         // For quoted messages, move card to containerSpan and position it correctly
                         if (annotationCard && containerSpan) {
                           // Wait for card to be in DOM
@@ -322,67 +322,67 @@ function QuotedMessageContent({ quote, isPreview = false }) {
                               if (annotationCard.parentNode === document.body) {
                                 document.body.removeChild(annotationCard);
                               }
-                              
+
                               // Append to containerSpan for proper relative positioning
                               if (annotationCard.parentNode !== containerSpan) {
                                 containerSpan.appendChild(annotationCard);
                               }
-                              
+
                               // Ensure containerSpan has relative positioning
                               if (window.getComputedStyle(containerSpan).position === 'static') {
                                 containerSpan.style.position = 'relative';
                               }
-                              
+
                               // Position the card directly above the highlight
                               const updateCardPosition = () => {
                                 const markRect = mark.getBoundingClientRect();
                                 const containerRect = containerSpan.getBoundingClientRect();
                                 const cardRect = annotationCard.getBoundingClientRect();
-                                
+
                                 // Calculate position relative to containerSpan
                                 const cardWidth = cardRect.width || 320;
                                 const cardHeight = cardRect.height || 200;
-                                
+
                                 // Center horizontally on the highlight
                                 const left = (markRect.left - containerRect.left) + (markRect.width / 2) - (cardWidth / 2);
-                                
+
                                 // Position above the highlight with 8px spacing
                                 let top = (markRect.top - containerRect.top) - cardHeight - 8;
-                                
+
                                 // If card would go above container, position below instead
                                 if (top < 0) {
                                   top = (markRect.bottom - containerRect.top) + 8;
                                 }
-                                  
+
                                 // Ensure card doesn't go outside container bounds
                                 const minLeft = -20; // Allow slight overflow
                                 const maxLeft = containerRect.width - cardWidth + 20;
                                 const finalLeft = Math.max(minLeft, Math.min(left, maxLeft));
-                                
-                              // Set position (absolute relative to containerSpan)
-                              annotationCard.style.position = 'absolute';
-                              annotationCard.style.left = `${finalLeft}px`;
-                              annotationCard.style.top = `${top}px`;
-                              annotationCard.style.transform = 'none';
-                              annotationCard.style.boxShadow = 'none'; // Remove shadow for quoted message cards
+
+                                // Set position (absolute relative to containerSpan)
+                                annotationCard.style.position = 'absolute';
+                                annotationCard.style.left = `${finalLeft}px`;
+                                annotationCard.style.top = `${top}px`;
+                                annotationCard.style.transform = 'none';
+                                annotationCard.style.boxShadow = 'none'; // Remove shadow for quoted message cards
                               };
-                              
+
                               // Initial positioning
                               requestAnimationFrame(() => {
                                 updateCardPosition();
-                                
+
                                 // Override the updateFloaterPosition to use our relative positioning
                                 if (typeof updateFloaterPosition === 'function') {
                                   // Store original and override
                                   annotationCard._customUpdatePosition = updateCardPosition;
-                                  
+
                                   // Update on scroll/hover
                                   const updateOnScroll = () => {
                                     if (annotationCard.classList.contains('active')) {
                                       updateCardPosition();
                                     }
                                   };
-                                  
+
                                   window.addEventListener('scroll', updateOnScroll, true);
                                   containerSpan.addEventListener('mouseenter', updateCardPosition);
                                 }
@@ -405,12 +405,12 @@ function QuotedMessageContent({ quote, isPreview = false }) {
         setHighlightedContent(quote.content || '');
       }
     };
-    
+
     applyHighlights();
   }, [quote.content, quote.highlights, quote.chatID, quote.annotationsMap, isPreview]);
-  
+
   return (
-    <div 
+    <div
       ref={contentRef}
       dangerouslySetInnerHTML={{ __html: highlightedContent }}
       style={{
@@ -428,17 +428,17 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   const [isRecording, setIsRecording] = useState(false);
   const [speechObj, setSpeechObj] = useState(null);
   const [isScreenshotShortcutsVisible, setIsScreenshotShortcutsVisible] = useState(false);
-  
+
   // Typing indicator integration
   const typingTimeoutRef = useRef(null);
   const stopTypingTimeoutRef = useRef(null);
-  
+
   // Initialize typing for conversation when conversationId changes
   useEffect(() => {
     if (conversationId && auth.currentUser) {
       initializeTypingForConversation(conversationId);
     }
-    
+
     return () => {
       // Clean up typing when leaving conversation
       if (conversationId) {
@@ -452,7 +452,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       }
     };
   }, [conversationId]);
-  
+
   // Mention popup state
   const [mentionState, setMentionState] = useState({
     isOpen: false,
@@ -463,7 +463,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   });
   const mentionPopupRef = useRef(null);
   const inputContainerRef = useRef(null);
-  
+
   // Label popup state
   const [labelState, setLabelState] = useState({
     isOpen: false,
@@ -476,7 +476,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   const [customLabels, setCustomLabels] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const shadowRef = useRef(null);
-  
+
   // Check if mentions should be enabled (only for public/shared chats)
   const isMentionEnabled = isPublicChat && projectMembers && projectMembers.length > 0;
 
@@ -489,16 +489,16 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       setLabelState(prev => ({ ...prev, allLabels: allPredefinedLabels }));
       return;
     }
-    
+
     const labels = [];
     Object.entries(customData).forEach(([labelType, data]) => {
       if (data && data.keyType === 'label' && Array.isArray(data.options)) {
         labels.push(...data.options);
       }
     });
-    
+
     setCustomLabels(labels);
-    
+
     // Combine with predefined labels
     const allPredefinedLabels = Object.values(LABEL_GROUPS).flat();
     const allLabels = [...allPredefinedLabels, ...labels];
@@ -508,8 +508,8 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // Load custom labels from Firebase/storage with real-time updates
   useEffect(() => {
     let listenerRef = null;
-    let unsubscribe = () => {};
-    
+    let unsubscribe = () => { };
+
     const setupCustomLabelsListener = async () => {
       try {
         const { getFirebaseData } = await import('../funcs');
@@ -517,30 +517,30 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         const firebaseDb = await import('firebase/database');
         const { ref, onValue, off } = firebaseDb;
         const { database } = await import('../firebase-init');
-        
+
         // Get company email and project
         const companyEmail = localStorage.getItem('companyEmail') || localStorage.getItem('sharedCompanyEmail');
         const projectName = getCurrentProject?.() || localStorage.getItem('currentProject') || 'default';
-        
+
         if (companyEmail && database) {
           const formattedCompanyEmail = companyEmail.replace(/\./g, ',');
           const customLabelsPath = `Companies/${formattedCompanyEmail}/projects/${projectName}/customLabelsAndCodes`;
-          
+
           // Set up Firebase real-time listener
           listenerRef = ref(database, customLabelsPath);
-          
+
           const handleValueChange = (snapshot) => {
             const customData = snapshot.val();
             // Removed excessive console.log for performance
             processCustomLabelsData(customData);
           };
-          
+
           onValue(listenerRef, handleValueChange);
-          
+
           // Initial load
           const customData = await getFirebaseData(customLabelsPath);
           processCustomLabelsData(customData);
-          
+
           unsubscribe = () => {
             if (listenerRef) {
               off(listenerRef, 'value', handleValueChange);
@@ -583,9 +583,9 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         setLabelState(prev => ({ ...prev, allLabels: allPredefinedLabels }));
       }
     };
-    
+
     setupCustomLabelsListener();
-    
+
     // Also listen for custom events (from extension or other sources)
     const handleCustomLabelsUpdate = (e) => {
       try {
@@ -598,11 +598,11 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         console.error('Error handling custom labels update event:', error);
       }
     };
-    
+
     // Listen for custom label updates from extension or other components
     window.addEventListener('phraze:custom-labels-updated', handleCustomLabelsUpdate);
     window.addEventListener('phraze:custom-labels-and-codes-updated', handleCustomLabelsUpdate);
-    
+
     // Cleanup
     return () => {
       unsubscribe();
@@ -619,11 +619,11 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       // This will cause the label state to refresh
       setLabelState(prev => ({ ...prev, allLabels: [...allPredefinedLabels, ...prev.allLabels.filter(l => !allPredefinedLabels.includes(l))] }));
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
     // Also listen for custom project change events
     window.addEventListener('phraze:project-changed', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('phraze:project-changed', handleStorageChange);
@@ -651,7 +651,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         if (top + popupHeight + padding > window.innerHeight) {
           top = Math.max(padding, rect.top - popupHeight - spacing);
         }
-      } catch (_) {}
+      } catch (_) { }
       popupEl.style.position = 'fixed';
       popupEl.style.left = `${left}px`;
       popupEl.style.top = `${top}px`;
@@ -663,7 +663,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
 
       try {
         await upsertRegionAnnotation({ id: regionId });
-      } catch (_) {}
+      } catch (_) { }
 
       const regionHighlight = { id: regionId, _phrazeAnnotationSource: 'region', _phrazeRegionId: regionId };
       let popupEl = document.querySelector(`.annotation-popup[data-annotation-type="region"][data-region-id="${regionId}"]`);
@@ -684,47 +684,66 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
 
       if (!popupEl) return;
 
-      try { phrazeHideAnyOtherPopups(popupEl); } catch (_) {}
-      try { popupEl.classList.add('active'); } catch (_) {}
-      try { popupEl.classList.remove('sticky'); } catch (_) {}
-      try { delete popupEl?.dataset?.pinnedPlacement; } catch (_) {}
+      try { phrazeHideAnyOtherPopups(popupEl); } catch (_) { }
+      try { phrazeClearPermanentlyClosed(regionId, popupEl); } catch (_) { }
+      try { popupEl.classList.add('active'); } catch (_) { }
+      // Selection-box annotation popups are pinned by default (like double-click pin on text highlights).
+      try { popupEl.classList.add('sticky'); } catch (_) { }
+      try { delete popupEl?.dataset?.pinnedPlacement; } catch (_) { }
 
       if (hydrate) {
         try {
           await phrazeHydrateAnnotationPopupFromStorage(popupEl, regionHighlight, { type: 'region', regionId });
-        } catch (_) {}
+        } catch (_) { }
       } else {
         // Fresh UI for brand new selections.
-        try { if (popupEl && typeof popupEl._phrazeResetLabelsDropdown === 'function') popupEl._phrazeResetLabelsDropdown(); } catch (_) {}
-        try { if (popupEl && typeof popupEl._phrazeResetNotesUI === 'function') popupEl._phrazeResetNotesUI(); } catch (_) {}
+        try { if (popupEl && typeof popupEl._phrazeResetLabelsDropdown === 'function') popupEl._phrazeResetLabelsDropdown(); } catch (_) { }
+        try { if (popupEl && typeof popupEl._phrazeResetNotesUI === 'function') popupEl._phrazeResetNotesUI(); } catch (_) { }
         try {
           const selectedLabelsContainer = popupEl.querySelector('.selected-labels-container');
           if (selectedLabelsContainer) selectedLabelsContainer.innerHTML = '';
-        } catch (_) {}
+        } catch (_) { }
         try {
           const richTextDiv = popupEl.querySelector('[contenteditable="true"]');
           if (richTextDiv) richTextDiv.innerHTML = '';
-        } catch (_) {}
-        try { if (popupEl && typeof popupEl._phrazeUpdateHeaderTitle === 'function') popupEl._phrazeUpdateHeaderTitle(); } catch (_) {}
+        } catch (_) { }
+        try { if (popupEl && typeof popupEl._phrazeUpdateHeaderTitle === 'function') popupEl._phrazeUpdateHeaderTitle(); } catch (_) { }
       }
 
       positionPopupFromToolbar(popupEl);
       phrazeShowPopupElement(popupEl);
 
+      // Pin selection-box popup into the chat scroll container so it scrolls with messages (same as pinned highlight popup).
       try {
         requestAnimationFrame(() => {
+          const scrollContainer = document.getElementById('chatMessagesDiv');
+          if (scrollContainer && popupEl && popupEl.classList.contains('sticky')) {
+            const rect = popupEl.getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const scrollLeft = scrollContainer.scrollLeft || 0;
+            const scrollTop = scrollContainer.scrollTop || 0;
+            const localLeft = rect.left - containerRect.left + scrollLeft;
+            const localTop = rect.top - containerRect.top + scrollTop;
+            const cs = window.getComputedStyle(scrollContainer);
+            if (cs.position === 'static') scrollContainer.style.position = 'relative';
+            scrollContainer.appendChild(popupEl);
+            popupEl.style.position = 'absolute';
+            popupEl.style.left = `${localLeft}px`;
+            popupEl.style.top = `${localTop}px`;
+            popupEl._phrazePinnedStaticPos = { container: scrollContainer, left: localLeft, top: localTop };
+          }
           const richTextDiv = popupEl.querySelector('[contenteditable="true"]');
           if (richTextDiv) richTextDiv.focus();
         });
-      } catch (_) {}
+      } catch (_) { }
     };
 
     try {
       window.phrazeOpenSelectionBoxNotes = (regionId) => {
         void openRegionAnnotationPopupForSelectionBox(String(regionId || ''), { hydrate: true });
       };
-    } catch (_) {}
-    return () => {};
+    } catch (_) { }
+    return () => { };
   }, []);
 
   useEffect(() => {
@@ -750,28 +769,28 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         });
       }
     };
-    
+
     document.addEventListener("click", handleOutsideClick);
-    
+
     // Close mention/label popup on Esc key
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
         setMentionState(prev => {
           if (prev.isOpen) {
             return { ...prev, isOpen: false };
-        }
+          }
           return prev;
         });
         setLabelState(prev => {
           if (prev.isOpen) {
             return { ...prev, isOpen: false };
-        }
+          }
           return prev;
         });
       }
     };
     document.addEventListener('keydown', handleEsc);
-    
+
     return () => {
       document.removeEventListener('click', handleOutsideClick);
       document.removeEventListener('keydown', handleEsc);
@@ -792,10 +811,10 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
     if (!query) {
       return labelState.allLabels;
     }
-    
+
     const queryLower = query.toLowerCase();
-    return labelState.allLabels.filter(label => 
-      label.toLowerCase().includes(queryLower) || 
+    return labelState.allLabels.filter(label =>
+      label.toLowerCase().includes(queryLower) ||
       label.toLowerCase().startsWith(queryLower)
     );
   };
@@ -805,19 +824,19 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
     if (!projectMembers || projectMembers.length === 0) {
       return { matchedMembers: [], allMembersWithMatch: [] };
     }
-    
+
     const query = mentionState.query.toLowerCase();
     const membersWithScores = [];
-    
+
     projectMembers.forEach(member => {
       // Use fuzzy matching for name and email
       const nameMatch = fuzzyMatch(member.name, query);
       const emailMatch = fuzzyMatch(member.email, query);
-      
+
       // Take the best score
       const bestScore = Math.max(nameMatch.score, emailMatch.score);
       const isMatch = nameMatch.matches || emailMatch.matches;
-      
+
       // Boost score for recently mentioned users
       let recentBoost = 0;
       const recentIndex = recentMentions.findIndex(email => email === member.email);
@@ -825,7 +844,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         // More recent = higher boost (recentMentions[0] is most recent)
         recentBoost = 30 - recentIndex * 5; // 30, 25, 20, 15, 10, 5...
       }
-      
+
       membersWithScores.push({
         ...member,
         isMatch,
@@ -833,17 +852,17 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         isRecent: recentIndex !== -1
       });
     });
-    
+
     // Sort by score (descending), then by recent mentions
     membersWithScores.sort((a, b) => {
       if (a.isMatch && !b.isMatch) return -1;
       if (!a.isMatch && b.isMatch) return 1;
       return b.score - a.score;
     });
-    
+
     const matched = membersWithScores.filter(m => m.isMatch);
     const unmatched = membersWithScores.filter(m => !m.isMatch);
-    
+
     return {
       matchedMembers: matched,
       allMembersWithMatch: [...matched, ...unmatched]
@@ -870,17 +889,17 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       }
       return '';
     }
-    
+
     // Ghost text for members
     if (matchedMembers.length === 0) return '';
     const firstMatch = matchedMembers[0];
     const name = firstMatch.name;
-    
+
     if (!query || query === '') {
       // No query - show full name
       return name;
     } else if (name.toLowerCase().startsWith(query.toLowerCase())) {
-    // If name starts with query, show the rest as ghost text
+      // If name starts with query, show the rest as ghost text
       return name.substring(query.length);
     } else {
       // Query doesn't match start but member is shown - show full name
@@ -892,7 +911,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInputValue(value);
-    
+
     // Typing indicator: report typing when user types
     if (conversationId && value.trim().length > 0) {
       // Clear any pending stop typing timeout
@@ -900,10 +919,10 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         clearTimeout(stopTypingTimeoutRef.current);
         stopTypingTimeoutRef.current = null;
       }
-      
+
       // Report typing (throttled internally)
       reportTyping(conversationId);
-      
+
       // Set timeout to stop typing if input becomes empty
       stopTypingTimeoutRef.current = setTimeout(() => {
         // Check current input value (may have changed)
@@ -921,22 +940,22 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         stopTyping(conversationId);
       }, 500); // Stop typing after 0.5 seconds when input is cleared (reduced from 1s)
     }
-    
+
     const cursorPos = e.target.selectionStart;
     const textBeforeCursor = value.substring(0, cursorPos);
-    
+
     // Check if we're in a @label or @label: context
     const labelMatchColon = textBeforeCursor.match(/@label:\s*([^\s\n]*)$/);
     const labelMatchNoColon = textBeforeCursor.match(/@label([:\s\n]|$)/);
     const labelMatch = labelMatchColon || labelMatchNoColon;
-    
+
     if (labelMatch) {
       // Extract query - if it's @label:query, use query; if it's @label, use empty string
       const query = labelMatchColon ? labelMatchColon[1] : '';
-      
+
       // Filter labels based on query
       const filtered = getFilteredLabels(query);
-      
+
       // Get ghost text (first matching label)
       let ghostText = '';
       if (filtered.length > 0 && query) {
@@ -948,7 +967,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         // If no query, show ghost text for first label (just the label name, no colon)
         ghostText = ' ' + filtered[0];
       }
-      
+
       setLabelState({
         isOpen: true,
         query: query,
@@ -956,7 +975,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         ghostText: ghostText,
         allLabels: labelState.allLabels
       });
-      
+
       // Close mention popup if open
       if (mentionState.isOpen) {
         setMentionState(prev => ({ ...prev, isOpen: false }));
@@ -968,24 +987,24 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         setLabelState(prev => ({ ...prev, isOpen: false }));
       }
     }
-    
+
     // Check if we're in a mention context (@...)
     // Match @ followed by any characters until space, newline, or end of string
     const mentionMatch = textBeforeCursor.match(/@([^\s\n]*)$/);
-    
+
     if (mentionMatch) {
       const query = mentionMatch[1];
-      
+
       // Determine mode based on query
       let mode = 'members';
-      
+
       // If query is "help" or starts with "help", always show help mode with all commands
       if (query.toLowerCase() === 'help' || query.toLowerCase().startsWith('help')) {
         mode = 'help';
         // When entering help mode, we want to clear the query so it shows all commands
         // and start at index 0 (everyone)
         // But we need to handle this after getting ghost text
-      } 
+      }
       // If query matches a command (like "everyone"), show commands mode
       // For private chats, only check commands that are available (label, code, help)
       else if (AVAILABLE_COMMANDS.some(cmd => {
@@ -999,36 +1018,36 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           if (!isMentionEnabled && cmd.command === 'everyone') return false;
           return cmd.command.toLowerCase().startsWith(query.toLowerCase());
         });
-        const couldBeMember = isMentionEnabled && projectMembers.some(m => 
-          m.name.toLowerCase().startsWith(query.toLowerCase()) || 
+        const couldBeMember = isMentionEnabled && projectMembers.some(m =>
+          m.name.toLowerCase().startsWith(query.toLowerCase()) ||
           m.email.toLowerCase().startsWith(query.toLowerCase())
         );
-        
+
         // Prioritize commands if query matches a command better than a member
         if (couldBeCommand && !couldBeMember) {
           mode = 'commands';
         }
       }
-      
+
       // If query is empty:
       // - In public chats: show members (with commands section at top)
       // - In private chats: show commands mode
       if (query === '') {
         mode = isMentionEnabled ? 'members' : 'commands';
       }
-      
+
       // For private chats, only allow commands and help modes (not members)
       if (!isMentionEnabled && mode === 'members') {
         setMentionState(prev => ({ ...prev, isOpen: false, ghostText: '' }));
         return;
       }
-      
+
       // For help mode, always start at index 0 and show first command as ghost text
       let finalQuery = query;
       let finalSelectedIndex = 0;
       let finalGhostText = '';
       let shouldUpdateInput = false;
-      
+
       if (mode === 'help') {
         // In help mode, ignore the query and always show all commands starting at index 0
         // If they typed @help, replace it with just @ in the input
@@ -1048,13 +1067,13 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       } else {
         finalGhostText = getGhostText(query, mode);
       }
-      
+
       // Update input if entering help mode by typing @help
       if (shouldUpdateInput && textareaRef.current) {
         const cursorPos = textareaRef.current.selectionStart;
         const textBeforeCursor = inputValue.substring(0, cursorPos);
         const textAfterCursor = inputValue.substring(cursorPos);
-        
+
         // Find the @ symbol
         const atIndex = textBeforeCursor.lastIndexOf('@');
         if (atIndex !== -1) {
@@ -1067,7 +1086,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           }, 0);
         }
       }
-      
+
       setMentionState({
         isOpen: true,
         query: finalQuery,
@@ -1083,29 +1102,29 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // Insert selected mention into input
   const insertMention = (member) => {
     if (!textareaRef.current) return;
-    
+
     const textarea = textareaRef.current;
     const cursorPos = textarea.selectionStart;
     const textBeforeCursor = inputValue.substring(0, cursorPos);
     const textAfterCursor = inputValue.substring(cursorPos);
-    
+
     // Find the @ mention to replace (match any characters after @)
     const mentionMatch = textBeforeCursor.match(/@([^\s\n]*)$/);
     if (mentionMatch) {
       const mentionStart = cursorPos - mentionMatch[0].length;
-      const newText = 
-        inputValue.substring(0, mentionStart) + 
-        `@${member.name} ` + 
+      const newText =
+        inputValue.substring(0, mentionStart) +
+        `@${member.name} ` +
         textAfterCursor;
-      
+
       setInputValue(newText);
       setMentionState(prev => ({ ...prev, isOpen: false, ghostText: '', mode: 'members' }));
-      
+
       // Track this mention for recent mentions
       if (onMentionUsed && member.email) {
         onMentionUsed(member.email);
       }
-      
+
       // Set cursor position after the inserted mention
       setTimeout(() => {
         const newCursorPos = mentionStart + `@${member.name} `.length;
@@ -1118,24 +1137,24 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // Insert selected label into input
   const insertLabel = (label) => {
     if (!textareaRef.current) return;
-    
+
     const textarea = textareaRef.current;
     const cursorPos = textarea.selectionStart;
     const textBeforeCursor = inputValue.substring(0, cursorPos);
     const textAfterCursor = inputValue.substring(cursorPos);
-    
+
     // Find the @label or @label: command to replace
     const labelMatchColon = textBeforeCursor.match(/@label:\s*([^\s\n]*)$/);
     const labelMatchNoColon = textBeforeCursor.match(/@label([:\s\n]|$)/);
     const labelMatch = labelMatchColon || labelMatchNoColon;
-    
+
     if (labelMatch) {
       const labelStart = cursorPos - labelMatch[0].length;
       const prefixText = inputValue.substring(0, labelStart);
-      
+
       // Always insert with a space after the colon and after the label
       const insertionText = `@label: ${label} `;
-      
+
       // Check if we need a space before (if there's text before and it doesn't end with space or newline)
       let spaceBefore = '';
       if (prefixText.length > 0) {
@@ -1144,18 +1163,18 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           spaceBefore = ' ';
         }
       }
-      
+
       // Check if there's already a space after (to avoid double spaces)
       let spaceAfter = ' ';
       if (textAfterCursor.length > 0 && textAfterCursor.charAt(0) === ' ') {
         spaceAfter = '';
       }
-      
+
       const newText = prefixText + spaceBefore + insertionText + spaceAfter + (textAfterCursor.trimStart());
-      
+
       setInputValue(newText);
       setLabelState(prev => ({ ...prev, isOpen: false, ghostText: '' }));
-      
+
       // Set cursor position after the inserted label (after the space)
       setTimeout(() => {
         const newCursorPos = prefixText.length + spaceBefore.length + insertionText.length + spaceAfter.length;
@@ -1168,27 +1187,27 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // Insert command into input
   const insertCommand = (command) => {
     if (!textareaRef.current) return;
-    
+
     const textarea = textareaRef.current;
     const cursorPos = textarea.selectionStart;
     const textBeforeCursor = inputValue.substring(0, cursorPos);
     const textAfterCursor = inputValue.substring(cursorPos);
-    
+
     // Find the @ mention to replace
     const mentionMatch = textBeforeCursor.match(/@([^\s\n]*)$/);
     if (mentionMatch) {
       const mentionStart = cursorPos - mentionMatch[0].length;
-      
+
       // Handle @everyone command
       if (command === 'everyone') {
-        const newText = 
-          inputValue.substring(0, mentionStart) + 
-          `@everyone ` + 
+        const newText =
+          inputValue.substring(0, mentionStart) +
+          `@everyone ` +
           textAfterCursor;
-        
+
         setInputValue(newText);
         setMentionState(prev => ({ ...prev, isOpen: false, ghostText: '', mode: 'members' }));
-        
+
         setTimeout(() => {
           const newCursorPos = mentionStart + `@everyone `.length;
           textarea.setSelectionRange(newCursorPos, newCursorPos);
@@ -1197,26 +1216,26 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       }
       // Handle @label command - insert @label: and open label popup
       else if (command === 'label') {
-        const newText = 
-          inputValue.substring(0, mentionStart) + 
-          `@label: ` + 
+        const newText =
+          inputValue.substring(0, mentionStart) +
+          `@label: ` +
           textAfterCursor;
-        
+
         setInputValue(newText);
         setMentionState(prev => ({ ...prev, isOpen: false, ghostText: '', mode: 'members' }));
-        
+
         // Open label popup
         setTimeout(() => {
           const newCursorPos = mentionStart + `@label: `.length;
           textarea.setSelectionRange(newCursorPos, newCursorPos);
-          
+
           // Trigger label popup by simulating the input change
           const filtered = getFilteredLabels('');
           let ghostText = '';
           if (filtered.length > 0) {
             ghostText = ' ' + filtered[0];
           }
-          
+
           setLabelState({
             isOpen: true,
             query: '',
@@ -1224,20 +1243,20 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
             ghostText: ghostText,
             allLabels: labelState.allLabels
           });
-          
+
           textarea.focus();
         }, 0);
       }
       // Handle @help command - remove "help" and show help popup with first command as ghost text
       else if (command === 'help') {
         // Replace @help (or partial @h, @he, etc.) with just @
-        const newText = 
-          inputValue.substring(0, mentionStart) + 
-          '@' + 
+        const newText =
+          inputValue.substring(0, mentionStart) +
+          '@' +
           textAfterCursor;
-        
+
         setInputValue(newText);
-        
+
         // Set ghost text to first command (excluding help and 'everyone' in private chats)
         const availableHelpCommands = AVAILABLE_COMMANDS.filter(cmd => {
           if (cmd.command === 'help') return false;
@@ -1246,17 +1265,17 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
         });
         const firstCmd = availableHelpCommands[0];
         const ghostText = firstCmd ? firstCmd.command : '';
-        
+
         // Use setTimeout to set state after the click event has fully processed
         setTimeout(() => {
-        setMentionState({
-          isOpen: true,
-          query: '',
+          setMentionState({
+            isOpen: true,
+            query: '',
             selectedIndex: 0, // Start at first command
-          ghostText: ghostText,
-          mode: 'help'
-        });
-        
+            ghostText: ghostText,
+            mode: 'help'
+          });
+
           // Position cursor right after @
           const newCursorPos = mentionStart + 1;
           textarea.setSelectionRange(newCursorPos, newCursorPos);
@@ -1269,12 +1288,12 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // Accept ghost text suggestion (Tab to autocomplete)
   const acceptGhostText = () => {
     if (!mentionState.ghostText) return false;
-    
+
     if (mentionState.mode === 'commands' && filteredCommands.length > 0) {
       insertCommand(filteredCommands[mentionState.selectedIndex]?.command || filteredCommands[0].command);
       return true;
     }
-    
+
     if (matchedMembers.length === 0) return false;
     const selectedMember = matchedMembers[mentionState.selectedIndex] || matchedMembers[0];
     insertMention(selectedMember);
@@ -1301,17 +1320,17 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // Handle keyboard navigation in label popup
   const handleLabelKeyDown = (e) => {
     if (!labelState.isOpen) return;
-    
+
     const filtered = getFilteredLabels(labelState.query);
     if (filtered.length === 0) return;
-    
+
     const itemCount = filtered.length;
-    
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       const newIndex = (labelState.selectedIndex + 1) % itemCount;
       let newGhostText = '';
-      
+
       if (filtered[newIndex]) {
         const label = filtered[newIndex];
         // If no query, show full label with space prefix (no colon, since @label: already has it)
@@ -1321,7 +1340,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           newGhostText = label.substring(labelState.query.length);
         }
       }
-      
+
       setLabelState(prev => ({ ...prev, selectedIndex: newIndex, ghostText: newGhostText }));
       setTimeout(() => {
         const selectedElement = labelPopupRef.current?.querySelector(`[data-label-index="${newIndex}"]`);
@@ -1331,7 +1350,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       e.preventDefault();
       const newIndex = labelState.selectedIndex === 0 ? itemCount - 1 : labelState.selectedIndex - 1;
       let newGhostText = '';
-      
+
       if (filtered[newIndex]) {
         const label = filtered[newIndex];
         // If no query, show full label with space prefix (no colon, since @label: already has it)
@@ -1341,7 +1360,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           newGhostText = label.substring(labelState.query.length);
         }
       }
-      
+
       setLabelState(prev => ({ ...prev, selectedIndex: newIndex, ghostText: newGhostText }));
       setTimeout(() => {
         const selectedElement = labelPopupRef.current?.querySelector(`[data-label-index="${newIndex}"]`);
@@ -1367,30 +1386,30 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // Handle keyboard navigation in mention popup
   const handleMentionKeyDown = (e) => {
     if (!mentionState.isOpen) return;
-    
+
     const currentItems = getCurrentListItems();
     if (currentItems.length === 0 && mentionState.mode !== 'help') return;
-    
+
     const itemCount = mentionState.mode === 'help' ? getCurrentListItems().length : currentItems.length;
-    
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       const newIndex = (mentionState.selectedIndex + 1) % itemCount;
       let newGhostText = '';
-      
+
       // If in help mode, also update the input to show just @ with selected command as ghost text
       if (mentionState.mode === 'help') {
         const availableCommands = getCurrentListItems();
         if (availableCommands[newIndex]) {
           const commandName = availableCommands[newIndex].command;
           newGhostText = commandName;
-          
+
           // Update input to show just @ (remove any existing text after @)
           if (textareaRef.current) {
             const cursorPos = textareaRef.current.selectionStart;
             const textBeforeCursor = inputValue.substring(0, cursorPos);
             const textAfterCursor = inputValue.substring(cursorPos);
-            
+
             // Find the @ symbol
             const atIndex = textBeforeCursor.lastIndexOf('@');
             if (atIndex !== -1) {
@@ -1427,7 +1446,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           newGhostText = commandName;
         }
       }
-      
+
       setMentionState(prev => ({ ...prev, selectedIndex: newIndex, ghostText: newGhostText }));
       setTimeout(() => {
         const selectedElement = mentionPopupRef.current?.querySelector(`[data-mention-index="${newIndex}"]`);
@@ -1437,20 +1456,20 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       e.preventDefault();
       const newIndex = mentionState.selectedIndex === 0 ? itemCount - 1 : mentionState.selectedIndex - 1;
       let newGhostText = '';
-      
+
       // If in help mode, also update the input to show just @ with selected command as ghost text
       if (mentionState.mode === 'help') {
         const availableCommands = getCurrentListItems();
         if (availableCommands[newIndex]) {
           const commandName = availableCommands[newIndex].command;
           newGhostText = commandName;
-          
+
           // Update input to show just @ (remove any existing text after @)
           if (textareaRef.current) {
             const cursorPos = textareaRef.current.selectionStart;
             const textBeforeCursor = inputValue.substring(0, cursorPos);
             const textAfterCursor = inputValue.substring(cursorPos);
-            
+
             // Find the @ symbol
             const atIndex = textBeforeCursor.lastIndexOf('@');
             if (atIndex !== -1) {
@@ -1487,7 +1506,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           newGhostText = commandName;
         }
       }
-      
+
       setMentionState(prev => ({ ...prev, selectedIndex: newIndex, ghostText: newGhostText }));
       setTimeout(() => {
         const selectedElement = mentionPopupRef.current?.querySelector(`[data-mention-index="${newIndex}"]`);
@@ -1506,7 +1525,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (mentionState.mode === 'commands' || mentionState.mode === 'help') {
-        const cmd = mentionState.mode === 'help' 
+        const cmd = mentionState.mode === 'help'
           ? getCurrentListItems()[mentionState.selectedIndex]
           : filteredCommands[mentionState.selectedIndex];
         if (cmd) insertCommand(cmd.command);
@@ -1523,12 +1542,12 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
   // State Logic: Determine if we should be in Expanded or Compact mode
   useEffect(() => {
     const hasNewLine = inputValue.includes('\n');
-    
+
     // Heuristic: If text is long enough, it likely wraps in compact mode (which has big padding).
     // To prevent jitter, we keep it expanded if it's moderately long.
     // Compact mode text width is narrow (~500px). 60 chars is a safe threshold.
-    const isLong = inputValue.length > 60; 
-    
+    const isLong = inputValue.length > 60;
+
     const shouldBeExpanded = hasNewLine || isLong;
 
     if (shouldBeExpanded !== isExpanded) {
@@ -1788,479 +1807,479 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                 // best-effort
               }
             });
-        } catch (e) {
-          // best-effort
-        }
-
-        try {
-          // Normalize the Activity / Messages toggle in the sidebar (clone-only)
-          // For this specific toggle, most styling is inline; in the clone that can render with artifacts.
-          // Strip inline styles for the wrapper + buttons, then re-apply a stable "pill + buttons" style.
-          const dv = clonedDoc.defaultView;
-          const sidebarToggleButtons = Array.from(clonedDoc.querySelectorAll('button')).filter((btn) => {
-            const text = (btn.textContent || '').trim();
-            return text === 'Activity' || text === 'Messages';
-          });
-
-          if (sidebarToggleButtons.length > 0) {
-            const parentContainer = sidebarToggleButtons[0].parentElement;
-            const activeByText = {};
-            const btnLayoutByText = {};
-            const parentLayout = {};
-            const setImp = (el, prop, value) => {
-              try {
-                el?.style?.setProperty(prop, value, 'important');
-              } catch (e) {
-                // best-effort
-              }
-            };
-            const annotateMetrics = uiButtonMetrics?.annotate;
-
-            sidebarToggleButtons.forEach((btn) => {
-              const text = (btn.textContent || '').trim();
-              const cs = dv?.getComputedStyle(btn);
-
-              // Detect which side is active before stripping inline styles.
-              // Active side has a non-transparent background in the live UI.
-              const bg = cs?.backgroundColor;
-              activeByText[text] = !!(bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent');
-
-              // Preserve layout metrics that affect html2canvas painting.
-              btnLayoutByText[text] = {
-                height: cs?.height,
-                padding: cs?.padding,
-                borderRadius: cs?.borderRadius,
-                fontSize: cs?.fontSize,
-                fontWeight: cs?.fontWeight,
-                lineHeight: cs?.lineHeight
-              };
-            });
-
-            const normalizedToggleHeight = (() => {
-              try {
-                const annotateH = annotateMetrics?.height;
-                const annotateN = typeof annotateH === 'string' ? parseFloat(annotateH) : NaN;
-                if (Number.isFinite(annotateN) && annotateN > 0) return `${Math.ceil(annotateN)}px`;
-
-                const heights = sidebarToggleButtons
-                  .map((btn) => {
-                    const t = (btn.textContent || '').trim();
-                    const h = btnLayoutByText[t]?.height;
-                    const n = typeof h === 'string' ? parseFloat(h) : NaN;
-                    return Number.isFinite(n) ? n : null;
-                  })
-                  .filter((n) => n != null);
-
-                const maxH = heights.length ? Math.max(...heights) : null;
-                // Fallback: if layout heights are missing, use the wrapper's min-height or a sane default.
-                if (maxH && maxH > 0) return `${Math.ceil(maxH)}px`;
-                const wrapperMin = typeof parentLayout.minHeight === 'string' ? parseFloat(parentLayout.minHeight) : NaN;
-                if (Number.isFinite(wrapperMin) && wrapperMin > 0) return `${Math.ceil(wrapperMin)}px`;
-                return '50px';
-              } catch (e) {
-                return '50px';
-              }
-            })();
-
-            if (parentContainer) {
-              const pcs = dv?.getComputedStyle(parentContainer);
-              parentLayout.width = pcs?.width;
-              parentLayout.margin = pcs?.margin;
-              parentLayout.minHeight = pcs?.minHeight;
-              parentLayout.boxSizing = pcs?.boxSizing;
-              parentLayout.borderRadius = pcs?.borderRadius;
-              parentLayout.padding = pcs?.padding;
-              parentLayout.gap = pcs?.gap;
-
-              // Remove inline styles in clone, then rebuild deterministic styles.
-              try {
-                parentContainer.removeAttribute('style');
-              } catch (e) {
-                // best-effort
-              }
-
-              sidebarToggleButtons.forEach((btn) => {
-                try {
-                  btn.removeAttribute('style');
-                } catch (e) {
-                  // best-effort
-                }
-              });
-
-              // Re-apply pill wrapper styles (match the toggle pattern used elsewhere)
-              setImp(parentContainer, 'display', 'flex');
-              setImp(parentContainer, 'align-items', 'center');
-              if (parentLayout.width) setImp(parentContainer, 'width', parentLayout.width);
-              if (parentLayout.margin) setImp(parentContainer, 'margin', parentLayout.margin);
-              if (parentLayout.minHeight) setImp(parentContainer, 'min-height', parentLayout.minHeight);
-              if (parentLayout.boxSizing) setImp(parentContainer, 'box-sizing', parentLayout.boxSizing);
-              setImp(parentContainer, 'background', '#f3f4f6');
-              setImp(parentContainer, 'background-color', '#f3f4f6');
-              setImp(parentContainer, 'background-image', 'none');
-              setImp(parentContainer, 'border-radius', parentLayout.borderRadius || '10px');
-              setImp(parentContainer, 'padding', parentLayout.padding || '5px');
-              setImp(parentContainer, 'gap', parentLayout.gap || '4px');
-              setImp(parentContainer, 'border', 'none');
-              setImp(parentContainer, 'outline', 'none');
-              setImp(parentContainer, 'box-shadow', 'none');
-              setImp(parentContainer, 'opacity', '1');
-              setImp(parentContainer, 'filter', 'none');
-              setImp(parentContainer, 'backdrop-filter', 'none');
-              setImp(parentContainer, '-webkit-backdrop-filter', 'none');
-              setImp(parentContainer, 'mix-blend-mode', 'normal');
-              setImp(parentContainer, 'isolation', 'isolate');
-
-              const activeText = activeByText.Activity ? 'Activity' : activeByText.Messages ? 'Messages' : 'Activity';
-
-              // Re-apply button styles (Public/Private style: both visible, active selected)
-              sidebarToggleButtons.forEach((btn) => {
-                const text = (btn.textContent || '').trim();
-                const layout = btnLayoutByText[text] || {};
-                const isActive = text === activeText;
-                const desiredRadius = annotateMetrics?.borderRadius || layout.borderRadius || '12px';
-                const desiredPadding = annotateMetrics?.padding || layout.padding || '10px 14px';
-                const desiredFontSize = annotateMetrics?.fontSize || layout.fontSize || '0.875rem';
-                const desiredFontWeight = '600';
-                const desiredLineHeight = annotateMetrics?.lineHeight || layout.lineHeight || null;
-                const desiredTextColor = isActive ? (annotateMetrics?.color || '#111111') : '#6b7280';
-                const desiredBg = isActive ? '#ffffff' : 'transparent';
-
-                setImp(btn, 'flex', '1 1 0%');
-                setImp(btn, 'padding', desiredPadding);
-                // Toggle segments inside the pill should not have an outer border.
-                setImp(btn, 'border', 'none');
-                setImp(btn, 'outline', 'none');
-                setImp(btn, 'border-radius', desiredRadius);
-                setImp(btn, 'background', desiredBg);
-                setImp(btn, 'background-color', desiredBg);
-                setImp(btn, 'background-image', 'none');
-                setImp(btn, 'color', desiredTextColor);
-                setImp(btn, 'font-weight', desiredFontWeight);
-                setImp(btn, 'font-size', desiredFontSize);
-                if (desiredLineHeight) setImp(btn, 'line-height', desiredLineHeight);
-                setImp(btn, 'height', normalizedToggleHeight);
-                setImp(btn, 'cursor', 'default');
-                setImp(btn, 'transition', 'none');
-                setImp(btn, 'box-shadow', 'none');
-                setImp(btn, 'opacity', '1');
-                setImp(btn, 'filter', 'none');
-                setImp(btn, 'transform', 'none');
-                setImp(btn, 'backdrop-filter', 'none');
-                setImp(btn, '-webkit-backdrop-filter', 'none');
-                setImp(btn, 'appearance', 'none');
-                setImp(btn, '-webkit-appearance', 'none');
-                setImp(btn, 'mix-blend-mode', 'normal');
-                setImp(btn, 'isolation', 'isolate');
-
-                setImp(btn, 'display', 'flex');
-                setImp(btn, 'align-items', 'center');
-                setImp(btn, 'justify-content', 'center');
-                setImp(btn, 'gap', '8px');
-
-                // Strip any artifacts from descendants (svg/spans) inside the toggle.
-                const inner = Array.from(btn.querySelectorAll('*'));
-                inner.forEach((el) => {
-                  setImp(el, 'filter', 'none');
-                  setImp(el, 'backdrop-filter', 'none');
-                  setImp(el, '-webkit-backdrop-filter', 'none');
-                  setImp(el, 'box-shadow', 'none');
-                  setImp(el, 'outline', 'none');
-                  setImp(el, 'transform', 'none');
-                  setImp(el, 'opacity', '1');
-                });
-              });
-            }
+          } catch (e) {
+            // best-effort
           }
 
-          // Ensure unified annotation cards are visible + positioned in the cloned DOM
-          const cards = Array.from(clonedDoc.querySelectorAll('.phraze-unified-annotation-card'));
-          cards.forEach((card) => {
-            try {
-              // html2canvas does not reliably render backdrop-filter / translucent backgrounds.
-              // Force the top "Annotate" / "Sidebar" toggle buttons to paint like the live UI.
-              const candidateButtons = Array.from(clonedDoc.querySelectorAll('button'));
-              candidateButtons.forEach((btn) => {
-                const label = (btn.textContent || '').trim();
-                if (label !== 'Annotate' && label !== 'Sidebar' && label !== 'Public' && label !== 'Private') return;
+          try {
+            // Normalize the Comments / Messages toggle in the sidebar (clone-only)
+            // For this specific toggle, most styling is inline; in the clone that can render with artifacts.
+            // Strip inline styles for the wrapper + buttons, then re-apply a stable "pill + buttons" style.
+            const dv = clonedDoc.defaultView;
+            const sidebarToggleButtons = Array.from(clonedDoc.querySelectorAll('button')).filter((btn) => {
+              const text = (btn.textContent || '').trim();
+              return text === 'Comments' || text === 'Messages';
+            });
 
-                const metrics =
-                  label === 'Annotate'
-                    ? uiButtonMetrics?.annotate
-                    : label === 'Sidebar'
-                      ? uiButtonMetrics?.sidebar
-                      : label === 'Public'
-                        ? uiButtonMetrics?.privacyPublic
-                        : uiButtonMetrics?.privacyPrivate;
-                if (metrics) {
-                  btn.style.width = metrics.width;
-                  btn.style.height = metrics.height;
-                  btn.style.padding = metrics.padding;
-                  btn.style.border = metrics.border;
-                  btn.style.borderRadius = metrics.borderRadius;
-                  btn.style.fontSize = metrics.fontSize;
-                  btn.style.fontWeight = metrics.fontWeight;
-                  btn.style.lineHeight = metrics.lineHeight;
-                }
-
-                if (label === 'Annotate') {
-                  btn.style.fontWeight = '600';
-                }
-
-                // Match the live UI's selected/unselected background, but force it to be opaque (no alpha)
-                const desiredBg =
-                  metrics?.backgroundColor && metrics.backgroundColor !== 'rgba(0, 0, 0, 0)' && metrics.backgroundColor !== 'transparent'
-                    ? metrics.backgroundColor
-                    : 'transparent';
-                btn.style.background = desiredBg;
-                btn.style.backgroundColor = desiredBg;
-                btn.style.backgroundImage = 'none';
-                btn.style.boxShadow = 'none';
-                btn.style.mixBlendMode = 'normal';
-                btn.style.isolation = 'isolate';
-                // Preserve live computed color when possible (Public/Private inactive uses gray)
-                btn.style.color = metrics?.color || '#111827';
-                btn.style.opacity = '1';
-                btn.style.backdropFilter = 'none';
-                btn.style.webkitBackdropFilter = 'none';
-                btn.style.filter = 'none';
-                btn.style.transform = 'none';
-
-                // Sometimes the visual background is applied to a wrapper; ensure it also paints.
-                const parent = btn.parentElement;
-                if (parent) {
-                  const pcs = clonedDoc.defaultView?.getComputedStyle(parent);
-                  if (pcs && (pcs.backdropFilter && pcs.backdropFilter !== 'none')) {
-                    parent.style.backdropFilter = 'none';
-                    parent.style.webkitBackdropFilter = 'none';
-                  }
-                  if (pcs && (pcs.backgroundColor === 'rgba(0, 0, 0, 0)' || pcs.backgroundColor === 'transparent')) {
-                    parent.style.background = 'transparent';
-                    parent.style.backgroundColor = 'transparent';
-                  }
-
-                  // Public/Private toggle lives inside a pill wrapper with gray background; force it to paint solid.
-                  if (label === 'Public' || label === 'Private') {
-                    parent.style.background = '#f3f4f6';
-                    parent.style.backgroundColor = '#f3f4f6';
-                    parent.style.backgroundImage = 'none';
-                    parent.style.opacity = '1';
-                    parent.style.filter = 'none';
-                    parent.style.backdropFilter = 'none';
-                    parent.style.webkitBackdropFilter = 'none';
-                  }
-
-                  // If buttons live in a header wrapper with translucent background, force it to solid white.
-                  const grand = parent.parentElement;
-                  if (grand) {
-                    const gcs = clonedDoc.defaultView?.getComputedStyle(grand);
-                    if (gcs && gcs.backgroundColor && gcs.backgroundColor !== 'rgba(0, 0, 0, 0)' && gcs.backgroundColor !== 'transparent') {
-                      grand.style.backgroundColor = '#ffffff';
-                      grand.style.backgroundImage = 'none';
-                      grand.style.backdropFilter = 'none';
-                      grand.style.webkitBackdropFilter = 'none';
-                      grand.style.filter = 'none';
-                      grand.style.opacity = '1';
-                    }
-                  }
-                }
-              });
-
-              // Also force the model selection dropdown (top-left) to use solid white backgrounds.
-              const modelDropdownContainers = Array.from(clonedDoc.querySelectorAll('.model-dropdown-container'));
-              modelDropdownContainers.forEach((container) => {
+            if (sidebarToggleButtons.length > 0) {
+              const parentContainer = sidebarToggleButtons[0].parentElement;
+              const activeByText = {};
+              const btnLayoutByText = {};
+              const parentLayout = {};
+              const setImp = (el, prop, value) => {
                 try {
-                  // Strip dropdown inline styles in the clone to avoid html2canvas rendering artifacts.
-                  // Keep the container positioning intact (it's what places the control in the header).
-                  container.style.backdropFilter = 'none';
-                  container.style.webkitBackdropFilter = 'none';
-
-                  const dropdownEls = Array.from(container.querySelectorAll('*'));
-                  dropdownEls.forEach((el) => {
-                    try {
-                      el.removeAttribute('style');
-                    } catch (e) {
-                      // best-effort
-                    }
-                  });
-
-                  const toggleBtn = container.querySelector('button');
-                  if (toggleBtn) {
-                    toggleBtn.style.backgroundColor = '#ffffff';
-                    toggleBtn.style.border = '1px solid #e5e7eb';
-                    toggleBtn.style.borderRadius = '12px';
-                    toggleBtn.style.padding = '8px 12px';
-                    toggleBtn.style.color = '#111827';
-                    if (uiButtonMetrics?.modelToggle) {
-                      toggleBtn.style.width = uiButtonMetrics.modelToggle.width;
-                      toggleBtn.style.height = uiButtonMetrics.modelToggle.height;
-                      toggleBtn.style.padding = uiButtonMetrics.modelToggle.padding;
-                      toggleBtn.style.border = uiButtonMetrics.modelToggle.border;
-                      toggleBtn.style.borderRadius = uiButtonMetrics.modelToggle.borderRadius;
-                      toggleBtn.style.fontSize = uiButtonMetrics.modelToggle.fontSize;
-                      toggleBtn.style.fontWeight = uiButtonMetrics.modelToggle.fontWeight;
-                      toggleBtn.style.lineHeight = uiButtonMetrics.modelToggle.lineHeight;
-                    }
-                    toggleBtn.style.display = 'flex';
-                    toggleBtn.style.alignItems = 'center';
-                    toggleBtn.style.justifyContent = 'space-between';
-                    toggleBtn.style.gap = '8px';
-                    toggleBtn.style.lineHeight = '1';
-                    toggleBtn.style.boxShadow = 'none';
-                    toggleBtn.style.transform = 'none';
-                    toggleBtn.style.backdropFilter = 'none';
-                    toggleBtn.style.webkitBackdropFilter = 'none';
-
-                    const labelSpan = toggleBtn.querySelector('span');
-                    if (labelSpan) {
-                      labelSpan.style.display = 'inline-block';
-                      labelSpan.style.whiteSpace = 'nowrap';
-                    }
-
-                    const arrowSvg = toggleBtn.querySelector('svg');
-                    if (arrowSvg) {
-                      arrowSvg.style.display = 'block';
-                      arrowSvg.style.flexShrink = '0';
-                    }
-                  }
-
-                  // Dropdown menu is rendered as an absolutely positioned div under the toggle button.
-                  const menuDivs = Array.from(container.querySelectorAll('div'));
-                  menuDivs.forEach((menu) => {
-                    const mcs = clonedDoc.defaultView?.getComputedStyle(menu);
-                    if (!mcs) return;
-                    const isMenu = mcs.position === 'absolute' && (mcs.top === '100%' || menu.style.top === '100%');
-                    if (!isMenu) return;
-
-                    menu.style.backgroundColor = '#ffffff';
-                    menu.style.border = '1px solid #e5e7eb';
-                    menu.style.borderRadius = '12px';
-                    menu.style.boxShadow = 'none';
-                    menu.style.backdropFilter = 'none';
-                    menu.style.webkitBackdropFilter = 'none';
-                    menu.style.overflow = 'hidden';
-
-                    // Normalize option buttons inside the menu.
-                    const optionButtons = Array.from(menu.querySelectorAll('button'));
-                    optionButtons.forEach((b, idx) => {
-                      b.style.width = '100%';
-                      b.style.backgroundColor = '#ffffff';
-                      b.style.border = 'none';
-                      b.style.textAlign = 'left';
-                      b.style.padding = '10px 12px';
-                      b.style.color = '#111827';
-                      b.style.boxShadow = 'none';
-                      b.style.transform = 'none';
-                      b.style.borderBottom = idx < optionButtons.length - 1 ? '1px solid #f3f4f6' : 'none';
-                    });
-                  });
+                  el?.style?.setProperty(prop, value, 'important');
                 } catch (e) {
                   // best-effort
                 }
+              };
+              const annotateMetrics = uiButtonMetrics?.annotate;
+
+              sidebarToggleButtons.forEach((btn) => {
+                const text = (btn.textContent || '').trim();
+                const cs = dv?.getComputedStyle(btn);
+
+                // Detect which side is active before stripping inline styles.
+                // Active side has a non-transparent background in the live UI.
+                const bg = cs?.backgroundColor;
+                activeByText[text] = !!(bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent');
+
+                // Preserve layout metrics that affect html2canvas painting.
+                btnLayoutByText[text] = {
+                  height: cs?.height,
+                  padding: cs?.padding,
+                  borderRadius: cs?.borderRadius,
+                  fontSize: cs?.fontSize,
+                  fontWeight: cs?.fontWeight,
+                  lineHeight: cs?.lineHeight
+                };
               });
-            } catch (e) {
-              // best-effort
-            }
 
-            try {
-              const clonedMarks = clonedDoc.querySelectorAll('mark.PhrazeHighlight');
-              clonedMarks.forEach((originalMark) => {
-                if (!originalMark.childNodes || originalMark.childNodes.length === 0) return;
-                const textNode = originalMark.childNodes[0];
-                const textContent = textNode.textContent || '';
-                if (!textContent) return;
+              const normalizedToggleHeight = (() => {
+                try {
+                  const annotateH = annotateMetrics?.height;
+                  const annotateN = typeof annotateH === 'string' ? parseFloat(annotateH) : NaN;
+                  if (Number.isFinite(annotateN) && annotateN > 0) return `${Math.ceil(annotateN)}px`;
 
-                const range = clonedDoc.createRange();
-                const newRanges = [];
-                let rangeStart = 0;
-                for (let i = 0; i < textContent.length; ++i) {
-                  range.setStart(textNode, 0);
-                  range.setEnd(textNode, i + 1);
-                  const lineIndex = range.getClientRects().length - 1;
-                  if (newRanges.length === lineIndex) {
-                    newRanges.push([rangeStart, i]);
-                    rangeStart = i;
-                  }
+                  const heights = sidebarToggleButtons
+                    .map((btn) => {
+                      const t = (btn.textContent || '').trim();
+                      const h = btnLayoutByText[t]?.height;
+                      const n = typeof h === 'string' ? parseFloat(h) : NaN;
+                      return Number.isFinite(n) ? n : null;
+                    })
+                    .filter((n) => n != null);
+
+                  const maxH = heights.length ? Math.max(...heights) : null;
+                  // Fallback: if layout heights are missing, use the wrapper's min-height or a sane default.
+                  if (maxH && maxH > 0) return `${Math.ceil(maxH)}px`;
+                  const wrapperMin = typeof parentLayout.minHeight === 'string' ? parseFloat(parentLayout.minHeight) : NaN;
+                  if (Number.isFinite(wrapperMin) && wrapperMin > 0) return `${Math.ceil(wrapperMin)}px`;
+                  return '50px';
+                } catch (e) {
+                  return '50px';
                 }
-                newRanges.splice(0, 1);
-                if (rangeStart < textContent.length) {
-                  newRanges.push([rangeStart, textContent.length]);
+              })();
+
+              if (parentContainer) {
+                const pcs = dv?.getComputedStyle(parentContainer);
+                parentLayout.width = pcs?.width;
+                parentLayout.margin = pcs?.margin;
+                parentLayout.minHeight = pcs?.minHeight;
+                parentLayout.boxSizing = pcs?.boxSizing;
+                parentLayout.borderRadius = pcs?.borderRadius;
+                parentLayout.padding = pcs?.padding;
+                parentLayout.gap = pcs?.gap;
+
+                // Remove inline styles in clone, then rebuild deterministic styles.
+                try {
+                  parentContainer.removeAttribute('style');
+                } catch (e) {
+                  // best-effort
                 }
 
-                const parent = originalMark.parentNode;
-                if (!parent) return;
-                newRanges.forEach((r) => {
-                  const mark = clonedDoc.createElement('mark');
+                sidebarToggleButtons.forEach((btn) => {
                   try {
-                    // Preserve highlight metadata + user-selected color (e.g. --highlight-color)
-                    if (originalMark.className) mark.className = originalMark.className;
-                    Array.from(originalMark.attributes || []).forEach((attr) => {
-                      if (attr && attr.name && attr.name !== 'id') {
-                        mark.setAttribute(attr.name, attr.value);
-                      }
-                    });
-                    if (originalMark.style && originalMark.style.cssText) {
-                      mark.style.cssText = originalMark.style.cssText;
-                    }
+                    btn.removeAttribute('style');
                   } catch (e) {
                     // best-effort
                   }
-                  mark.textContent = textContent.slice(r[0], r[1]);
-                  parent.insertBefore(mark, originalMark);
                 });
-                parent.removeChild(originalMark);
-              });
-            } catch (e) {
-              // best-effort
+
+                // Re-apply pill wrapper styles (match the toggle pattern used elsewhere)
+                setImp(parentContainer, 'display', 'flex');
+                setImp(parentContainer, 'align-items', 'center');
+                if (parentLayout.width) setImp(parentContainer, 'width', parentLayout.width);
+                if (parentLayout.margin) setImp(parentContainer, 'margin', parentLayout.margin);
+                if (parentLayout.minHeight) setImp(parentContainer, 'min-height', parentLayout.minHeight);
+                if (parentLayout.boxSizing) setImp(parentContainer, 'box-sizing', parentLayout.boxSizing);
+                setImp(parentContainer, 'background', '#f3f4f6');
+                setImp(parentContainer, 'background-color', '#f3f4f6');
+                setImp(parentContainer, 'background-image', 'none');
+                setImp(parentContainer, 'border-radius', parentLayout.borderRadius || '10px');
+                setImp(parentContainer, 'padding', parentLayout.padding || '5px');
+                setImp(parentContainer, 'gap', parentLayout.gap || '4px');
+                setImp(parentContainer, 'border', 'none');
+                setImp(parentContainer, 'outline', 'none');
+                setImp(parentContainer, 'box-shadow', 'none');
+                setImp(parentContainer, 'opacity', '1');
+                setImp(parentContainer, 'filter', 'none');
+                setImp(parentContainer, 'backdrop-filter', 'none');
+                setImp(parentContainer, '-webkit-backdrop-filter', 'none');
+                setImp(parentContainer, 'mix-blend-mode', 'normal');
+                setImp(parentContainer, 'isolation', 'isolate');
+
+                const activeText = activeByText.Comments ? 'Comments' : activeByText.Messages ? 'Messages' : 'Comments';
+
+                // Re-apply button styles (Public/Private style: both visible, active selected)
+                sidebarToggleButtons.forEach((btn) => {
+                  const text = (btn.textContent || '').trim();
+                  const layout = btnLayoutByText[text] || {};
+                  const isActive = text === activeText;
+                  const desiredRadius = annotateMetrics?.borderRadius || layout.borderRadius || '12px';
+                  const desiredPadding = annotateMetrics?.padding || layout.padding || '10px 14px';
+                  const desiredFontSize = annotateMetrics?.fontSize || layout.fontSize || '0.875rem';
+                  const desiredFontWeight = '600';
+                  const desiredLineHeight = annotateMetrics?.lineHeight || layout.lineHeight || null;
+                  const desiredTextColor = isActive ? (annotateMetrics?.color || '#111111') : '#6b7280';
+                  const desiredBg = isActive ? '#ffffff' : 'transparent';
+
+                  setImp(btn, 'flex', '1 1 0%');
+                  setImp(btn, 'padding', desiredPadding);
+                  // Toggle segments inside the pill should not have an outer border.
+                  setImp(btn, 'border', 'none');
+                  setImp(btn, 'outline', 'none');
+                  setImp(btn, 'border-radius', desiredRadius);
+                  setImp(btn, 'background', desiredBg);
+                  setImp(btn, 'background-color', desiredBg);
+                  setImp(btn, 'background-image', 'none');
+                  setImp(btn, 'color', desiredTextColor);
+                  setImp(btn, 'font-weight', desiredFontWeight);
+                  setImp(btn, 'font-size', desiredFontSize);
+                  if (desiredLineHeight) setImp(btn, 'line-height', desiredLineHeight);
+                  setImp(btn, 'height', normalizedToggleHeight);
+                  setImp(btn, 'cursor', 'default');
+                  setImp(btn, 'transition', 'none');
+                  setImp(btn, 'box-shadow', 'none');
+                  setImp(btn, 'opacity', '1');
+                  setImp(btn, 'filter', 'none');
+                  setImp(btn, 'transform', 'none');
+                  setImp(btn, 'backdrop-filter', 'none');
+                  setImp(btn, '-webkit-backdrop-filter', 'none');
+                  setImp(btn, 'appearance', 'none');
+                  setImp(btn, '-webkit-appearance', 'none');
+                  setImp(btn, 'mix-blend-mode', 'normal');
+                  setImp(btn, 'isolation', 'isolate');
+
+                  setImp(btn, 'display', 'flex');
+                  setImp(btn, 'align-items', 'center');
+                  setImp(btn, 'justify-content', 'center');
+                  setImp(btn, 'gap', '8px');
+
+                  // Strip any artifacts from descendants (svg/spans) inside the toggle.
+                  const inner = Array.from(btn.querySelectorAll('*'));
+                  inner.forEach((el) => {
+                    setImp(el, 'filter', 'none');
+                    setImp(el, 'backdrop-filter', 'none');
+                    setImp(el, '-webkit-backdrop-filter', 'none');
+                    setImp(el, 'box-shadow', 'none');
+                    setImp(el, 'outline', 'none');
+                    setImp(el, 'transform', 'none');
+                    setImp(el, 'opacity', '1');
+                  });
+                });
+              }
             }
 
-            try {
-              // Ensure unified annotation cards are visible + positioned in the cloned DOM
-              const cards = Array.from(clonedDoc.querySelectorAll('.phraze-unified-annotation-card'));
-              cards.forEach((card) => {
-                try {
-                  // html2canvas tends to exaggerate shadows / backdrop blur; keep cards crisp in the capture.
-                  card.style.boxShadow = 'none';
-                  card.style.filter = 'none';
-                  card.style.backdropFilter = 'none';
-                  card.style.webkitBackdropFilter = 'none';
-                  if (!card.style.backgroundColor || card.style.backgroundColor === 'transparent' || card.style.backgroundColor === 'rgba(0, 0, 0, 0)') {
-                    card.style.backgroundColor = '#ffffff';
+            // Ensure unified annotation cards are visible + positioned in the cloned DOM
+            const cards = Array.from(clonedDoc.querySelectorAll('.phraze-unified-annotation-card'));
+            cards.forEach((card) => {
+              try {
+                // html2canvas does not reliably render backdrop-filter / translucent backgrounds.
+                // Force the top "Annotate" / "Sidebar" toggle buttons to paint like the live UI.
+                const candidateButtons = Array.from(clonedDoc.querySelectorAll('button'));
+                candidateButtons.forEach((btn) => {
+                  const label = (btn.textContent || '').trim();
+                  if (label !== 'Annotate' && label !== 'Sidebar' && label !== 'Public' && label !== 'Private') return;
+
+                  const metrics =
+                    label === 'Annotate'
+                      ? uiButtonMetrics?.annotate
+                      : label === 'Sidebar'
+                        ? uiButtonMetrics?.sidebar
+                        : label === 'Public'
+                          ? uiButtonMetrics?.privacyPublic
+                          : uiButtonMetrics?.privacyPrivate;
+                  if (metrics) {
+                    btn.style.width = metrics.width;
+                    btn.style.height = metrics.height;
+                    btn.style.padding = metrics.padding;
+                    btn.style.border = metrics.border;
+                    btn.style.borderRadius = metrics.borderRadius;
+                    btn.style.fontSize = metrics.fontSize;
+                    btn.style.fontWeight = metrics.fontWeight;
+                    btn.style.lineHeight = metrics.lineHeight;
                   }
 
-                  card.classList.add('active');
-                  card.style.display = '';
-                  card.style.visibility = 'visible';
-                  card.style.opacity = '1';
-                  card.style.pointerEvents = 'auto';
-                } catch (e) {
-                  // best-effort
-                }
-              });
+                  if (label === 'Annotate') {
+                    btn.style.fontWeight = '600';
+                  }
 
-              cards.forEach((card) => {
-                try {
-                  const highlightId = card?.dataset?.highlightId;
-                  if (!highlightId) return;
-                  const mark = clonedDoc.querySelector(`mark.PhrazeHighlight[data-highlight-id="${highlightId}"]`);
-                  if (!mark) return;
-                  const rect = mark.getBoundingClientRect();
-                  const cardRect = card.getBoundingClientRect();
-                  if (!cardRect || !cardRect.height) return;
+                  // Match the live UI's selected/unselected background, but force it to be opaque (no alpha)
+                  const desiredBg =
+                    metrics?.backgroundColor && metrics.backgroundColor !== 'rgba(0, 0, 0, 0)' && metrics.backgroundColor !== 'transparent'
+                      ? metrics.backgroundColor
+                      : 'transparent';
+                  btn.style.background = desiredBg;
+                  btn.style.backgroundColor = desiredBg;
+                  btn.style.backgroundImage = 'none';
+                  btn.style.boxShadow = 'none';
+                  btn.style.mixBlendMode = 'normal';
+                  btn.style.isolation = 'isolate';
+                  // Preserve live computed color when possible (Public/Private inactive uses gray)
+                  btn.style.color = metrics?.color || '#111827';
+                  btn.style.opacity = '1';
+                  btn.style.backdropFilter = 'none';
+                  btn.style.webkitBackdropFilter = 'none';
+                  btn.style.filter = 'none';
+                  btn.style.transform = 'none';
 
-                  const left = rect.left + rect.width / 2;
-                  const top = rect.top - cardRect.height - 8;
+                  // Sometimes the visual background is applied to a wrapper; ensure it also paints.
+                  const parent = btn.parentElement;
+                  if (parent) {
+                    const pcs = clonedDoc.defaultView?.getComputedStyle(parent);
+                    if (pcs && (pcs.backdropFilter && pcs.backdropFilter !== 'none')) {
+                      parent.style.backdropFilter = 'none';
+                      parent.style.webkitBackdropFilter = 'none';
+                    }
+                    if (pcs && (pcs.backgroundColor === 'rgba(0, 0, 0, 0)' || pcs.backgroundColor === 'transparent')) {
+                      parent.style.background = 'transparent';
+                      parent.style.backgroundColor = 'transparent';
+                    }
 
-                  card.style.position = 'absolute';
-                  card.style.left = `${left}px`;
-                  card.style.top = `${Math.max(0, top)}px`;
-                  card.style.transform = 'translateX(-50%)';
-                } catch (e) {
-                  // best-effort
-                }
-              });
-            } catch (e) {
-              // best-effort
-            }
+                    // Public/Private toggle lives inside a pill wrapper with gray background; force it to paint solid.
+                    if (label === 'Public' || label === 'Private') {
+                      parent.style.background = '#f3f4f6';
+                      parent.style.backgroundColor = '#f3f4f6';
+                      parent.style.backgroundImage = 'none';
+                      parent.style.opacity = '1';
+                      parent.style.filter = 'none';
+                      parent.style.backdropFilter = 'none';
+                      parent.style.webkitBackdropFilter = 'none';
+                    }
+
+                    // If buttons live in a header wrapper with translucent background, force it to solid white.
+                    const grand = parent.parentElement;
+                    if (grand) {
+                      const gcs = clonedDoc.defaultView?.getComputedStyle(grand);
+                      if (gcs && gcs.backgroundColor && gcs.backgroundColor !== 'rgba(0, 0, 0, 0)' && gcs.backgroundColor !== 'transparent') {
+                        grand.style.backgroundColor = '#ffffff';
+                        grand.style.backgroundImage = 'none';
+                        grand.style.backdropFilter = 'none';
+                        grand.style.webkitBackdropFilter = 'none';
+                        grand.style.filter = 'none';
+                        grand.style.opacity = '1';
+                      }
+                    }
+                  }
+                });
+
+                // Also force the model selection dropdown (top-left) to use solid white backgrounds.
+                const modelDropdownContainers = Array.from(clonedDoc.querySelectorAll('.model-dropdown-container'));
+                modelDropdownContainers.forEach((container) => {
+                  try {
+                    // Strip dropdown inline styles in the clone to avoid html2canvas rendering artifacts.
+                    // Keep the container positioning intact (it's what places the control in the header).
+                    container.style.backdropFilter = 'none';
+                    container.style.webkitBackdropFilter = 'none';
+
+                    const dropdownEls = Array.from(container.querySelectorAll('*'));
+                    dropdownEls.forEach((el) => {
+                      try {
+                        el.removeAttribute('style');
+                      } catch (e) {
+                        // best-effort
+                      }
+                    });
+
+                    const toggleBtn = container.querySelector('button');
+                    if (toggleBtn) {
+                      toggleBtn.style.backgroundColor = '#ffffff';
+                      toggleBtn.style.border = '1px solid #e5e7eb';
+                      toggleBtn.style.borderRadius = '12px';
+                      toggleBtn.style.padding = '8px 12px';
+                      toggleBtn.style.color = '#111827';
+                      if (uiButtonMetrics?.modelToggle) {
+                        toggleBtn.style.width = uiButtonMetrics.modelToggle.width;
+                        toggleBtn.style.height = uiButtonMetrics.modelToggle.height;
+                        toggleBtn.style.padding = uiButtonMetrics.modelToggle.padding;
+                        toggleBtn.style.border = uiButtonMetrics.modelToggle.border;
+                        toggleBtn.style.borderRadius = uiButtonMetrics.modelToggle.borderRadius;
+                        toggleBtn.style.fontSize = uiButtonMetrics.modelToggle.fontSize;
+                        toggleBtn.style.fontWeight = uiButtonMetrics.modelToggle.fontWeight;
+                        toggleBtn.style.lineHeight = uiButtonMetrics.modelToggle.lineHeight;
+                      }
+                      toggleBtn.style.display = 'flex';
+                      toggleBtn.style.alignItems = 'center';
+                      toggleBtn.style.justifyContent = 'space-between';
+                      toggleBtn.style.gap = '8px';
+                      toggleBtn.style.lineHeight = '1';
+                      toggleBtn.style.boxShadow = 'none';
+                      toggleBtn.style.transform = 'none';
+                      toggleBtn.style.backdropFilter = 'none';
+                      toggleBtn.style.webkitBackdropFilter = 'none';
+
+                      const labelSpan = toggleBtn.querySelector('span');
+                      if (labelSpan) {
+                        labelSpan.style.display = 'inline-block';
+                        labelSpan.style.whiteSpace = 'nowrap';
+                      }
+
+                      const arrowSvg = toggleBtn.querySelector('svg');
+                      if (arrowSvg) {
+                        arrowSvg.style.display = 'block';
+                        arrowSvg.style.flexShrink = '0';
+                      }
+                    }
+
+                    // Dropdown menu is rendered as an absolutely positioned div under the toggle button.
+                    const menuDivs = Array.from(container.querySelectorAll('div'));
+                    menuDivs.forEach((menu) => {
+                      const mcs = clonedDoc.defaultView?.getComputedStyle(menu);
+                      if (!mcs) return;
+                      const isMenu = mcs.position === 'absolute' && (mcs.top === '100%' || menu.style.top === '100%');
+                      if (!isMenu) return;
+
+                      menu.style.backgroundColor = '#ffffff';
+                      menu.style.border = '1px solid #e5e7eb';
+                      menu.style.borderRadius = '12px';
+                      menu.style.boxShadow = 'none';
+                      menu.style.backdropFilter = 'none';
+                      menu.style.webkitBackdropFilter = 'none';
+                      menu.style.overflow = 'hidden';
+
+                      // Normalize option buttons inside the menu.
+                      const optionButtons = Array.from(menu.querySelectorAll('button'));
+                      optionButtons.forEach((b, idx) => {
+                        b.style.width = '100%';
+                        b.style.backgroundColor = '#ffffff';
+                        b.style.border = 'none';
+                        b.style.textAlign = 'left';
+                        b.style.padding = '10px 12px';
+                        b.style.color = '#111827';
+                        b.style.boxShadow = 'none';
+                        b.style.transform = 'none';
+                        b.style.borderBottom = idx < optionButtons.length - 1 ? '1px solid #f3f4f6' : 'none';
+                      });
+                    });
+                  } catch (e) {
+                    // best-effort
+                  }
+                });
+              } catch (e) {
+                // best-effort
+              }
+
+              try {
+                const clonedMarks = clonedDoc.querySelectorAll('mark.PhrazeHighlight');
+                clonedMarks.forEach((originalMark) => {
+                  if (!originalMark.childNodes || originalMark.childNodes.length === 0) return;
+                  const textNode = originalMark.childNodes[0];
+                  const textContent = textNode.textContent || '';
+                  if (!textContent) return;
+
+                  const range = clonedDoc.createRange();
+                  const newRanges = [];
+                  let rangeStart = 0;
+                  for (let i = 0; i < textContent.length; ++i) {
+                    range.setStart(textNode, 0);
+                    range.setEnd(textNode, i + 1);
+                    const lineIndex = range.getClientRects().length - 1;
+                    if (newRanges.length === lineIndex) {
+                      newRanges.push([rangeStart, i]);
+                      rangeStart = i;
+                    }
+                  }
+                  newRanges.splice(0, 1);
+                  if (rangeStart < textContent.length) {
+                    newRanges.push([rangeStart, textContent.length]);
+                  }
+
+                  const parent = originalMark.parentNode;
+                  if (!parent) return;
+                  newRanges.forEach((r) => {
+                    const mark = clonedDoc.createElement('mark');
+                    try {
+                      // Preserve highlight metadata + user-selected color (e.g. --highlight-color)
+                      if (originalMark.className) mark.className = originalMark.className;
+                      Array.from(originalMark.attributes || []).forEach((attr) => {
+                        if (attr && attr.name && attr.name !== 'id') {
+                          mark.setAttribute(attr.name, attr.value);
+                        }
+                      });
+                      if (originalMark.style && originalMark.style.cssText) {
+                        mark.style.cssText = originalMark.style.cssText;
+                      }
+                    } catch (e) {
+                      // best-effort
+                    }
+                    mark.textContent = textContent.slice(r[0], r[1]);
+                    parent.insertBefore(mark, originalMark);
+                  });
+                  parent.removeChild(originalMark);
+                });
+              } catch (e) {
+                // best-effort
+              }
+
+              try {
+                // Ensure unified annotation cards are visible + positioned in the cloned DOM
+                const cards = Array.from(clonedDoc.querySelectorAll('.phraze-unified-annotation-card'));
+                cards.forEach((card) => {
+                  try {
+                    // html2canvas tends to exaggerate shadows / backdrop blur; keep cards crisp in the capture.
+                    card.style.boxShadow = 'none';
+                    card.style.filter = 'none';
+                    card.style.backdropFilter = 'none';
+                    card.style.webkitBackdropFilter = 'none';
+                    if (!card.style.backgroundColor || card.style.backgroundColor === 'transparent' || card.style.backgroundColor === 'rgba(0, 0, 0, 0)') {
+                      card.style.backgroundColor = '#ffffff';
+                    }
+
+                    card.classList.add('active');
+                    card.style.display = '';
+                    card.style.visibility = 'visible';
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                  } catch (e) {
+                    // best-effort
+                  }
+                });
+
+                cards.forEach((card) => {
+                  try {
+                    const highlightId = card?.dataset?.highlightId;
+                    if (!highlightId) return;
+                    const mark = clonedDoc.querySelector(`mark.PhrazeHighlight[data-highlight-id="${highlightId}"]`);
+                    if (!mark) return;
+                    const rect = mark.getBoundingClientRect();
+                    const cardRect = card.getBoundingClientRect();
+                    if (!cardRect || !cardRect.height) return;
+
+                    const left = rect.left + rect.width / 2;
+                    const top = rect.top - cardRect.height - 8;
+
+                    card.style.position = 'absolute';
+                    card.style.left = `${left}px`;
+                    card.style.top = `${Math.max(0, top)}px`;
+                    card.style.transform = 'translateX(-50%)';
+                  } catch (e) {
+                    // best-effort
+                  }
+                });
+              } catch (e) {
+                // best-effort
+              }
 
             });
           } catch (e) {
@@ -2280,7 +2299,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      
+
       // Restore unified annotation cards to their original state after screenshot
       const cardsToRestore = document.querySelectorAll('.phraze-unified-annotation-card');
       cardsToRestore.forEach(card => {
@@ -2376,7 +2395,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           Please log in to reply to this shared chat.
         </div>
       )}
-      <div 
+      <div
         ref={inputContainerRef}
         style={{
           position: 'relative',
@@ -2478,11 +2497,11 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                   </div>
                 );
               }
-              
+
               // Group labels by category (predefined groups first, then custom)
               const predefinedLabels = [];
               const customLabelsList = [];
-              
+
               filtered.forEach(label => {
                 let isPredefined = false;
                 Object.values(LABEL_GROUPS).forEach(groupLabels => {
@@ -2490,14 +2509,14 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                     isPredefined = true;
                   }
                 });
-                
+
                 if (isPredefined) {
                   predefinedLabels.push(label);
                 } else {
                   customLabelsList.push(label);
                 }
               });
-              
+
               // Group predefined labels by category
               const labelsByCategory = {};
               predefinedLabels.forEach(label => {
@@ -2510,16 +2529,16 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                   }
                 });
               });
-              
+
               // Build flat array for indexing
               const allDisplayedLabels = [];
               Object.values(labelsByCategory).forEach(catLabels => {
                 allDisplayedLabels.push(...catLabels);
               });
               allDisplayedLabels.push(...customLabelsList);
-              
+
               let itemIndex = 0;
-              
+
               return (
                 <>
                   {/* Predefined Labels by Category */}
@@ -2577,8 +2596,8 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                         );
                       })}
                     </div>
-                    ))}
-                  
+                  ))}
+
                   {/* Custom Labels */}
                   {customLabelsList.length > 0 && (
                     <>
@@ -2635,7 +2654,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                       })}
                     </>
                   )}
-                  
+
                   {/* Keyboard shortcuts hint */}
                   <div style={{
                     padding: '6px 12px',
@@ -2655,7 +2674,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
             })()}
           </div>
         )}
-        
+
         {/* Mention Popup - positioned above the input */}
         {/* Show popup when it's open */}
         {mentionState.isOpen && (
@@ -2817,22 +2836,22 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                     </div>
                   </div>
                 ))}
-                    <div style={{
+                <div style={{
                   padding: '6px 12px',
-                      fontSize: '11px',
-                      color: '#9ca3af',
+                  fontSize: '11px',
+                  color: '#9ca3af',
                   borderTop: '1px solid #f3f4f6',
                   marginTop: '4px',
-                          display: 'flex',
+                  display: 'flex',
                   gap: '12px'
                 }}>
                   <span><kbd style={{ padding: '2px 4px', backgroundColor: '#f3f4f6', borderRadius: '3px', fontSize: '10px' }}>↑↓</kbd> navigate</span>
                   <span><kbd style={{ padding: '2px 4px', backgroundColor: '#f3f4f6', borderRadius: '3px', fontSize: '10px' }}>Enter</kbd> select</span>
                   <span><kbd style={{ padding: '2px 4px', backgroundColor: '#f3f4f6', borderRadius: '3px', fontSize: '10px' }}>Esc</kbd> close</span>
-                          </div>
-                  </>
-                )}
-                
+                </div>
+              </>
+            )}
+
             {/* Members Mode - Show team members */}
             {mentionState.mode === 'members' && matchedMembers.length > 0 && (
               <>
@@ -2919,7 +2938,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                           // Use firstName and lastName initials only (no email fallback)
                           const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
                           const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                          
+
                           if (firstInitial && lastInitial) {
                             return firstInitial + lastInitial;
                           } else if (firstInitial) {
@@ -2929,7 +2948,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                         })()}
                       </div>
                     </div>
-                    
+
                     {/* Name and Email */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
@@ -2965,7 +2984,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                         {member.email}
                       </div>
                     </div>
-                    
+
                     {/* Owner badge */}
                     {member.role === 'owner' && (
                       <span style={{
@@ -2982,7 +3001,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                     )}
                   </div>
                 ))}
-                
+
                 {/* Commands section at bottom when no query or query could match commands */}
                 {(!mentionState.query || filteredCommands.length > 0) && (
                   <>
@@ -3039,7 +3058,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                     ))}
                   </>
                 )}
-                
+
                 <div style={{
                   padding: '6px 12px',
                   fontSize: '11px',
@@ -3084,7 +3103,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
 
         {/* Input Area - Flex Column Layout */}
         <div style={{
-                display: 'flex',
+          display: 'flex',
           flexDirection: 'column',
           gap: '8px'
         }}>
@@ -3205,7 +3224,7 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                   </button>
                 </div>
               )}
-              
+
               {/* Additional quoted messages (shown when expanded) */}
               {quotedMessages.length > 1 && expandedQuotesPreview && (
                 <>
@@ -3318,11 +3337,11 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
           )}
 
           {/* Textarea */}
-        <textarea
-          id="groq_chat_textarea"
-          ref={textareaRef}
-          value={inputValue}
-          onChange={handleInputChange}
+          <textarea
+            id="groq_chat_textarea"
+            ref={textareaRef}
+            value={inputValue}
+            onChange={handleInputChange}
             onBlur={() => {
               // Stop typing when user leaves the input field
               if (conversationId) {
@@ -3332,283 +3351,283 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                 stopTyping(conversationId);
               }
             }}
-          onKeyDown={(e) => {
-            // Handle label popup navigation
-            if (labelState.isOpen) {
-              handleLabelKeyDown(e);
-              if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Tab') {
-                return;
+            onKeyDown={(e) => {
+              // Handle label popup navigation
+              if (labelState.isOpen) {
+                handleLabelKeyDown(e);
+                if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Tab') {
+                  return;
+                }
               }
-            }
-            
-            // Handle mention popup navigation
-            if (mentionState.isOpen) {
-              handleMentionKeyDown(e);
-              if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Tab') {
-                return;
+
+              // Handle mention popup navigation
+              if (mentionState.isOpen) {
+                handleMentionKeyDown(e);
+                if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Tab') {
+                  return;
+                }
               }
-            }
-            
-            if (e.key === 'Enter' && !e.shiftKey && !mentionState.isOpen && !labelState.isOpen) {
-              e.preventDefault();
-              handleSubmit(e);
-            }
-          }}
+
+              if (e.key === 'Enter' && !e.shiftKey && !mentionState.isOpen && !labelState.isOpen) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
             placeholder={quotedMessages && quotedMessages.length > 0 ? "Reply to message" + (quotedMessages.length > 1 ? 's' : '') + "..." : (currentUserRole === 'viewer' ? 'View Only Mode - Cannot send messages' : (messages.length === 0 ? 'How can I help you today?' : 'Message Phraze...'))}
-          style={{
-            width: '100%',
-            backgroundColor: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: '#111827',
-            resize: 'none',
-            fontSize: '16px',
+            style={{
+              width: '100%',
+              backgroundColor: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: '#111827',
+              resize: 'none',
+              fontSize: '16px',
               lineHeight: '1.5',
-            fontFamily: 'inherit',
+              fontFamily: 'inherit',
               padding: '8px',
               minHeight: '32px',
               maxHeight: '200px',
               overflowY: inputValue.length > 100 ? 'auto' : 'hidden',
-            cursor: currentUserRole === 'viewer' ? 'not-allowed' : 'text',
-            boxSizing: 'border-box'
-          }}
-          rows={1}
-          disabled={isLoading || (isSharedView && !currentUser) || currentUserRole === 'viewer'}
-        />
+              cursor: currentUserRole === 'viewer' ? 'not-allowed' : 'text',
+              boxSizing: 'border-box'
+            }}
+            rows={1}
+            disabled={isLoading || (isSharedView && !currentUser) || currentUserRole === 'viewer'}
+          />
 
           {/* Footer Actions */}
           <div style={{
-          display: 'flex',
+            display: 'flex',
             alignItems: 'center',
-          justifyContent: 'space-between',
+            justifyContent: 'space-between',
             padding: '4px'
           }}>
             {/* Left Icons */}
             <div style={{
               display: 'flex',
-          alignItems: 'center',
+              alignItems: 'center',
               gap: '12px',
               color: '#9ca3af'
             }}>
-            {/* Image upload button */}
-            <button
-              type="button"
-              onClick={triggerFileInput}
+              {/* Image upload button */}
+              <button
+                type="button"
+                onClick={triggerFileInput}
                 disabled={(isSharedView && !currentUser) || currentUserRole === 'viewer'}
-              style={{
+                style={{
                   background: 'transparent',
-                border: 'none',
-                cursor: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? 'not-allowed' : 'pointer',
+                  border: 'none',
+                  cursor: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? 'not-allowed' : 'pointer',
                   padding: '8px',
-                color: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af',
+                  color: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af',
                   borderRadius: '50%',
                   transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center'
-              }}
-              onMouseEnter={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = '#f3f4f6';
                     e.currentTarget.style.color = '#4b5563';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af';
-              }}
-                title="Upload Image"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="9" cy="9" r="2"></circle>
-                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-              </svg>
-            </button>
-
-            {/* Microphone button */}
-            <button
-              type="button"
-              onClick={function () {
-              if (isRecording && speechObj) {
-                try {
-                  speechObj.stop();
-                } catch (e) {
-                  console.warn('Error stopping recognition:', e);
-                }
-                setIsRecording(false);
-                setSpeechObj(null);
-              } else {
-                function speechToText() {
-                  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                    alert('Speech recognition is not supported in your browser.');
-                    return;
                   }
-                  setIsRecording(true);
-                  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                  const recognition = new SpeechRecognition();
-                  setSpeechObj(recognition);
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af';
+                }}
+                title="Upload Image"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="9" cy="9" r="2"></circle>
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                </svg>
+              </button>
+
+              {/* Microphone button */}
+              <button
+                type="button"
+                onClick={function () {
+                  if (isRecording && speechObj) {
+                    try {
+                      speechObj.stop();
+                    } catch (e) {
+                      console.warn('Error stopping recognition:', e);
+                    }
+                    setIsRecording(false);
+                    setSpeechObj(null);
+                  } else {
+                    function speechToText() {
+                      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        alert('Speech recognition is not supported in your browser.');
+                        return;
+                      }
+                      setIsRecording(true);
+                      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                      const recognition = new SpeechRecognition();
+                      setSpeechObj(recognition);
                       recognition.continuous = true;
                       recognition.interimResults = true;
                       recognition.lang = navigator.language || 'en-US';
                       recognition.maxAlternatives = 1;
                       let finalTranscript = inputValue;
                       let isProcessing = false;
-                  recognition.addEventListener("result", (e) => {
+                      recognition.addEventListener("result", (e) => {
                         if (isProcessing) return;
-                    isProcessing = true;
-                    let interimTranscript = '';
-                    let newFinalTranscript = '';
-                    for (let i = e.resultIndex; i < e.results.length; i++) {
-                      const result = e.results[i];
-                      const transcript = result[0].transcript;
-                      if (result.isFinal) {
-                        const capitalized = transcript.charAt(0).toUpperCase() + transcript.slice(1);
-                        newFinalTranscript += capitalized + ' ';
-                      } else {
-                        interimTranscript += transcript;
-                      }
-                    }
-                    const updatedText = finalTranscript + newFinalTranscript + interimTranscript;
-                    setInputValue(updatedText.trim());
-                    const textarea = document.getElementById("groq_chat_textarea");
-                    if (textarea) {
-                      textarea.value = updatedText.trim();
+                        isProcessing = true;
+                        let interimTranscript = '';
+                        let newFinalTranscript = '';
+                        for (let i = e.resultIndex; i < e.results.length; i++) {
+                          const result = e.results[i];
+                          const transcript = result[0].transcript;
+                          if (result.isFinal) {
+                            const capitalized = transcript.charAt(0).toUpperCase() + transcript.slice(1);
+                            newFinalTranscript += capitalized + ' ';
+                          } else {
+                            interimTranscript += transcript;
+                          }
+                        }
+                        const updatedText = finalTranscript + newFinalTranscript + interimTranscript;
+                        setInputValue(updatedText.trim());
+                        const textarea = document.getElementById("groq_chat_textarea");
+                        if (textarea) {
+                          textarea.value = updatedText.trim();
                           requestAnimationFrame(() => {
                             const scrollTop = textarea.scrollTop;
-                      textarea.style.height = 'auto';
+                            textarea.style.height = 'auto';
                             const newHeight = Math.max(44, Math.min(textarea.scrollHeight, 200));
-                      textarea.style.height = `${newHeight}px`;
+                            textarea.style.height = `${newHeight}px`;
                             textarea.scrollTop = scrollTop;
                           });
-                    }
-                    if (newFinalTranscript) {
-                      finalTranscript += newFinalTranscript;
-                    }
-                    isProcessing = false;
-                  });
-                  recognition.addEventListener("error", (e) => {
-                    console.warn('Speech recognition error:', e.error);
+                        }
+                        if (newFinalTranscript) {
+                          finalTranscript += newFinalTranscript;
+                        }
+                        isProcessing = false;
+                      });
+                      recognition.addEventListener("error", (e) => {
+                        console.warn('Speech recognition error:', e.error);
                         if (e.error === 'not-allowed' || e.error === 'audio-capture') {
                           alert('Microphone permission denied. Please enable microphone access in your browser settings.');
-                        setIsRecording(false);
-                        setSpeechObj(null);
+                          setIsRecording(false);
+                          setSpeechObj(null);
                         }
                       });
-                  recognition.addEventListener("end", () => {
-                    if (isRecording) {
-                      setTimeout(() => {
-                        if (isRecording && speechObj === recognition) {
+                      recognition.addEventListener("end", () => {
+                        if (isRecording) {
+                          setTimeout(() => {
+                            if (isRecording && speechObj === recognition) {
+                              try {
+                                recognition.start();
+                              } catch (e) {
+                                console.warn('Error restarting recognition:', e);
+                                setIsRecording(false);
+                                setSpeechObj(null);
+                              }
+                            }
+                          }, 100);
+                        }
+                      });
+                      navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(() => {
                           try {
                             recognition.start();
                           } catch (e) {
-                            console.warn('Error restarting recognition:', e);
+                            console.error('Error starting recognition:', e);
                             setIsRecording(false);
                             setSpeechObj(null);
+                            alert('Could not start speech recognition. Please check your microphone permissions.');
                           }
-                        }
-                      }, 100);
+                        })
+                        .catch((err) => {
+                          console.error('Microphone access error:', err);
+                          setIsRecording(false);
+                          setSpeechObj(null);
+                          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                            alert('Microphone permission denied. Please enable microphone access in your browser settings.');
+                          } else {
+                            alert('Could not access microphone. Please check your microphone connection and permissions.');
+                          }
+                        });
                     }
-                  });
-                  navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(() => {
-                      try {
-                        recognition.start();
-                      } catch (e) {
-                        console.error('Error starting recognition:', e);
-                        setIsRecording(false);
-                        setSpeechObj(null);
-                        alert('Could not start speech recognition. Please check your microphone permissions.');
-                      }
-                    })
-                    .catch((err) => {
-                      console.error('Microphone access error:', err);
-                      setIsRecording(false);
-                      setSpeechObj(null);
-                      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        alert('Microphone permission denied. Please enable microphone access in your browser settings.');
-                      } else {
-                        alert('Could not access microphone. Please check your microphone connection and permissions.');
-                      }
-                    });
-                }
-                speechToText();
-              }
-            }}
+                    speechToText();
+                  }
+                }}
                 disabled={(isSharedView && !currentUser) || currentUserRole === 'viewer'}
-              style={{
+                style={{
                   background: 'transparent',
-                border: 'none',
-                cursor: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? 'not-allowed' : 'pointer',
+                  border: 'none',
+                  cursor: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? 'not-allowed' : 'pointer',
                   padding: '8px',
-                color: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af',
+                  color: (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af',
                   borderRadius: '50%',
                   transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center'
-              }}
-              onMouseEnter={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = '#f3f4f6';
                     e.currentTarget.style.color = '#4b5563';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af';
-              }}
-              title="Voice Input"
-            >
-            {isRecording ? (
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = (isSharedView && !currentUser) || currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af';
+                }}
+                title="Voice Input"
+              >
+                {isRecording ? (
                   <img src={waveformSvg} alt="Recording..." className="waveform-animated" style={{ width: 20, height: 20 }} />
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '20px', height: '20px' }}>
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" x2="12" y1="19" y2="22" />
-              </svg>
-            )}
-          </button>
+                  </svg>
+                )}
+              </button>
 
-            {/* Camera button */}
+              {/* Camera button */}
               {isLoggedIn && (
-              <button
-                id="showScreenshotShortcutsButton"
-                type="button"
+                <button
+                  id="showScreenshotShortcutsButton"
+                  type="button"
                   onClick={() => setIsScreenshotShortcutsVisible(!isScreenshotShortcutsVisible)}
                   disabled={currentUserRole === 'viewer'}
-                style={{
+                  style={{
                     background: 'transparent',
-                  border: 'none',
-                  cursor: currentUserRole === 'viewer' ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    cursor: currentUserRole === 'viewer' ? 'not-allowed' : 'pointer',
                     padding: '8px',
-                  color: currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af',
+                    color: currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af',
                     borderRadius: '50%',
                     transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => {
-                  if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
                       e.currentTarget.style.color = '#4b5563';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af';
-                }}
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = currentUserRole === 'viewer' ? '#cbd5e1' : '#9ca3af';
+                  }}
                   title="Use Camera"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '20px', height: '20px' }}>
                     <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
                     <circle cx="12" cy="13" r="3" />
-                </svg>
-              </button>
+                  </svg>
+                </button>
               )}
-          </div>
+            </div>
 
             {/* Send Button */}
             <button
@@ -3641,61 +3660,61 @@ function MessageInput({ inputValue, setInputValue, handleSubmit, isLoading, text
                 }
               }}
               title="Send message"
-          >
+            >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '20px', height: '20px' }}>
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
               </svg>
             </button>
-        </div>
+          </div>
         </div>
 
       </div>
 
       {isScreenshotShortcutsVisible &&
-          <div
-            style={{
-              position: 'absolute',
-              background: 'white',
-              bottom: '50px',
-              borderRadius: '10px',
-              border: '1px solid gray',
-              padding: '1rem'
-            }}
-          >
-            <button
-              onClick={
-                function () {
-                  screenshotShortcut(0);
-                }
+        <div
+          style={{
+            position: 'absolute',
+            background: 'white',
+            bottom: '50px',
+            borderRadius: '10px',
+            border: '1px solid gray',
+            padding: '1rem'
+          }}
+        >
+          <button
+            onClick={
+              function () {
+                screenshotShortcut(0);
               }
-              class="groqScreenshotButton nav-link">
-              <i class="fas fa-desktop"></i>
-              &nbsp;&nbsp;Capture Visible Part
-            </button><br></br>
-            <button
-              onClick={
-                function () {
-                  screenshotShortcut(1);
-                }
+            }
+            class="groqScreenshotButton nav-link">
+            <i class="fas fa-desktop"></i>
+            &nbsp;&nbsp;Capture Visible Part
+          </button><br></br>
+          <button
+            onClick={
+              function () {
+                screenshotShortcut(1);
               }
-              class="groqScreenshotButton nav-link">
-              <i class="fas fa-crop-alt"></i>
-              &nbsp;&nbsp;Capture Selected Area
-            </button><br></br>
-            <button
-              onClick={
-                function () {
-                  setIsScreenshotShortcutsVisible(false);
-                  downloadFullPageScreenshot();
-                }
+            }
+            class="groqScreenshotButton nav-link">
+            <i class="fas fa-crop-alt"></i>
+            &nbsp;&nbsp;Capture Selected Area
+          </button><br></br>
+          <button
+            onClick={
+              function () {
+                setIsScreenshotShortcutsVisible(false);
+                downloadFullPageScreenshot();
               }
-              class="groqScreenshotButton nav-link">
-              <i class="fas fa-window-maximize"></i>
-              &nbsp;&nbsp;Capture Full Page
-            </button>
-          </div>
-        }
+            }
+            class="groqScreenshotButton nav-link">
+            <i class="fas fa-window-maximize"></i>
+            &nbsp;&nbsp;Capture Full Page
+          </button>
+        </div>
+      }
 
       {currentUserRole === 'viewer' && (
         <div style={{
@@ -3749,9 +3768,17 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   const [isCustomSidebarVisible, setIsCustomSidebarVisible] = useState(false);
   const [customSidebarWidth, setCustomSidebarWidth] = useState(CUSTOM_SIDEBAR_DEFAULT_WIDTH);
   const [prevCustomSidebarWidth, setPrevCustomSidebarWidth] = useState(CUSTOM_SIDEBAR_DEFAULT_WIDTH);
-  const [customSidebarActiveTab, setCustomSidebarActiveTab] = useState('activity'); // 'activity' or 'messages'
-  const [isActivityExpanded, setIsActivityExpanded] = useState(false);
-  
+  const [customSidebarActiveTab, setCustomSidebarActiveTab] = useState('comments'); // 'comments' | 'messages'
+  const [comments, setComments] = useState([]);
+  const [selectedMessageForComment, setSelectedMessageForComment] = useState(null); // { message, index }
+  const [commentDraft, setCommentDraft] = useState('');
+  const [isCommentsExpanded, setIsCommentsExpanded] = useState(true); // Comments section expanded by default (like annotation history)
+  const [spotlightMessageIndex, setSpotlightMessageIndex] = useState(null); // Google Docs-style: highlight message when navigating from comment
+  const [replyingToCommentId, setReplyingToCommentId] = useState(null); // comment id when reply input is open
+  const [replyDraft, setReplyDraft] = useState('');
+  const commentsPathRef = useRef(null);
+  const spotlightTimeoutRef = useRef(null);
+
   const [companyEmail, setCompanyEmail] = useState(localStorage.getItem("companyEmail") || '');
   // const [chatHighlights, setChatHighlights] = useState([]); // State for highlights
   // const [annotationHistoryData, setAnnotationHistoryData] = useState(null); // State for parsed history
@@ -3824,17 +3851,17 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         btn.title = label;
         btn.innerHTML = `${svg}<span class="phraze-top-toolbar-btn-label">${label}</span>`;
         btn.addEventListener('click', (e) => {
-          try { e.preventDefault(); } catch (_) {}
-          try { e.stopPropagation(); } catch (_) {}
+          try { e.preventDefault(); } catch (_) { }
+          try { e.stopPropagation(); } catch (_) { }
           try {
             const current = String(window.phrazeActiveTool || '');
             const next = current === tool ? 'none' : tool;
             window.phrazeActiveTool = next;
-          } catch (_) {}
+          } catch (_) { }
 
           try {
             window.dispatchEvent(new CustomEvent('phraze:tool-changed', { detail: { tool: String(window.phrazeActiveTool || '') } }));
-          } catch (_) {}
+          } catch (_) { }
 
           try {
             toolbar.querySelectorAll('.phraze-top-toolbar-btn').forEach((b) => {
@@ -3842,15 +3869,17 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               const next = String(window.phrazeActiveTool || '');
               b.classList.toggle('active', b.getAttribute('data-tool') === next);
             });
-          } catch (_) {}
+          } catch (_) { }
 
         });
         return btn;
       };
 
       const selectionSvg = `<svg class="phraze-top-toolbar-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 18 2-8 8-2L3 3z"/></svg>`;
+      const commentSvg = `<svg class="phraze-top-toolbar-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 
       toolbar.appendChild(makeBtn({ tool: 'selection', label: 'Selection', svg: selectionSvg }));
+      toolbar.appendChild(makeBtn({ tool: 'comment', label: 'Comment', svg: commentSvg }));
 
       const highlightColorSwatch = document.createElement('button');
       highlightColorSwatch.type = 'button';
@@ -3877,7 +3906,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         try {
           localStorage.setItem('phrazeLastHighlightColorHex', DEFAULT_HIGHLIGHT_HEX);
           localStorage.setItem('phrazeLastHighlightColorName', 'yellow');
-        } catch (_) {}
+        } catch (_) { }
         return DEFAULT_HIGHLIGHT_HEX;
       })();
       swatchDot.style.background = initialHex;
@@ -3885,24 +3914,24 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       const setToolbarHighlightColor = (hex, name = null) => {
         if (!hex) return;
-        try { swatchDot.style.background = String(hex); } catch (_) {}
-        try { window.phrazeHighlightColorHex = String(hex); } catch (_) {}
-        try { localStorage.setItem('phrazeLastHighlightColorHex', String(hex)); } catch (_) {}
+        try { swatchDot.style.background = String(hex); } catch (_) { }
+        try { window.phrazeHighlightColorHex = String(hex); } catch (_) { }
+        try { localStorage.setItem('phrazeLastHighlightColorHex', String(hex)); } catch (_) { }
         if (name) {
-          try { localStorage.setItem('phrazeLastHighlightColorName', String(name)); } catch (_) {}
+          try { localStorage.setItem('phrazeLastHighlightColorName', String(name)); } catch (_) { }
         }
       };
 
       const setActiveHighlightId = (id) => {
         try {
           window.phrazeActiveHighlightId = id ? String(id) : null;
-        } catch (_) {}
+        } catch (_) { }
       };
 
       try {
         window.phrazeSetToolbarHighlightColor = setToolbarHighlightColor;
         window.phrazeSetActiveHighlightId = setActiveHighlightId;
-      } catch (_) {}
+      } catch (_) { }
 
       const colorPalette = document.createElement('div');
       colorPalette.style.position = 'absolute';
@@ -3941,10 +3970,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         btn.style.background = hex;
         btn.style.cursor = 'pointer';
         btn.setAttribute('aria-label', `Select ${name} highlight color`);
-        btn.addEventListener('mousedown', (e) => { try { e.preventDefault(); } catch (_) {} });
+        btn.addEventListener('mousedown', (e) => { try { e.preventDefault(); } catch (_) { } });
         btn.addEventListener('click', (e) => {
-          try { e.preventDefault(); } catch (_) {}
-          try { e.stopPropagation(); } catch (_) {}
+          try { e.preventDefault(); } catch (_) { }
+          try { e.stopPropagation(); } catch (_) { }
           setToolbarHighlightColor(hex, name);
 
           // If a highlight is currently "active", update that existing highlight color.
@@ -3955,12 +3984,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 detail: { highlightId: String(activeId), hex, name }
               }));
             }
-          } catch (_) {}
+          } catch (_) { }
           // If a selection box is selected, notify so its color can be updated.
           try {
             const boxId = (typeof window !== 'undefined' && window.phrazeSelectedSelectionBoxId) || null;
             document.dispatchEvent(new CustomEvent('phraze:selection-box-color-changed', { detail: { hex, boxId } }));
-          } catch (_) {}
+          } catch (_) { }
           colorPalette.style.display = 'none';
         });
         colorGrid.appendChild(btn);
@@ -3973,12 +4002,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       };
 
       highlightColorSwatch.addEventListener('mousedown', (e) => {
-        try { e.preventDefault(); } catch (_) {}
-        try { e.stopPropagation(); } catch (_) {}
+        try { e.preventDefault(); } catch (_) { }
+        try { e.stopPropagation(); } catch (_) { }
       });
       highlightColorSwatch.addEventListener('click', (e) => {
-        try { e.preventDefault(); } catch (_) {}
-        try { e.stopPropagation(); } catch (_) {}
+        try { e.preventDefault(); } catch (_) { }
+        try { e.stopPropagation(); } catch (_) { }
         togglePalette();
       });
 
@@ -3987,7 +4016,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           if (!toolbar.contains(e.target)) {
             colorPalette.style.display = 'none';
           }
-        } catch (_) {}
+        } catch (_) { }
       };
       document.addEventListener('click', onDocClick);
 
@@ -3997,7 +4026,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           if (!detail) return;
           if (detail.highlightId) setActiveHighlightId(detail.highlightId);
           if (detail.hex) setToolbarHighlightColor(detail.hex, detail.name || null);
-        } catch (_) {}
+        } catch (_) { }
       };
       document.addEventListener('phraze:active-highlight-changed', onActiveHighlightChanged);
 
@@ -4011,22 +4040,22 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       }
       try {
         window.phrazeHighlightColorHex = initialHex;
-      } catch (_) {}
+      } catch (_) { }
       try {
         const initial = String(window.phrazeActiveTool || 'none');
         toolbar.querySelectorAll('.phraze-top-toolbar-btn').forEach((b) => {
           b.classList.toggle('active', b.getAttribute('data-tool') === initial);
         });
-      } catch (_) {}
+      } catch (_) { }
 
       return () => {
-        try { toolbar.remove(); } catch (_) {}
-        try { document.removeEventListener('click', onDocClick); } catch (_) {}
-        try { document.removeEventListener('phraze:active-highlight-changed', onActiveHighlightChanged); } catch (_) {}
+        try { toolbar.remove(); } catch (_) { }
+        try { document.removeEventListener('click', onDocClick); } catch (_) { }
+        try { document.removeEventListener('phraze:active-highlight-changed', onActiveHighlightChanged); } catch (_) { }
         try {
           if (window.phrazeSetToolbarHighlightColor === setToolbarHighlightColor) delete window.phrazeSetToolbarHighlightColor;
           if (window.phrazeSetActiveHighlightId === setActiveHighlightId) delete window.phrazeSetActiveHighlightId;
-        } catch (_) {}
+        } catch (_) { }
       };
     } catch (_) {
       return undefined;
@@ -4072,12 +4101,218 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     return () => window.removeEventListener('phraze:openCustomSidebarMessages', handler);
   }, []);
 
+  // Open sidebar to Comments and select a message when user clicks a message in comment mode
+  const handleMessageClickForComment = (message, index) => {
+    if (!commentModeEnabled) return;
+    setSelectedMessageForComment({ message, index });
+    setIsCustomSidebarVisible(true);
+    setCustomSidebarActiveTab('comments');
+    setIsCommentsExpanded(true); // Expand comments section (like annotation history)
+  };
+
+  // Add comment and save to Firebase (per user, per project, per chat)
+  const handleAddComment = async () => {
+    const content = (commentDraft || '').trim();
+    if (!content || !selectedMessageForComment || !commentsPathRef.current) return;
+    if (!auth.currentUser?.email) {
+      showToast('You must be logged in to add a comment', 'error');
+      return;
+    }
+
+    const { message, index } = selectedMessageForComment;
+    const messageId = message?.messageId || message?.id || `msg_${index}`;
+    const rawContent = message?.content;
+    const fullText = typeof rawContent === 'string'
+      ? rawContent
+      : Array.isArray(rawContent) ? rawContent.map(p => p?.text || '').join(' ') : '';
+    const messagePreview = fullText.slice(0, 80) + (fullText.length > 80 ? '…' : '');
+    const messageRole = message?.role || 'user';
+
+    const authorName = (userProfile?.firstName && userProfile?.lastName)
+      ? `${userProfile.firstName} ${userProfile.lastName}`
+      : (userProfile?.username || auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'User');
+    const authorProfilePic = userProfile?.profileImage || null;
+
+    const commentId = `comment_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const chatIdForComment = currentChat?.originalId || currentChat?.id || null;
+    const chatTitleForComment = currentChat?.title || 'Chat';
+    const newComment = {
+      id: commentId,
+      parentId: null,
+      messageId: String(messageId),
+      messageIndex: index,
+      messagePreview,
+      messageRole,
+      content,
+      author: auth.currentUser.email,
+      authorName,
+      authorProfilePic: authorProfilePic || null,
+      createdAt: Date.now(),
+      resolved: false,
+      chatId: chatIdForComment,
+      chatTitle: chatTitleForComment,
+    };
+
+    try {
+      const path = commentsPathRef.current;
+      const existing = comments || [];
+      const nextList = [...existing, newComment];
+      const asObject = nextList.reduce((acc, c) => {
+        if (c && c.id) acc[c.id] = c;
+        return acc;
+      }, {});
+      await saveFirebaseData(path, asObject);
+      setCommentDraft('');
+      setSelectedMessageForComment(null);
+      showToast('Comment added', 'success');
+    } catch (err) {
+      console.error('Failed to save comment', err);
+      showToast('Failed to save comment', 'error');
+    }
+  };
+
+  // Scroll to the message a comment refers to and spotlight it (Google Docs-style "go to comment")
+  const scrollToMessageAndSpotlight = (messageIndex) => {
+    if (messageIndex == null || typeof messageIndex !== 'number') return;
+    const el = document.getElementById(`message-row-${messageIndex}`);
+    const container = document.getElementById('chatMessagesDiv');
+    if (el && container) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSpotlightMessageIndex(messageIndex);
+      if (spotlightTimeoutRef.current) clearTimeout(spotlightTimeoutRef.current);
+      spotlightTimeoutRef.current = setTimeout(() => {
+        setSpotlightMessageIndex(null);
+        spotlightTimeoutRef.current = null;
+      }, 2500);
+    }
+  };
+
+  // Google Docs-style: open comment in chat — switch to that chat if needed, open sidebar, scroll to message and spotlight
+  const handleOpenCommentInChat = (comment) => {
+    if (!comment || typeof comment.messageIndex !== 'number') return;
+    const targetChatId = comment.chatId ?? (currentChat?.originalId || currentChat?.id);
+    const currentChatId = currentChat?.originalId || currentChat?.id;
+    const needSwitch = targetChatId && currentChatId !== targetChatId;
+
+    setIsCustomSidebarVisible(true);
+    setCustomSidebarActiveTab('comments');
+    setIsCommentsExpanded(true);
+
+    if (needSwitch && targetChatId) {
+      const candidates = ([]).concat(Array.isArray(allChats) ? allChats : []).concat(Array.isArray(allSharedChats) ? allSharedChats : []);
+      const foundChat = candidates.find((c) => c && (c.id === targetChatId || c.originalId === targetChatId));
+      if (foundChat) {
+        handleChatSelect(foundChat);
+        setTimeout(() => scrollToMessageAndSpotlight(comment.messageIndex), 800);
+      } else {
+        scrollToMessageAndSpotlight(comment.messageIndex);
+      }
+    } else {
+      scrollToMessageAndSpotlight(comment.messageIndex);
+    }
+  };
+
+  // Reply to a comment (Google Docs-style threaded reply).
+  // Any project member can reply, including in shared projects.
+  const handleReplyComment = async (parentComment, replyContent) => {
+    const content = (replyContent || '').trim();
+    if (!content || !parentComment?.id || !commentsPathRef.current) return;
+    if (!auth.currentUser?.email) {
+      showToast('You must be logged in to reply', 'error');
+      return;
+    }
+    if (currentUserRole === 'viewer') {
+      showToast('Viewers cannot reply to comments', 'error');
+      return;
+    }
+    const authorName = (userProfile?.firstName && userProfile?.lastName)
+      ? `${userProfile.firstName} ${userProfile.lastName}`
+      : (userProfile?.username || auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'User');
+    const authorProfilePic = userProfile?.profileImage || null;
+    const replyId = `comment_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const newReply = {
+      id: replyId,
+      parentId: parentComment.id,
+      messageId: parentComment.messageId,
+      messageIndex: parentComment.messageIndex,
+      messagePreview: parentComment.messagePreview,
+      messageRole: parentComment.messageRole,
+      content,
+      author: auth.currentUser.email,
+      authorName,
+      authorProfilePic: authorProfilePic || null,
+      createdAt: Date.now(),
+      resolved: false,
+      chatId: (parentComment.chatId ?? (currentChat?.originalId || currentChat?.id)) || null,
+      chatTitle: (parentComment.chatTitle ?? currentChat?.title) ?? 'Chat',
+    };
+    try {
+      const path = commentsPathRef.current;
+      const existing = comments || [];
+      const nextList = [...existing, newReply];
+      const asObject = nextList.reduce((acc, c) => {
+        if (c && c.id) acc[c.id] = c;
+        return acc;
+      }, {});
+      await saveFirebaseData(path, asObject);
+      setReplyDraft('');
+      setReplyingToCommentId(null);
+      showToast('Reply added', 'success');
+    } catch (err) {
+      console.error('Failed to save reply', err);
+      showToast('Failed to save reply', 'error');
+    }
+  };
+
+  // Resolve or reopen a comment (Google Docs-style). Resolving a parent resolves the whole thread.
+  // Any project member can resolve/reopen, including in shared projects.
+  const handleResolveComment = async (comment) => {
+    if (!comment?.id || !commentsPathRef.current) return;
+    if (!auth.currentUser?.email) {
+      showToast('You must be logged in to resolve comments', 'error');
+      return;
+    }
+    if (currentUserRole === 'viewer') {
+      showToast('Viewers cannot resolve comments', 'error');
+      return;
+    }
+    const resolved = !comment.resolved;
+    try {
+      const path = commentsPathRef.current;
+      const existing = comments || [];
+      const isParent = !comment.parentId;
+      const replyIds = isParent ? (existing.filter((c) => c.parentId === comment.id).map((c) => c.id)) : [];
+      const updatedParent = {
+        ...comment,
+        resolved,
+        resolvedAt: resolved ? Date.now() : null,
+        resolvedBy: resolved ? (auth.currentUser?.email || null) : null,
+      };
+      const nextList = existing.map((c) => {
+        if (c.id === comment.id) return updatedParent;
+        if (resolved && isParent && replyIds.includes(c.id)) {
+          return { ...c, resolved: true, resolvedAt: updatedParent.resolvedAt, resolvedBy: updatedParent.resolvedBy };
+        }
+        return c;
+      });
+      const asObject = nextList.reduce((acc, c) => {
+        if (c && c.id) acc[c.id] = c;
+        return acc;
+      }, {});
+      await saveFirebaseData(path, asObject);
+      showToast(resolved ? 'Comment resolved' : 'Comment reopened', 'success');
+    } catch (err) {
+      console.error('Failed to update comment', err);
+      showToast('Failed to update comment', 'error');
+    }
+  };
+
   // Only clear activeMessagingContext when user explicitly navigates away from messaging
-  // (e.g., switches to Activity tab in custom sidebar). Don't interfere with main messaging interface.
+  // (e.g., switches to Comments tab in custom sidebar). Don't interfere with main messaging interface.
   useEffect(() => {
     // Only apply this logic when custom sidebar is actually visible
     if (!isCustomSidebarVisible) return;
-    
+
     const shouldClear = customSidebarActiveTab !== 'messages';
     if (!shouldClear) return;
 
@@ -4120,6 +4355,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   const navigate = useNavigate(); // Use useNavigate hook
 
   const [selectionModeEnabled, setSelectionModeEnabled] = useState(false);
+  const [commentModeEnabled, setCommentModeEnabled] = useState(false);
   const [selectionBoxes, setSelectionBoxes] = useState([]);
   const [selectionInteraction, setSelectionInteraction] = useState({ type: 'idle' });
   const [selectedSelectionBoxId, setSelectedSelectionBoxId] = useState(null);
@@ -4137,7 +4373,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     selectedSelectionBoxIdRef.current = selectedSelectionBoxId;
     try {
       if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = selectedSelectionBoxId || null;
-    } catch (_) {}
+    } catch (_) { }
   }, [selectedSelectionBoxId]);
 
   useEffect(() => {
@@ -4149,7 +4385,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       if (e.key === 'Escape') {
         setSelectedSelectionBoxId(null);
         selectedSelectionBoxIdRef.current = null;
-        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = null; } catch (_) {}
+        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = null; } catch (_) { }
         return;
       }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSelectionBoxIdRef.current) {
@@ -4158,7 +4394,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         setSelectionBoxes((prev) => prev.filter((b) => b.id !== boxId));
         setSelectedSelectionBoxId(null);
         selectedSelectionBoxIdRef.current = null;
-        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = null; } catch (_) {}
+        try { if (typeof window !== 'undefined') window.phrazeSelectedSelectionBoxId = null; } catch (_) { }
       }
     };
     document.addEventListener('keydown', handleSelectionKeyboard);
@@ -4185,7 +4421,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         selectionPrevUserSelectRef.current = document.body.style.userSelect || '';
       }
       document.body.style.userSelect = 'none';
-    } catch (_) {}
+    } catch (_) { }
     const container = chatMessagesContainerRef.current;
     const savedScrollTop = container ? container.scrollTop : 0;
     const savedScrollLeft = container ? container.scrollLeft : 0;
@@ -4200,7 +4436,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         if (typeof window !== 'undefined' && (window.scrollY !== savedWindowScrollY || window.scrollX !== savedWindowScrollX)) {
           window.scrollTo(savedWindowScrollX, savedWindowScrollY);
         }
-      } catch (_) {}
+      } catch (_) { }
     };
     restore();
     requestAnimationFrame(() => {
@@ -4217,7 +4453,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         document.body.style.userSelect = selectionPrevUserSelectRef.current;
         selectionPrevUserSelectRef.current = null;
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   useEffect(() => {
@@ -4225,9 +4461,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       const active = (() => {
         try { return String(window.phrazeActiveTool || ''); } catch (_) { return ''; }
       })();
-      const enabled = active === 'selection';
-      setSelectionModeEnabled(enabled);
-      if (enabled) {
+      const selectionEnabled = active === 'selection';
+      const commentEnabled = active === 'comment';
+      setSelectionModeEnabled(selectionEnabled);
+      setCommentModeEnabled(commentEnabled);
+      if (selectionEnabled) {
         setIsAutoScrollEnabled(false);
       } else {
         setSelectionInteraction({ type: 'idle' });
@@ -4294,8 +4532,60 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
     onValue(fbRef, handle);
     return () => {
-      try { off(fbRef, 'value', handle); } catch (_) {}
+      try { off(fbRef, 'value', handle); } catch (_) { }
       selectionHydratingRef.current = false;
+    };
+  }, [currentChat?.id, currentChat?.originalId, currentChat?.isPublic, currentChat?.isShared, currentProject]);
+
+  // Clear comment selection when switching chats
+  useEffect(() => {
+    setSelectedMessageForComment(null);
+    setCommentDraft('');
+  }, [currentChat?.id]);
+
+  // Load comments from Firebase (per user, per project, per chat)
+  useEffect(() => {
+    const companyEmailPath = (() => {
+      try {
+        const shared = localStorage.getItem('sharedCompanyEmail');
+        const normal = localStorage.getItem('companyEmail');
+        return shared || normal;
+      } catch (_) {
+        return null;
+      }
+    })();
+
+    if (!currentChat?.id || !currentProject || !companyEmailPath) {
+      commentsPathRef.current = null;
+      setComments([]);
+      return;
+    }
+
+    const isPrivate = currentChat && currentChat.isPublic === false && !currentChat.isShared;
+    const chatId = currentChat.originalId || currentChat.id;
+    const chatBasePath = getChatBasePath(companyEmailPath, currentProject, chatId, isPrivate, auth.currentUser?.email);
+    const path = `${chatBasePath}/comments`;
+    commentsPathRef.current = path;
+
+    const fbRef = ref(database, path);
+    const handle = (snapshot) => {
+      try {
+        const val = snapshot.val();
+        const list = val && typeof val === 'object' && !Array.isArray(val)
+          ? Object.values(val).filter(Boolean)
+          : Array.isArray(val)
+            ? val
+            : [];
+        setComments(list);
+      } catch (_) {
+        setComments([]);
+      }
+    };
+
+    onValue(fbRef, handle);
+    return () => {
+      try { off(fbRef, 'value', handle); } catch (_) { }
+      commentsPathRef.current = null;
     };
   }, [currentChat?.id, currentChat?.originalId, currentChat?.isPublic, currentChat?.isShared, currentProject]);
 
@@ -4469,16 +4759,19 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             window.phrazeSelectedSelectionBoxId = id;
             window.phrazeNewSelectionBoxId = id;
           }
-        } catch (_) {}
+        } catch (_) { }
+        try {
+          phrazeHideAnyOtherPopups();
+        } catch (_) { }
         try {
           window.setTimeout(() => {
             try {
               if (typeof window !== 'undefined' && typeof window.phrazeOpenSelectionBoxNotes === 'function') {
                 window.phrazeOpenSelectionBoxNotes(id);
               }
-            } catch (_) {}
+            } catch (_) { }
           }, 0);
-        } catch (_) {}
+        } catch (_) { }
       }
       selectionResizePendingRef.current = null;
       setSelectionInteraction({ type: 'idle' });
@@ -4557,7 +4850,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       }
       const hex = box.color || DEFAULT_SELECTION_BOX_COLOR;
       if (window.phrazeSetToolbarHighlightColor) window.phrazeSetToolbarHighlightColor(hex);
-    } catch (_) {}
+    } catch (_) { }
 
     selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
     setSelectionInteraction({
@@ -4590,7 +4883,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         window.phrazeSelectedSelectionBoxId = boxId;
         window.phrazeNewSelectionBoxId = null;
       }
-    } catch (_) {}
+    } catch (_) { }
     selectionOverlayRef.current?.setPointerCapture?.(e.pointerId);
     setSelectionInteraction({
       type: 'resizing',
@@ -4639,9 +4932,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Always fetch member count (even for private chats) to determine messaging availability
   useEffect(() => {
     // Get the company email for the project (outside async function so it's accessible for real-time listener)
-        const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
-        const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-        
+    const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
+    const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
+
     const fetchProjectMembersAndCount = async () => {
       try {
         if (!targetCompanyEmail || !currentProject) {
@@ -4653,7 +4946,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         // Fetch members from Firebase - always fetch to get member count
         const membersPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members`;
         const membersData = await getFirebaseData(membersPath);
-        
+
         if (!membersData) {
           setProjectMembers([]);
           setProjectMemberCount(0);
@@ -4670,11 +4963,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         if (auth.currentUser && auth.currentUser.email) {
           const currentUserEmail = auth.currentUser.email.replace(/\./g, ',');
           const currentUserMember = membersData[currentUserEmail];
-          
+
           // Project is shared if it has more than 1 member (owner + others)
           const isShared = memberCount > 1;
           setIsProjectShared(isShared);
-          
+
           // Check if current user is owner or recipient
           // If sharedCompanyEmail is set, we're viewing a shared project from another company, so user is not owner
           let isOwner = false;
@@ -4691,12 +4984,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               }
             }
           }
-          
+
           if (!isOwner && currentUserMember) {
             // Check if user is in members list with owner role
             isOwner = currentUserMember.role === 'owner';
           }
-          
+
           setIsProjectOwner(isOwner);
         } else {
           // User not logged in
@@ -4726,41 +5019,41 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           memberEmails.map(async (email) => {
             const emailFormatted = email.replace(/\./g, ',');
             const memberInfo = membersData[emailFormatted] || {};
-            
+
             // Try to get profile picture and name from the user's OWN company
             let profilePic = null;
             let userName = null;
             let userCompanyEmail = null;
-            
+
             try {
               // First, get the user's own company email from emailToCompanyDirectory
               userCompanyEmail = await getFirebaseData(`emailToCompanyDirectory/${emailFormatted}`);
-              
+
               if (userCompanyEmail) {
                 // Fetch profile picture, name, firstName, and lastName from user's own company
                 const [picData, userData] = await Promise.all([
                   getFirebaseData(`Companies/${userCompanyEmail}/users/${emailFormatted}/profileImage`).catch(() => null),
                   getFirebaseData(`Companies/${userCompanyEmail}/users/${emailFormatted}`).catch(() => null)
                 ]);
-                
+
                 profilePic = picData || null;
                 // Use name field, or construct from firstName/lastName, or fallback to email prefix
-                userName = userData?.name || (userData?.firstName && userData?.lastName 
-                  ? `${userData.firstName} ${userData.lastName}` 
+                userName = userData?.name || (userData?.firstName && userData?.lastName
+                  ? `${userData.firstName} ${userData.lastName}`
                   : userData?.firstName || email.split('@')[0]);
               }
-              
+
               // If not found in user's company, try the project owner's company as fallback
               if (!profilePic || !userName) {
                 const [picData, userData] = await Promise.all([
                   getFirebaseData(`Companies/${targetCompanyEmail}/users/${emailFormatted}/profileImage`).catch(() => null),
                   getFirebaseData(`Companies/${targetCompanyEmail}/users/${emailFormatted}`).catch(() => null)
                 ]);
-                
+
                 if (!profilePic) profilePic = picData || null;
                 if (!userName) {
-                  userName = userData?.name || (userData?.firstName && userData?.lastName 
-                    ? `${userData.firstName} ${userData.lastName}` 
+                  userName = userData?.name || (userData?.firstName && userData?.lastName
+                    ? `${userData.firstName} ${userData.lastName}`
                     : userData?.firstName || email.split('@')[0]);
                 }
               }
@@ -4802,13 +5095,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
         setProjectMembers(membersWithData);
         // Removed console.log for performance
-        
+
         // Clean up old listeners
         profilePicListenersRef.current.forEach(({ ref: refToClean, listener }) => {
           off(refToClean, 'value', listener);
         });
         profilePicListenersRef.current = [];
-        
+
         // Clean up old presence listeners
         memberPresenceListenersRef.current.forEach((cleanup) => {
           if (typeof cleanup === 'function') {
@@ -4816,65 +5109,65 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           }
         });
         memberPresenceListenersRef.current.clear();
-        
+
         // Set up real-time listeners for profile picture and user data updates after members are fetched
         if (membersWithData.length > 0) {
           membersWithData.forEach((member) => {
             const emailFormatted = member.email.replace(/\./g, ',');
-            
+
             // Set up listener for profile picture
             const profilePicPath = `Companies/${member.userCompanyEmail}/users/${emailFormatted}/profileImage`;
             const profilePicRef = ref(database, profilePicPath);
-            
+
             const profilePicListener = onValue(profilePicRef, (snapshot) => {
               const newProfilePic = snapshot.val();
-              setProjectMembers(prev => prev.map(m => 
-                m.email === member.email 
+              setProjectMembers(prev => prev.map(m =>
+                m.email === member.email
                   ? { ...m, profilePic: newProfilePic || null }
                   : m
               ));
             });
-            
+
             // Set up listener for user data (firstName, lastName, name) to update initials
             const userDataPath = `Companies/${member.userCompanyEmail}/users/${emailFormatted}`;
             const userDataRef = ref(database, userDataPath);
-            
+
             const userDataListener = onValue(userDataRef, (snapshot) => {
               const userData = snapshot.val();
               if (userData) {
                 // Update firstName, lastName, and name in state
                 const updatedFirstName = userData.firstName || null;
                 const updatedLastName = userData.lastName || null;
-                const updatedName = userData.name || (updatedFirstName && updatedLastName 
-                  ? `${updatedFirstName} ${updatedLastName}` 
+                const updatedName = userData.name || (updatedFirstName && updatedLastName
+                  ? `${updatedFirstName} ${updatedLastName}`
                   : updatedFirstName || member.email.split('@')[0]);
-                
-                setProjectMembers(prev => prev.map(m => 
-                  m.email === member.email 
-                    ? { 
-                        ...m, 
-                        firstName: updatedFirstName,
-                        lastName: updatedLastName,
-                        name: updatedName
-                      }
+
+                setProjectMembers(prev => prev.map(m =>
+                  m.email === member.email
+                    ? {
+                      ...m,
+                      firstName: updatedFirstName,
+                      lastName: updatedLastName,
+                      name: updatedName
+                    }
                     : m
                 ));
               }
             });
-            
+
             // Store both listeners for cleanup
             profilePicListenersRef.current.push({ ref: profilePicRef, listener: profilePicListener });
             profilePicListenersRef.current.push({ ref: userDataRef, listener: userDataListener });
-            
+
             // Set up presence listener for this member using new presence system
             // Clean up existing listener for this member if any
             if (memberPresenceListenersRef.current.has(member.email)) {
               const cleanup = memberPresenceListenersRef.current.get(member.email);
               if (typeof cleanup === 'function') {
                 cleanup();
+              }
             }
-            }
-            
+
             // Use the new presence system that tracks sessions and computes presence
             const cleanupPresence = listenToUserPresence(member.email, (presence) => {
               setMemberPresence(prev => ({
@@ -4882,7 +5175,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 [member.email]: presence // 'active' | 'idle' | 'offline'
               }));
             });
-            
+
             memberPresenceListenersRef.current.set(member.email, cleanupPresence);
           });
         }
@@ -4894,18 +5187,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     };
 
     fetchProjectMembersAndCount();
-    
+
     // Set up real-time listener for project members to update sharing status dynamically
     let membersListenerRef = null;
     let membersUnsubscribe = null;
-    
+
     if (targetCompanyEmail && currentProject) {
       const membersPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members`;
       membersListenerRef = ref(database, membersPath);
-      
+
       membersUnsubscribe = onValue(membersListenerRef, async (snapshot) => {
         const membersData = snapshot.val();
-        
+
         if (!membersData) {
           setProjectMemberCount(0);
           setIsProjectShared(false);
@@ -4921,10 +5214,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         if (auth.currentUser && auth.currentUser.email) {
           const currentUserEmail = auth.currentUser.email.replace(/\./g, ',');
           const currentUserMember = membersData[currentUserEmail];
-          
+
           const isShared = memberCount > 1;
           setIsProjectShared(isShared);
-          
+
           // Check if current user is owner or recipient
           // If sharedCompanyEmail is set, we're viewing a shared project from another company, so user is not owner
           const currentSharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
@@ -4942,14 +5235,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               }
             }
           }
-          
+
           if (!isOwner && currentUserMember) {
             // Check if user is in members list with owner role
             isOwner = currentUserMember.role === 'owner';
           }
-          
+
           setIsProjectOwner(isOwner);
-          
+
           // Read share permission and calculate canShare
           setSharePermissionLoading(true);
           try {
@@ -4994,45 +5287,45 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           memberEmails.map(async (email) => {
             const emailFormatted = email.replace(/\./g, ',');
             const memberInfo = membersData[emailFormatted] || {};
-            
+
             // Try to get profile picture and name from the user's OWN company
             let profilePic = null;
             let userName = null;
             let firstName = null;
             let lastName = null;
             let userCompanyEmail = null;
-            
+
             try {
               // First, get the user's own company email from emailToCompanyDirectory
               userCompanyEmail = await getFirebaseData(`emailToCompanyDirectory/${emailFormatted}`);
-              
+
               if (userCompanyEmail) {
                 // Fetch profile picture and name from user's own company
                 const [picData, userData] = await Promise.all([
                   getFirebaseData(`Companies/${userCompanyEmail}/users/${emailFormatted}/profileImage`).catch(() => null),
                   getFirebaseData(`Companies/${userCompanyEmail}/users/${emailFormatted}`).catch(() => null)
                 ]);
-                
+
                 profilePic = picData || null;
                 // Use name field, or construct from firstName/lastName, or fallback to email prefix
-                userName = userData?.name || (userData?.firstName && userData?.lastName 
-                  ? `${userData.firstName} ${userData.lastName}` 
+                userName = userData?.name || (userData?.firstName && userData?.lastName
+                  ? `${userData.firstName} ${userData.lastName}`
                   : userData?.firstName || email.split('@')[0]);
                 firstName = userData?.firstName || null;
                 lastName = userData?.lastName || null;
               }
-              
+
               // If not found in user's company, try the project owner's company as fallback
               if (!profilePic || !userName || !firstName || !lastName) {
                 const [picData, userData] = await Promise.all([
                   getFirebaseData(`Companies/${targetCompanyEmail}/users/${emailFormatted}/profileImage`).catch(() => null),
                   getFirebaseData(`Companies/${targetCompanyEmail}/users/${emailFormatted}`).catch(() => null)
                 ]);
-                
+
                 if (!profilePic) profilePic = picData || null;
                 if (!userName) {
-                  userName = userData?.name || (userData?.firstName && userData?.lastName 
-                    ? `${userData.firstName} ${userData.lastName}` 
+                  userName = userData?.name || (userData?.firstName && userData?.lastName
+                    ? `${userData.firstName} ${userData.lastName}`
                     : userData?.firstName || email.split('@')[0]);
                 }
                 if (!firstName) firstName = userData?.firstName || null;
@@ -5080,64 +5373,64 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             userCompanyEmail: targetCompanyEmail
           });
         }
-        
+
         if (membersWithData.length > 0) {
           membersWithData.forEach((member) => {
             const emailFormatted = member.email.replace(/\./g, ',');
-            
+
             // Set up listener for profile picture
             const profilePicPath = `Companies/${member.userCompanyEmail}/users/${emailFormatted}/profileImage`;
             const profilePicRef = ref(database, profilePicPath);
-            
+
             const profilePicListener = onValue(profilePicRef, (snapshot) => {
               const newProfilePic = snapshot.val();
-              setProjectMembers(prev => prev.map(m => 
-                m.email === member.email 
+              setProjectMembers(prev => prev.map(m =>
+                m.email === member.email
                   ? { ...m, profilePic: newProfilePic || null }
                   : m
               ));
             });
-            
+
             // Set up listener for user data (firstName, lastName, name) to update initials
             const userDataPath = `Companies/${member.userCompanyEmail}/users/${emailFormatted}`;
             const userDataRef = ref(database, userDataPath);
-            
+
             const userDataListener = onValue(userDataRef, (snapshot) => {
               const userData = snapshot.val();
               if (userData) {
                 // Update firstName, lastName, and name in state
                 const updatedFirstName = userData.firstName || null;
                 const updatedLastName = userData.lastName || null;
-                const updatedName = userData.name || (updatedFirstName && updatedLastName 
-                  ? `${updatedFirstName} ${updatedLastName}` 
+                const updatedName = userData.name || (updatedFirstName && updatedLastName
+                  ? `${updatedFirstName} ${updatedLastName}`
                   : updatedFirstName || member.email.split('@')[0]);
-                
-                setProjectMembers(prev => prev.map(m => 
-                  m.email === member.email 
-                    ? { 
-                        ...m, 
-                        firstName: updatedFirstName,
-                        lastName: updatedLastName,
-                        name: updatedName
-                      }
+
+                setProjectMembers(prev => prev.map(m =>
+                  m.email === member.email
+                    ? {
+                      ...m,
+                      firstName: updatedFirstName,
+                      lastName: updatedLastName,
+                      name: updatedName
+                    }
                     : m
                 ));
               }
             });
-            
+
             // Store both listeners for cleanup
             profilePicListenersRef.current.push({ ref: profilePicRef, listener: profilePicListener });
             profilePicListenersRef.current.push({ ref: userDataRef, listener: userDataListener });
-            
+
             // Set up presence listener for this member using new presence system
             // Clean up existing listener for this member if any
             if (memberPresenceListenersRef.current.has(member.email)) {
               const cleanup = memberPresenceListenersRef.current.get(member.email);
               if (typeof cleanup === 'function') {
                 cleanup();
+              }
             }
-            }
-            
+
             // Use the new presence system that tracks sessions and computes presence
             const cleanupPresence = listenToUserPresence(member.email, (presence) => {
               setMemberPresence(prev => ({
@@ -5145,13 +5438,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 [member.email]: presence // 'active' | 'idle' | 'offline'
               }));
             });
-            
+
             memberPresenceListenersRef.current.set(member.email, cleanupPresence);
           });
         }
       });
     }
-    
+
     // Return cleanup function
     return () => {
       if (membersUnsubscribe && membersListenerRef) {
@@ -5161,7 +5454,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         off(refToClean, 'value', listener);
       });
       profilePicListenersRef.current = [];
-      
+
       // Clean up presence listeners
       memberPresenceListenersRef.current.forEach((cleanup) => {
         if (typeof cleanup === 'function') {
@@ -5230,17 +5523,17 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Function to fetch member details (bio, username)
   const fetchMemberDetails = async (email, userCompanyEmail) => {
     if (!email || memberDetails[email]) return; // Already loaded
-    
+
     try {
       const emailFormatted = email.replace(/\./g, ',');
       const companyEmailFormatted = (userCompanyEmail || companyEmail).replace(/\./g, ',');
       const userPath = `Companies/${companyEmailFormatted}/users/${emailFormatted}`;
-      
+
       const [userData, bioData] = await Promise.all([
         getFirebaseData(userPath).catch(() => null),
         getFirebaseData(`${userPath}/bio`).catch(() => null)
       ]);
-      
+
       setMemberDetails(prev => ({
         ...prev,
         [email]: {
@@ -5273,7 +5566,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     const handleKeyDown = (e) => {
       // Check for Shift key (left or right) - use both key and shiftKey for reliability
       const isShiftKey = e.key === 'Shift' || e.key === 'ShiftLeft' || e.key === 'ShiftRight';
-      
+
       if (isShiftKey || (e.shiftKey && !isMultiSelectMode)) {
         // Check if user is typing in an input field
         const activeElement = document.activeElement;
@@ -5283,18 +5576,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           activeElement.isContentEditable ||
           activeElement.getAttribute('contenteditable') === 'true'
         );
-        
+
         // Only activate multi-select mode if NOT typing
         if (!isTyping) {
           setIsMultiSelectMode(true);
         }
       }
     };
-    
+
     const handleKeyUp = (e) => {
       // Check for Shift key (left or right) - use both key and shiftKey for reliability
       const isShiftKey = e.key === 'Shift' || e.key === 'ShiftLeft' || e.key === 'ShiftRight';
-      
+
       if (isShiftKey) {
         setIsMultiSelectMode(false);
       } else if (!e.shiftKey && isMultiSelectMode) {
@@ -5302,12 +5595,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         setIsMultiSelectMode(false);
       }
     };
-    
+
     // Reset on window blur (when user clicks outside or switches tabs)
     const handleBlur = () => {
       setIsMultiSelectMode(false);
     };
-    
+
     // Reset on mouse down outside (as a backup)
     const handleMouseDown = (e) => {
       // Check if clicking on a quote button - if so, don't reset
@@ -5322,7 +5615,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         }, 50);
       }
     };
-    
+
     // Also reset when clicking anywhere (except quote buttons) after a short delay
     const handleClick = (e) => {
       const quoteButton = e.target.closest('button[title*="Quote message"]');
@@ -5335,7 +5628,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         }, 100);
       }
     };
-    
+
     // Reset when quotes are cleared or message is sent
     const handleQuoteChange = () => {
       // Small delay to check if Shift is still pressed
@@ -5346,18 +5639,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         }
       }, 200);
     };
-    
+
     window.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('keyup', handleKeyUp, true);
     window.addEventListener('blur', handleBlur);
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
       window.removeEventListener('blur', handleBlur);
     };
   }, []);
-  
+
   // Reset multi-select mode when quotes are cleared
   useEffect(() => {
     if (quotedMessages.length === 0) {
@@ -5371,15 +5664,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
     const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
     const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-    
+
     if (!targetCompanyEmail || !currentProject) return;
 
     const membersPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members`;
     const membersRef = ref(database, membersPath);
-    
+
     const membersListener = onValue(membersRef, async (snapshot) => {
       const membersData = snapshot.val();
-      
+
       if (!membersData) {
         setProjectMembers([]);
         return;
@@ -5387,49 +5680,49 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       // Convert members object to array and fetch profile pictures and names
       const memberEmails = Object.keys(membersData).map(emailPath => emailPath.replace(/,/g, '.'));
-      
+
       // Ensure current user is included in the list for presence tracking
       const currentUserEmail = auth.currentUser?.email;
       if (currentUserEmail && !memberEmails.includes(currentUserEmail)) {
         memberEmails.push(currentUserEmail);
       }
-      
+
       const membersWithData = await Promise.all(
         memberEmails.map(async (email) => {
           const emailFormatted = email.replace(/\./g, ',');
           const memberInfo = membersData[emailFormatted] || {};
-          
+
           // Try to get profile picture and name from the user's OWN company
           let profilePic = null;
           let userName = null;
           let firstName = null;
           let lastName = null;
           let userCompanyEmail = null;
-          
+
           try {
             // First, get the user's own company email from emailToCompanyDirectory
             userCompanyEmail = await getFirebaseData(`emailToCompanyDirectory/${emailFormatted}`);
-            
+
             if (userCompanyEmail) {
               // Fetch profile picture and name from user's own company
               const [picData, userData] = await Promise.all([
                 getFirebaseData(`Companies/${userCompanyEmail}/users/${emailFormatted}/profileImage`).catch(() => null),
                 getFirebaseData(`Companies/${userCompanyEmail}/users/${emailFormatted}`).catch(() => null)
               ]);
-              
+
               profilePic = picData || null;
               userName = userData?.name || email.split('@')[0];
               firstName = userData?.firstName || null;
               lastName = userData?.lastName || null;
             }
-            
+
             // If not found in user's company, try the project owner's company as fallback
             if (!profilePic || !userName || !firstName || !lastName) {
               const [picData, userData] = await Promise.all([
                 getFirebaseData(`Companies/${targetCompanyEmail}/users/${emailFormatted}/profileImage`).catch(() => null),
                 getFirebaseData(`Companies/${targetCompanyEmail}/users/${emailFormatted}`).catch(() => null)
               ]);
-              
+
               if (!profilePic) profilePic = picData || null;
               if (!userName) userName = userData?.name || email.split('@')[0];
               if (!firstName) firstName = userData?.firstName || null;
@@ -5454,7 +5747,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       );
 
       setProjectMembers(membersWithData);
-      
+
       // Set up presence listeners for all members (including current user)
       if (membersWithData.length > 0) {
         // Clean up old presence listeners first
@@ -5464,7 +5757,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           }
         });
         memberPresenceListenersRef.current.clear();
-        
+
         // Set up presence listeners for all members
         membersWithData.forEach((member) => {
           // Set up presence listener for this member
@@ -5474,7 +5767,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               [member.email]: presence // 'active' | 'idle' | 'offline'
             }));
           });
-          
+
           memberPresenceListenersRef.current.set(member.email, cleanupPresence);
         });
       }
@@ -5500,58 +5793,58 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
     const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
     const userCompanyEmail = localStorage.getItem('companyEmail');
-    
+
     // Check if user owns the company (owner may not be in members list yet)
-    const isCompanyOwner = userCompanyEmail && !sharedCompanyEmail && 
+    const isCompanyOwner = userCompanyEmail && !sharedCompanyEmail &&
       userCompanyEmail.replace(/\./g, ',') === targetCompanyEmail?.replace(/\./g, ',');
-    
+
     // Only allow access if project owner or company owner
     if (!isProjectOwner && !isCompanyOwner) {
       console.log('[AdminPanel] Access denied - not project owner or company owner');
       return;
     }
-    
+
     if (!targetCompanyEmail || !currentProject) return;
-    
+
     console.log('[AdminPanel] Loading members for project:', currentProject);
 
     const membersRef = ref(database, `Companies/${targetCompanyEmail}/projects/${currentProject}/members`);
-    
+
     const membersListener = onValue(membersRef, async (snapshot) => {
       const data = snapshot.val();
-      
+
       // Get owner email - the company email is typically the owner's email
       const ownerEmailFormatted = targetCompanyEmail.replace(/\./g, ',');
       const ownerEmail = targetCompanyEmail.replace(/,/g, '.');
-      
+
       // Check if owner is already in members list
       const ownerInMembers = data && data[ownerEmailFormatted];
-      
+
       // Convert members object to array and fetch profile pictures
       const membersArray = await Promise.all(
         Object.entries(data || {}).map(async ([emailKey, memberData]) => {
           const email = emailKey.replace(/,/g, '.');
-          
+
           // Get user's company email for profile picture lookup
           const userCompanyEmail = await getFirebaseData(
             `emailToCompanyDirectory/${emailKey}`
           ).catch(() => targetCompanyEmail);
-          
+
           // Fetch profile picture - use same logic as ChatSidebar
           const profilePic = await getFirebaseData(
             `Companies/${userCompanyEmail}/users/${emailKey}/profileImage`
           ).catch(() => null);
-          
+
           // Use null if no picture found (initials will be used as fallback)
           const finalProfilePic = profilePic || null;
-          
+
           // Get user name, firstName, and lastName
           const userData = await getFirebaseData(
             `Companies/${userCompanyEmail}/users/${emailKey}`
           ).catch(() => null);
-          
-          const userName = userData?.name || (userData?.firstName && userData?.lastName 
-            ? `${userData.firstName} ${userData.lastName}` 
+
+          const userName = userData?.name || (userData?.firstName && userData?.lastName
+            ? `${userData.firstName} ${userData.lastName}`
             : userData?.firstName || email);
           const firstName = userData?.firstName || null;
           const lastName = userData?.lastName || null;
@@ -5566,18 +5859,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           };
 
           const memberRole = memberData.role || 'editor';
-          
+
           // Format joined date
           let joinedDate = '—';
           if (memberData.joinedAt) {
             const date = new Date(memberData.joinedAt);
-            joinedDate = date.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric', 
-              year: 'numeric' 
+            joinedDate = date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
             });
           }
-          
+
           return {
             email,
             name: userName || email,
@@ -5588,10 +5881,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             userCompanyEmail: userCompanyEmail || targetCompanyEmail,
             joinedAt: memberData.joinedAt || null,
             joinedDate: joinedDate,
-            permissions: memberRole === 'owner' 
-              ? defaultPermissions 
-              : (memberRole === 'viewer' 
-                ? null 
+            permissions: memberRole === 'owner'
+              ? defaultPermissions
+              : (memberRole === 'viewer'
+                ? null
                 : (memberData.permissions || defaultPermissions))
           };
         })
@@ -5604,35 +5897,35 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           const ownerProfilePic = await getFirebaseData(
             `Companies/${targetCompanyEmail}/users/${ownerEmailFormatted}/profileImage`
           ).catch(() => null);
-          
+
           // Use default profile if no picture found
           const finalOwnerProfilePic = ownerProfilePic || null;
-          
+
           const ownerUserData = await getFirebaseData(
             `Companies/${targetCompanyEmail}/users/${ownerEmailFormatted}`
           ).catch(() => null);
-          
-          const ownerName = ownerUserData?.name || (ownerUserData?.firstName && ownerUserData?.lastName 
-            ? `${ownerUserData.firstName} ${ownerUserData.lastName}` 
+
+          const ownerName = ownerUserData?.name || (ownerUserData?.firstName && ownerUserData?.lastName
+            ? `${ownerUserData.firstName} ${ownerUserData.lastName}`
             : ownerUserData?.firstName || ownerEmail);
           const ownerFirstName = ownerUserData?.firstName || null;
           const ownerLastName = ownerUserData?.lastName || null;
-          
+
           // Get project creation date as joined date
           const projectData = await getFirebaseData(
             `Companies/${targetCompanyEmail}/projects/${currentProject}`
           ).catch(() => null);
-          
+
           let joinedDate = '—';
           if (projectData?.createdAt) {
             const date = new Date(projectData.createdAt);
-            joinedDate = date.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric', 
-              year: 'numeric' 
+            joinedDate = date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
             });
           }
-          
+
           const defaultPermissions = {
             createHighlights: true,
             createAnnotations: true,
@@ -5640,7 +5933,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             deleteAnnotations: true,
             share: true
           };
-          
+
           membersArray.push({
             email: ownerEmail,
             name: ownerName || ownerEmail,
@@ -5679,9 +5972,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
     const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
     const userCompanyEmail = localStorage.getItem('companyEmail');
-    const isCompanyOwner = userCompanyEmail && !sharedCompanyEmail && 
+    const isCompanyOwner = userCompanyEmail && !sharedCompanyEmail &&
       userCompanyEmail.replace(/\./g, ',') === targetCompanyEmail?.replace(/\./g, ',');
-    
+
     if (!showAdminPanel || (!isProjectOwner && !isCompanyOwner) || adminPanelMembers.length === 0) {
       // Clean up all listeners when panel is closed
       adminPanelProfilePicListenersRef.current.forEach((unsubscribe) => {
@@ -5694,12 +5987,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       adminPanelProfilePicListenersRef.current.clear();
       return;
     }
-    
+
     if (!targetCompanyEmail) return;
 
     // Get current member emails
     const currentMemberEmails = new Set(adminPanelMembers.map(m => m.email));
-    
+
     // Remove listeners for members no longer in the list
     adminPanelProfilePicListenersRef.current.forEach((unsubscribe, email) => {
       if (!currentMemberEmails.has(email)) {
@@ -5718,63 +6011,63 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       if (adminPanelProfilePicListenersRef.current.has(member.email)) return;
 
       const emailFormatted = member.email.replace(/\./g, ',');
-      
+
       // Use the member's stored userCompanyEmail, or fetch it
       const userCompanyEmail = member.userCompanyEmail || targetCompanyEmail;
-      
+
       // Set up listener for profile picture
       const profilePicPath = `Companies/${userCompanyEmail}/users/${emailFormatted}/profileImage`;
       const profilePicRef = ref(database, profilePicPath);
-      
+
       const unsubscribeProfilePic = onValue(profilePicRef, (snapshot) => {
         const newProfilePic = snapshot.val();
         const finalProfilePic = newProfilePic || null;
-        
+
         // Update the member's profile picture in state
-        setAdminPanelMembers(prev => 
-          prev.map(m => 
-            m.email === member.email 
+        setAdminPanelMembers(prev =>
+          prev.map(m =>
+            m.email === member.email
               ? { ...m, profilePic: finalProfilePic }
               : m
           )
         );
       });
-      
+
       // Set up listener for user data (firstName, lastName, name) to update initials
       const userDataPath = `Companies/${userCompanyEmail}/users/${emailFormatted}`;
       const userDataRef = ref(database, userDataPath);
-      
+
       const unsubscribeUserData = onValue(userDataRef, (snapshot) => {
         const userData = snapshot.val();
         if (userData) {
           // Update firstName, lastName, and name in state
           const updatedFirstName = userData.firstName || null;
           const updatedLastName = userData.lastName || null;
-          const updatedName = userData.name || (updatedFirstName && updatedLastName 
-            ? `${updatedFirstName} ${updatedLastName}` 
+          const updatedName = userData.name || (updatedFirstName && updatedLastName
+            ? `${updatedFirstName} ${updatedLastName}`
             : updatedFirstName || member.email.split('@')[0]);
-          
-          setAdminPanelMembers(prev => 
-            prev.map(m => 
-              m.email === member.email 
-                ? { 
-                    ...m, 
-                    firstName: updatedFirstName,
-                    lastName: updatedLastName,
-                    name: updatedName
-                  }
+
+          setAdminPanelMembers(prev =>
+            prev.map(m =>
+              m.email === member.email
+                ? {
+                  ...m,
+                  firstName: updatedFirstName,
+                  lastName: updatedLastName,
+                  name: updatedName
+                }
                 : m
             )
           );
         }
       });
-      
+
       // Store both unsubscribers as a combined function
       const combinedUnsubscribe = () => {
         unsubscribeProfilePic();
         unsubscribeUserData();
       };
-      
+
       adminPanelProfilePicListenersRef.current.set(member.email, combinedUnsubscribe);
     });
 
@@ -5784,7 +6077,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         // If userEmail is provided, update specific user
         if (event.detail.userEmail) {
           const updatedEmail = event.detail.userEmail.replace(/\./g, ',');
-          setAdminPanelMembers(prev => 
+          setAdminPanelMembers(prev =>
             prev.map(m => {
               const memberEmailFormatted = m.email.replace(/\./g, ',');
               if (memberEmailFormatted === updatedEmail) {
@@ -5798,7 +6091,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           const currentUser = auth.currentUser;
           if (currentUser && currentUser.email) {
             const currentUserEmailFormatted = currentUser.email.replace(/\./g, ',');
-            setAdminPanelMembers(prev => 
+            setAdminPanelMembers(prev =>
               prev.map(m => {
                 const memberEmailFormatted = m.email.replace(/\./g, ',');
                 if (memberEmailFormatted === currentUserEmailFormatted) {
@@ -5811,7 +6104,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         }
       }
     };
-    
+
     window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
 
     return () => {
@@ -5837,7 +6130,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
     const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
     const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-    
+
     if (!targetCompanyEmail || !currentProject) {
       setCurrentUserRole(null);
       return;
@@ -5846,15 +6139,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     const currentUserEmail = auth.currentUser.email.replace(/\./g, ',');
     const memberPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members/${currentUserEmail}`;
     const memberRef = ref(database, memberPath);
-    
+
     const unsubscribe = onValue(memberRef, (snapshot) => {
       const memberData = snapshot.val();
-      
+
       let role = null;
       if (memberData && memberData.role) {
         role = memberData.role;
         const previousRole = previousUserRoleRef.current;
-        
+
         // Show toast notification when role changes (but not on initial load)
         if (previousRole !== null && previousRole !== role) {
           if (role === 'viewer') {
@@ -5865,7 +6158,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             showToast('Editor Mode', 'success', 5000, pencilIcon);
           }
         }
-        
+
         previousUserRoleRef.current = role;
         setCurrentUserRole(role);
         // Set window variable for highlighting.js to access
@@ -5876,7 +6169,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             window.updateAnnotationCardButtonsVisibility();
           }
         }
-        
+
         // Set up permissions based on role and member data
         if (role === 'owner') {
           // Owners always have all permissions
@@ -5913,19 +6206,19 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             // Default to editor for backward compatibility
             role = 'editor';
           }
-          
+
           const previousRole = previousUserRoleRef.current;
           // Show toast notification when role changes (but not on initial load)
           if (previousRole !== null && previousRole !== role) {
             if (role === 'viewer') {
-            const eyeIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            showToast('View Only Mode', 'info', 5000, eyeIcon);
+              const eyeIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+              showToast('View Only Mode', 'info', 5000, eyeIcon);
             } else if (role === 'editor') {
-            const pencilIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            showToast('Editor Mode', 'success', 5000, pencilIcon);
+              const pencilIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+              showToast('Editor Mode', 'success', 5000, pencilIcon);
             }
           }
-          
+
           previousUserRoleRef.current = role;
           setCurrentUserRole(role);
           // Set window variable for highlighting.js to access
@@ -5936,7 +6229,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               window.updateAnnotationCardButtonsVisibility();
             }
           }
-          
+
           // Set up permissions based on role
           if (role === 'owner') {
             // Owners always have all permissions
@@ -5974,14 +6267,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           // Show toast notification when role changes (but not on initial load)
           if (previousRole !== null && previousRole !== role) {
             if (role === 'viewer') {
-            const eyeIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            showToast('View Only Mode', 'info', 5000, eyeIcon);
+              const eyeIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+              showToast('View Only Mode', 'info', 5000, eyeIcon);
             } else if (role === 'editor') {
-            const pencilIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            showToast('Editor Mode', 'success', 5000, pencilIcon);
+              const pencilIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+              showToast('Editor Mode', 'success', 5000, pencilIcon);
             }
           }
-          
+
           previousUserRoleRef.current = role;
           setCurrentUserRole(role);
           if (typeof window !== 'undefined') {
@@ -5993,7 +6286,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           }
         });
       }
-      
+
       // Set window variable for highlighting.js to access
       if (typeof window !== 'undefined' && role) {
         const previousRole = previousUserRoleRef.current;
@@ -6007,14 +6300,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             showToast('Editor Mode', 'success', 5000, pencilIcon);
           }
         }
-        
+
         previousUserRoleRef.current = role;
         window.currentUserRole = role;
         // Update annotation card buttons when role changes
         if (typeof window.updateAnnotationCardButtonsVisibility === 'function') {
           window.updateAnnotationCardButtonsVisibility();
         }
-        
+
         // Set up permissions based on role
         if (role === 'owner') {
           // Owners always have all permissions
@@ -6055,11 +6348,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       const targetCompanyEmailFormatted = targetCompanyEmail.replace(/\./g, ',');
       const permissionsPath = `Companies/${targetCompanyEmailFormatted}/projects/${currentProject}/members/${currentUserEmail}/permissions`;
       const permissionsRef = ref(database, permissionsPath);
-      
+
       permissionsUnsubscribe = onValue(permissionsRef, (snapshot) => {
         const permissionsData = snapshot.val();
         const currentRole = typeof window !== 'undefined' ? window.currentUserRole : null;
-        
+
         if (currentRole === 'owner') {
           // Owners always have all permissions
           if (typeof window !== 'undefined') {
@@ -6079,7 +6372,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             window.currentUserPermissions = DEFAULT_PERMISSIONS;
           }
         }
-        
+
         // Update button visibility when permissions change
         if (typeof window !== 'undefined' && typeof window.updateAnnotationCardButtonsVisibility === 'function') {
           window.updateAnnotationCardButtonsVisibility();
@@ -6112,9 +6405,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       const refreshProfilePics = async () => {
         const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
         const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-        
+
         if (!targetCompanyEmail) return;
-        
+
         const updatedMembers = await Promise.all(
           projectMembers.map(async (member) => {
             try {
@@ -6122,7 +6415,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               const profilePic = await getFirebaseData(
                 `Companies/${member.userCompanyEmail}/users/${emailFormatted}/profileImage`
               ).catch(() => null);
-              
+
               return {
                 ...member,
                 profilePic: profilePic || null
@@ -6132,10 +6425,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             }
           })
         );
-        
+
         setProjectMembers(updatedMembers);
       };
-      
+
       refreshProfilePics();
     }
   }, [currentChat?.id, inputValue]); // Refresh when chat changes or user types
@@ -6145,7 +6438,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     let retryCount = 0;
     const maxRetries = 10;
     let timeoutId = null;
-    
+
     const updateMessagingTab = () => {
       const iframe = document.getElementById('sidebar-iframe');
       if (iframe && iframe.contentWindow && typeof iframe.contentWindow.updateMessagingTabState === 'function') {
@@ -6158,12 +6451,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         timeoutId = setTimeout(updateMessagingTab, 200);
       }
     };
-    
+
     // Only update if sidebar is visible
     if (isExtensionSidebarVisible) {
       updateMessagingTab();
     }
-    
+
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -6190,25 +6483,24 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         setShowAuthModal(false);
       }
 
-    if (!user)
-    {
-      setMessages([]);
-      setCurrentChat(null);
-      // debug log removed
-      setInputValue('');
-      clearImagePreview();
-      setEditingMessageIndex(null);
-      setEditingMessageContent('');
-      setIsSharedView(false); // Reset shared view state explicitly
-      
-      const url = new URL(window.location.href);
+      if (!user) {
+        setMessages([]);
+        setCurrentChat(null);
+        // debug log removed
+        setInputValue('');
+        clearImagePreview();
+        setEditingMessageIndex(null);
+        setEditingMessageContent('');
+        setIsSharedView(false); // Reset shared view state explicitly
 
-    url.search = ''; 
+        const url = new URL(window.location.href);
 
-    window.history.pushState({}, '', url.toString()); // Update the URL without a page reload
+        url.search = '';
 
-    
-    }
+        window.history.pushState({}, '', url.toString()); // Update the URL without a page reload
+
+
+      }
     });
 
     return () => unsubscribe();
@@ -6302,7 +6594,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Ensure highlights get chatID in Firebase when missing (no extension edits)
   useEffect(() => {
     const selectedChatId = currentChatID || (currentChat && currentChat.id) || null;
-    try { localStorage.setItem('phraze_currentChatId', selectedChatId || ''); } catch (_) {}
+    try { localStorage.setItem('phraze_currentChatId', selectedChatId || ''); } catch (_) { }
     if (!selectedChatId) return;
 
     let cancelled = false;
@@ -6331,7 +6623,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
         if (!cancelled && mutated) {
           await saveFirebaseData(path, updated);
-          try { console.log('[Phraze] Backfilled chatID on', updated.filter(h => h.chatID === selectedChatId).length, 'highlights for chat:', selectedChatId); } catch (_) {}
+          try { console.log('[Phraze] Backfilled chatID on', updated.filter(h => h.chatID === selectedChatId).length, 'highlights for chat:', selectedChatId); } catch (_) { }
         }
       } catch (err) {
         console.error('[Phraze] Error backfilling chatID:', err);
@@ -6349,7 +6641,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     const storedProject = localStorage.getItem('currentProject');
     const storedSharedProjectId = localStorage.getItem('sharedProjectId');
     const storedSharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
-    
+
     // If we have a stored shared project that matches, use that instead of the default
     if (storedProject && storedSharedProjectId && storedProject === storedSharedProjectId && storedSharedCompanyEmail) {
       console.log("[Demonstration] Restoring shared project on mount:", storedProject, "with company:", storedSharedCompanyEmail);
@@ -6361,7 +6653,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       // Don't overwrite localStorage with potentially wrong value
       return;
     }
-    
+
     handleProjectChange(currentProject);
     localStorage.setItem("currentProject", currentProject);
   }, [currentProject]);
@@ -6369,7 +6661,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Effect 1: Set initial shared state based ONLY on initial URL params
   useEffect(() => {
     // Removed console.log for performance
-    
+
     const params = new URLSearchParams(location.search);
     const sharedId = params.get('share');
     const companyEmailParam = params.get('companyEmail');
@@ -6784,7 +7076,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       // Send message to extension popup (parent window)
       window.parent.postMessage({ action: "activeChat", id: selectedChat.id, currentProject: currentProject }, "*");
-      
+
       // Also send message directly to sidebar iframe to update messaging topic
       const sidebarIframe = document.getElementById('sidebar-iframe');
       if (sidebarIframe && sidebarIframe.contentWindow) {
@@ -6794,7 +7086,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           chatTitle: selectedChat.title || 'Untitled Chat'
         }, "*");
       }
-      
+
       if (selectedChat.originalId) {
         async function fetchOriginalMessages() {
           if (selectedChat.companyEmail) {
@@ -6813,10 +7105,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         if (selectedChat) {
           // Check if messages exist and handle null/undefined
           if (selectedChat.messages) {
-        const chatMessages = Array.isArray(selectedChat.messages)
-            ? selectedChat.messages
-            : Object.values(selectedChat.messages);
-          setMessages(chatMessages);
+            const chatMessages = Array.isArray(selectedChat.messages)
+              ? selectedChat.messages
+              : Object.values(selectedChat.messages);
+            setMessages(chatMessages);
           } else {
             // Messages are stored separately in Firebase - fetch them directly
             // Don't clear messages yet to avoid flickering
@@ -6824,9 +7116,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               try {
                 const isPrivate = selectedChat.isPublic === false;
                 const userEmail = auth.currentUser?.email;
-                const companyEmailPath = localStorage.getItem('companyEmail')?.replace(/\./g, ',') || 
-                                        localStorage.getItem('sharedCompanyEmail');
-                
+                const companyEmailPath = localStorage.getItem('companyEmail')?.replace(/\./g, ',') ||
+                  localStorage.getItem('sharedCompanyEmail');
+
                 if (companyEmailPath) {
                   const chatBasePath = getChatBasePath(companyEmailPath, currentProject, selectedChat.id, isPrivate, userEmail);
                   const messages = await getFirebaseData(`${chatBasePath}/messages`);
@@ -6834,8 +7126,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     const chatMessages = Array.isArray(messages) ? messages : Object.values(messages);
                     setMessages(chatMessages);
                   } else {
-            setMessages([]);
-          }
+                    setMessages([]);
+                  }
                 } else {
                   setMessages([]);
                 }
@@ -6929,7 +7221,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           console.warn('Error unsubscribing from message sender profile listener:', e);
         }
         messageSenderProfileListenersRef.current.delete(email);
-        
+
         // Remove from cache
         setMessageSenderProfiles(prev => {
           const newMap = new Map(prev);
@@ -6950,7 +7242,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       const normalizeEmail = (email) => email?.toLowerCase().replace(/\./g, ',');
       const senderEmailNormalized = normalizeEmail(senderEmail);
       const isInProjectMembers = projectMembers.some(m => normalizeEmail(m.email) === senderEmailNormalized);
-      
+
       if (isInProjectMembers) {
         return; // Profile pic is already available via projectMembers
       }
@@ -6959,7 +7251,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         // Get user's company email
         const senderEmailFormatted = senderEmail.replace(/\./g, ',');
         const userCompanyEmail = await getFirebaseData(`emailToCompanyDirectory/${senderEmailFormatted}`).catch(() => null);
-        
+
         if (!userCompanyEmail) {
           return; // Can't fetch without company email
         }
@@ -6986,11 +7278,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         // Set up real-time listener for profile picture updates
         const profilePicPath = `Companies/${userCompanyEmail}/users/${senderEmailFormatted}/profileImage`;
         const profilePicRef = ref(database, profilePicPath);
-        
+
         // Also set up listener for user data updates (firstName, lastName, name)
         const userDataPath = `Companies/${userCompanyEmail}/users/${senderEmailFormatted}`;
         const userDataRef = ref(database, userDataPath);
-        
+
         const unsubscribeUserData = onValue(userDataRef, async (snapshot) => {
           const userData = snapshot.val();
           if (userData) {
@@ -7007,7 +7299,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             });
           }
         });
-        
+
         const unsubscribe = onValue(profilePicRef, (snapshot) => {
           const newProfilePic = snapshot.val();
           setMessageSenderProfiles(prev => {
@@ -7027,13 +7319,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             return newMap;
           });
         });
-        
+
         // Store both unsubscribers
         const combinedUnsubscribe = () => {
           unsubscribe();
           unsubscribeUserData();
         };
-        
+
         messageSenderProfileListenersRef.current.set(senderEmail, combinedUnsubscribe);
 
       } catch (error) {
@@ -7081,7 +7373,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       e.preventDefault();
     }
     if ((!inputValue.trim() && !imagePreview) || isLoading) return;
-    
+
     // Stop typing indicator when sending message
     if (currentChat?.id) {
       stopTyping(currentChat.id);
@@ -7110,7 +7402,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             }
           }
         }
-        
+
         // If not a project member mention, check for username mentions from chat
         if (!isMentionDirected) {
           const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -7180,25 +7472,25 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       }
       return 'User';
     };
-    
+
     // Create quotedMessages array for Firebase storage (supporting multiple quotes with highlights)
     const quotedMessagesForFirebase = quotedMessages && quotedMessages.length > 0
       ? quotedMessages.map(qm => ({
-          content: qm.content || '',
-          role: qm.role || 'user',
-          userDisplayName: qm.userDisplayName || qm.senderEmail?.split('@')[0] || 'User',
-          timestamp: (qm.timestamp && typeof qm.timestamp === 'number') ? qm.timestamp : Date.now(),
-          chatID: qm.chatID || null,
-          highlights: qm.highlights || [],
-          annotationsMap: qm.annotationsMap || {}
-        }))
+        content: qm.content || '',
+        role: qm.role || 'user',
+        userDisplayName: qm.userDisplayName || qm.senderEmail?.split('@')[0] || 'User',
+        timestamp: (qm.timestamp && typeof qm.timestamp === 'number') ? qm.timestamp : Date.now(),
+        chatID: qm.chatID || null,
+        highlights: qm.highlights || [],
+        annotationsMap: qm.annotationsMap || {}
+      }))
       : null;
-    
+
     // For backward compatibility, also include single quotedMessage if only one quote
     const quotedMessageForFirebase = quotedMessages && quotedMessages.length === 1
       ? quotedMessagesForFirebase[0]
       : null;
-    
+
     const userMessage = {
       role: 'user',
       messageId: (typeof crypto !== 'undefined' && crypto && typeof crypto.randomUUID === 'function')
@@ -7243,18 +7535,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             // Get current user from Firebase Auth
             const currentUser = auth.currentUser;
             console.log('currentUser', currentUser);
-            
+
             if (currentUser && currentUser.email) {
               // Use getProjectCompanyEmail which checks for shared projects first
               // This function already checks localStorage for sharedCompanyEmail
               let companyEmailPath = getProjectCompanyEmail();
-              
+
               // Fallback to user's company if not found
               if (!companyEmailPath) {
-              let email = currentUser.email.replace(/\./g, ',');
+                let email = currentUser.email.replace(/\./g, ',');
                 companyEmailPath = await getFirebaseData(`emailToCompanyDirectory/${email}`);
               }
-              
+
               // Ensure company email is formatted correctly (dots to commas)
               if (companyEmailPath) {
                 companyEmailPath = companyEmailPath.replace(/\./g, ',');
@@ -7263,7 +7555,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               console.log('Using company path for mention:', companyEmailPath);
               if (companyEmailPath) {
                 let chatId = currentChat ? currentChat.id : null;
-                
+
                 // For shared chats, use the original ID to save to the original chat
                 // Check if we have a sharedCompanyEmail which indicates we're in a shared project
                 const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
@@ -7273,13 +7565,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   // If we're in a shared project and have a chat, use the chat ID as-is
                   chatId = currentChat.id;
                 }
-                
+
                 console.log('currentChat', currentChat);
                 console.log('sharedChat', chatId);
                 console.log('isShared:', currentChat ? currentChat.isShared : false);
                 console.log('sharedCompanyEmail from localStorage:', sharedCompanyEmail);
                 console.log('Final companyEmailPath:', companyEmailPath);
-                
+
                 // If we don't have a current chat or it doesn't have an ID, create a new one
                 if (!currentChat || !chatId) {
                   // Generate a new unique ID for the chat
@@ -7300,7 +7592,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     isPublic: shouldBePublic, // Based on chatMode - private mode creates private chats
                     ownerId: auth.currentUser?.email, // Track who created the chat
                   };
-                  
+
                   // Also set privateUser for backward compatibility
                   if (auth.currentUser && auth.currentUser.email) {
                     newChat.privateUser = auth.currentUser.email;
@@ -7346,7 +7638,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       } catch (outerError) {
         console.error("Error in Firebase update block for mention:", outerError);
       }
-      
+
       setIsLoading(false);
       setTimeout(() => { textareaRef.current?.focus(); }, 0);
       return;
@@ -7474,18 +7766,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             // Get current user from Firebase Auth
             const currentUser = auth.currentUser;
             console.log('currentUser', currentUser);
-            
+
             if (currentUser && currentUser.email) {
               // Use getProjectCompanyEmail which checks for shared projects first
               // This function already checks localStorage for sharedCompanyEmail
               let companyEmailPath = getProjectCompanyEmail();
-              
+
               // Fallback to user's company if not found
               if (!companyEmailPath) {
-              let email = currentUser.email.replace(/\./g, ',');
+                let email = currentUser.email.replace(/\./g, ',');
                 companyEmailPath = await getFirebaseData(`emailToCompanyDirectory/${email}`);
               }
-              
+
               // Ensure company email is formatted correctly (dots to commas)
               if (companyEmailPath) {
                 companyEmailPath = companyEmailPath.replace(/\./g, ',');
@@ -7494,7 +7786,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               console.log('Using company path for image chat:', companyEmailPath);
               if (companyEmailPath) {
                 let chatId = currentChat ? currentChat.id : null;
-                
+
                 // For shared chats, use the original ID to save to the original chat
                 // Check if we have a sharedCompanyEmail which indicates we're in a shared project
                 const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
@@ -7505,13 +7797,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   // The chat should already be in the shared company's groqChats
                   chatId = currentChat.id;
                 }
-                
+
                 console.log('currentChat', currentChat);
                 console.log('sharedChat', chatId);
                 console.log('isShared:', currentChat ? currentChat.isShared : false);
                 console.log('sharedCompanyEmail from localStorage:', sharedCompanyEmail);
                 console.log('Final companyEmailPath:', companyEmailPath);
-                
+
                 // If we don't have a current chat or it doesn't have an ID, create a new one
                 if (!currentChat || !chatId) {
                   // Generate a new unique ID for the chat
@@ -7537,7 +7829,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     isPublic: shouldBePublic, // Based on chatMode - private mode creates private chats
                     ownerId: auth.currentUser?.email, // Track who created the chat
                   };
-                  
+
                   // Also set privateUser for backward compatibility
                   if (auth.currentUser && auth.currentUser.email) {
                     newChat.privateUser = auth.currentUser.email;
@@ -7587,7 +7879,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     };
                     setCurrentChat(updatedChat);
                     // debug log removed
-                    
+
                     // Send message to sidebar iframe to update messaging topic with new title
                     const sidebarIframe = document.getElementById('sidebar-iframe');
                     if (sidebarIframe && sidebarIframe.contentWindow) {
@@ -7698,29 +7990,29 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   const handleQuoteMessage = async (message, index, event) => {
     const isShiftPressed = event?.shiftKey || false;
     const messageId = message.timestamp || message.originalIndex || index;
-    
+
     // Fetch highlights and annotations for this message
     let highlights = [];
     let annotationsMap = {};
-    
+
     try {
       // Get the chatID from the message or current chat
       const chatID = message.chatID || currentChat?.id || currentChatID;
-      
+
       if (chatID) {
         // Get company email and project
         const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
         const companyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
         const projectName = localStorage.getItem('currentProject') || 'default';
-        
+
         if (companyEmail) {
           const formattedEmail = companyEmail.replace(/\./g, ',');
           const highlightsPath = `Companies/${formattedEmail}/projects/${projectName}/highlights`;
           const annotationHistoryPath = `Companies/${formattedEmail}/projects/${projectName}/annotationHistory`;
-          
+
           // Fetch highlights for this chat
           const allHighlights = await getFirebaseData(highlightsPath) || [];
-          
+
           // Normalize chatID for flexible matching (handles "chat_" prefix)
           const normalizeChatId = (id) => {
             if (!id) return null;
@@ -7728,25 +8020,25 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             if (!str) return null;
             return str.startsWith('chat_') ? str.substring(5) : str;
           };
-          
+
           const normalizedMessageChatId = normalizeChatId(chatID);
           const messageContent = message.content || '';
-          
+
           // Filter highlights by chatID and verify text content matches
           highlights = allHighlights.filter(h => {
             if (!h || !h.chatID) return false;
-            
+
             const normalizedHighlightChatId = normalizeChatId(h.chatID);
-            
+
             // Check if chatID matches (with normalization)
-            const chatIdMatches = 
+            const chatIdMatches =
               h.chatID === chatID ||
               normalizedHighlightChatId === normalizedMessageChatId ||
               h.chatID === normalizedMessageChatId ||
               chatID === normalizedHighlightChatId;
-            
+
             if (!chatIdMatches) return false;
-            
+
             // Verify that the highlight's text content matches the message content
             if (h.textNodes && h.textNodes.length > 0) {
               // Check if any textNode's wholeText appears in the message content
@@ -7756,15 +8048,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               });
               return hasMatchingText;
             }
-            
+
             return true; // If no textNodes, include it (backward compatibility)
           });
-          
+
           // Fetch annotations for these highlights
           if (highlights.length > 0) {
             const annotationHistory = await getFirebaseData(annotationHistoryPath) || [];
             const highlightIds = highlights.map(h => h.id);
-            
+
             // Build annotations map
             for (const annotation of annotationHistory) {
               if (!Array.isArray(annotation)) continue;
@@ -7783,20 +8075,20 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     } catch (error) {
       console.error('Error fetching highlights/annotations for quoted message:', error);
     }
-    
+
     setQuotedMessages(prev => {
       // Check if message is already quoted
-      const isAlreadyQuoted = prev.some(qm => 
+      const isAlreadyQuoted = prev.some(qm =>
         (qm.timestamp || qm.originalIndex) === messageId
       );
-      
+
       if (isAlreadyQuoted) {
         // Remove if already quoted (toggle behavior)
-        return prev.filter(qm => 
+        return prev.filter(qm =>
           (qm.timestamp || qm.originalIndex) !== messageId
         );
       }
-      
+
       // Create quoted message with highlights and annotations
       const quotedMessage = {
         ...message,
@@ -7806,7 +8098,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         highlights: highlights,
         annotationsMap: annotationsMap
       };
-      
+
       // If Shift is pressed, add to selection
       if (isShiftPressed) {
         return [...prev, quotedMessage];
@@ -7815,7 +8107,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         return [quotedMessage];
       }
     });
-    
+
     // Focus the input area
     setTimeout(() => {
       textareaRef.current?.focus();
@@ -7850,10 +8142,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   const handleCopyMessage = async (content, messageIndex) => {
     try {
       await navigator.clipboard.writeText(content);
-      
+
       // Show checkmark feedback
       setCopiedMessages(prev => new Set(prev).add(messageIndex));
-      
+
       // Revert back to copy icon after 2 seconds
       setTimeout(() => {
         setCopiedMessages(prev => {
@@ -7862,7 +8154,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           return newSet;
         });
       }, 2000);
-      
+
       console.log('Message copied to clipboard');
     } catch (error) {
       console.error('Failed to copy message:', error);
@@ -7873,10 +8165,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      
+
       // Show checkmark feedback even for fallback
       setCopiedMessages(prev => new Set(prev).add(messageIndex));
-      
+
       setTimeout(() => {
         setCopiedMessages(prev => {
           const newSet = new Set(prev);
@@ -7892,33 +8184,33 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Handle branching chat at specific message
   const handleBranchChat = async (assistantMessageIndex) => {
     console.log("🔄 Branch chat clicked for message index:", assistantMessageIndex);
-    
+
     if (isLoading) {
       console.log("❌ Cannot branch - loading in progress");
       return;
     }
-    
+
     try {
       // Close dropdown
       setTryAgainDropdownOpen(null);
-      
+
       // Get all messages up to and including the clicked message
       const branchedMessages = messages.slice(0, assistantMessageIndex + 1);
       console.log("📋 Messages to branch:", branchedMessages.length, "out of", messages.length);
-      
+
       // Import the generateUniqueId function
       const { generateUniqueId, getFirebaseData, saveFirebaseData } = await import('../funcs');
       const { auth } = await import('../firebase-init');
-      
+
       // Generate a unique ID for the new branched chat
       const branchedChatId = generateUniqueId();
       console.log("🆔 Generated branch chat ID:", branchedChatId);
-      
+
       // Create a title based on the original chat title or first message
       const originalTitle = currentChat?.title || 'New Chat';
       const branchedTitle = `Branch - ${originalTitle}`;
       console.log("📝 Branch title:", branchedTitle);
-      
+
       // Create the new branched chat object (private by default)
       const branchedChat = {
         id: branchedChatId,
@@ -7932,37 +8224,37 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           branchedAt: Date.now()
         }
       };
-      
+
       // Set as private by default
       const user = auth.currentUser;
       if (user && user.email) {
         branchedChat.privateUser = user.email;
       }
-      
+
       console.log("🌿 Created branch chat object:", branchedChat);
-      
+
       // Save the branched chat to Firebase
       console.log("👤 Current user:", user?.email);
-      
+
       if (user) {
         const userEmail = user.email.replace(/\./g, ',');
         const companyEmailPath = await getFirebaseData(`emailToCompanyDirectory/${userEmail}`);
         console.log("🏢 Company email path:", companyEmailPath);
-        
+
         if (companyEmailPath) {
           // Branched chats inherit the privacy status of the source chat
           const isPrivate = currentChat && currentChat.isPublic === false;
           const firebasePath = getChatBasePath(companyEmailPath, currentProject, branchedChatId, isPrivate, user.email);
           console.log("💾 Saving to Firebase path:", firebasePath, isPrivate ? '(PRIVATE - secure path)' : '(PUBLIC)');
-          
+
           await saveFirebaseData(firebasePath, branchedChat);
           console.log("✅ Successfully saved branched chat to Firebase");
-          
+
           // Switch to the new branched chat
           setCurrentChat(branchedChat);
           // debug log removed
           setMessages(branchedMessages);
-          
+
           console.log("🔄 Switched to branched chat:", branchedChat);
         } else {
           console.error("❌ Company email path not found");
@@ -7978,10 +8270,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Handle Try Again dropdown actions
   const handleTryAgainAction = async (assistantMessageIndex, action, customPrompt = '') => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
     setTryAgainDropdownOpen(null); // Close dropdown
-    
+
     try {
       // Find the user message that preceded this assistant message
       let userMessageIndex = -1;
@@ -7991,21 +8283,21 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           break;
         }
       }
-      
+
       if (userMessageIndex === -1) {
         console.error('Could not find user message to regenerate response');
         setIsLoading(false);
         return;
       }
-      
+
       // Remove the assistant message and any messages after it
       const updatedMessages = messages.slice(0, assistantMessageIndex);
       setMessages(updatedMessages);
-      
+
       // Get the user message content
       const originalUserMessage = messages[userMessageIndex];
       let modifiedUserMessage = originalUserMessage.content;
-      
+
       // Modify the user message based on the action
       switch (action) {
         case 'add_details':
@@ -8019,13 +8311,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           // Keep original message for regular try again
           break;
       }
-      
+
       // Create messages array for API call
       let apiMessages = [];
-      
+
       // Check if any message contains an image
       const hasImage = updatedMessages.some(msg => msg.imageUrl);
-      
+
       // Only add system message if there are no images
       if (!hasImage) {
         apiMessages.push({
@@ -8033,14 +8325,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           content: "You are a helpful assistant called Phraze."
         });
       }
-      
+
       // Format messages for the API, using modified user message for the last one
       for (let i = 0; i < updatedMessages.length; i++) {
         const msg = updatedMessages[i];
-        
+
         if (msg.role === 'user') {
           const messageContent = (i === userMessageIndex) ? modifiedUserMessage : msg.content;
-          
+
           if (msg.imageUrl) {
             // Message with image and text
             const contentArray = [];
@@ -8107,10 +8399,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           try {
             const saveFirebaseData = module.saveFirebaseData;
             const getFirebaseData = module.getFirebaseData;
-            
+
             const email = currentUser.email.replace(/\./g, ',');
             const companyEmailPath = await getFirebaseData(`emailToCompanyDirectory/${email}`);
-            
+
             if (companyEmailPath) {
               let chatId = currentChat.id;
               // For shared chats, use the original ID to save to the original chat
@@ -8141,9 +8433,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Try again - regenerate AI response for the last user message
   const handleTryAgain = async (assistantMessageIndex) => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       // Find the user message that preceded this assistant message
       let userMessageIndex = -1;
@@ -8153,26 +8445,26 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           break;
         }
       }
-      
+
       if (userMessageIndex === -1) {
         console.error('Could not find user message to regenerate response');
         setIsLoading(false);
         return;
       }
-      
+
       // Remove the assistant message and any messages after it
       const updatedMessages = messages.slice(0, assistantMessageIndex);
       setMessages(updatedMessages);
-      
+
       // Get the user message content
       const userMessage = messages[userMessageIndex];
-      
+
       // Create messages array for API call
       let apiMessages = [];
-      
+
       // Check if any message contains an image
       const hasImage = updatedMessages.some(msg => msg.imageUrl);
-      
+
       // Only add system message if there are no images
       if (!hasImage) {
         apiMessages.push({
@@ -8180,7 +8472,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           content: "You are a helpful assistant called Phraze."
         });
       }
-      
+
       // Format messages for the API
       for (const msg of updatedMessages) {
         if (msg.role === 'user') {
@@ -8215,7 +8507,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           });
         }
       }
-      
+
       // Call Groq API
       const chatCompletion = await groq.chat.completions.create({
         messages: apiMessages,
@@ -8226,17 +8518,17 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         stream: false,
         stop: null
       });
-      
+
       const assistantMessage = {
         role: 'assistant',
         content: chatCompletion.choices[0].message.content,
         userDisplayName: 'phraze'
       };
-      
+
       // Add the new assistant response
       const newMessages = [...updatedMessages, assistantMessage];
       setMessages(newMessages);
-      
+
       // Update Firebase if user is logged in
       const currentUser = auth.currentUser;
       if (currentUser && currentUser.email && currentChat && currentChat.id) {
@@ -8244,10 +8536,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           try {
             const saveFirebaseData = module.saveFirebaseData;
             const getFirebaseData = module.getFirebaseData;
-            
+
             const email = currentUser.email.replace(/\./g, ',');
             const companyEmailPath = await getFirebaseData(`emailToCompanyDirectory/${email}`);
-            
+
             if (companyEmailPath) {
               // Use correct path based on chat's public/private status
               const isPrivate = currentChat.isPublic === false;
@@ -8259,7 +8551,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           }
         });
       }
-      
+
     } catch (error) {
       console.error('Error regenerating AI response:', error);
       // Restore the original messages on error
@@ -8477,7 +8769,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   //Listen for selection changes to show highlight icon
   useEffect(() => {
     let isCreatingToolbar = false;
-    
+
     function removeAllHighlightButtons() {
       // Do not remove if user is interacting with the toolbar (prevents flicker on click)
       if (window.phrazeToolbarInteracting) return;
@@ -8495,7 +8787,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         removeAllHighlightButtons();
         return;
       }
-      
+
       const selection = window.getSelection();
       if (selection && selection.toString().length > 0) {
         // Check if selection is within the search modal preview - if so, ignore it
@@ -8509,7 +8801,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             removeAllHighlightButtons();
             return;
           }
-          
+
           // Check if selection is within the main chat area
           const chatMessagesDiv = document.getElementById('chatMessagesDiv');
           if (chatMessagesDiv) {
@@ -8519,29 +8811,29 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             while (startElement && startElement.nodeType !== 1) {
               startElement = startElement.parentElement;
             }
-            
+
             let endElement = range.endContainer;
             while (endElement && endElement.nodeType !== 1) {
               endElement = endElement.parentElement;
             }
-            
+
             // Get the actual element from commonAncestorContainer
             let element = container;
             while (element && element.nodeType !== 1) {
               element = element.parentElement;
             }
-            
+
             // If element is null, try startContainer as fallback
             if (!element && startElement) {
               element = startElement;
             }
-            
+
             // Check if ANY of the containers (start, end, or common ancestor) is within chat area
             // This is important for large block selections that span multiple elements
             const isStartInChat = startElement && chatMessagesDiv.contains(startElement);
             const isEndInChat = endElement && chatMessagesDiv.contains(endElement);
             const isElementInChat = element && chatMessagesDiv.contains(element);
-            
+
             // If none of the containers are in the chat area, don't show toolbar
             if (!isStartInChat && !isEndInChat && !isElementInChat) {
               // Selection is outside chat area - don't show toolbar
@@ -8552,18 +8844,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           }
           // If chatMessagesDiv doesn't exist, allow toolbar to show (fallback)
         }
-        
+
         // Prevent multiple simultaneous toolbar creations
         if (isCreatingToolbar) {
           return;
         }
-        
+
         // Clear any existing toolbars first
         removeAllHighlightButtons();
-        
+
         // Create toolbar immediately (no debounce for instant appearance)
         isCreatingToolbar = true;
-        
+
         // Use requestAnimationFrame for smooth instant creation
         requestAnimationFrame(() => {
           // Double-check selection still exists (might have been cleared)
@@ -8572,14 +8864,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             isCreatingToolbar = false;
             return;
           }
-          
+
           // Preserve the user's selection so toolbar interactions don't collapse it
           try {
             if (currentSelection.rangeCount > 0) {
               window.phrazeSavedSelectionRange = currentSelection.getRangeAt(0).cloneRange();
             }
-          } catch (_) {}
-          
+          } catch (_) { }
+
           const toolbar = document.createElement('div');
           toolbar.className = 'HighlightPopup';
           toolbar.style.position = 'absolute';
@@ -8618,14 +8910,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 sel.removeAllRanges();
                 sel.addRange(window.phrazeSavedSelectionRange);
               }
-            } catch (_) {}
+            } catch (_) { }
 
             // Ensure current highlight color is synced from global toolbar choice
             try {
               if (window.phrazeHighlightColorHex) {
                 localStorage.setItem('phrazeLastHighlightColorHex', String(window.phrazeHighlightColorHex));
               }
-            } catch (_) {}
+            } catch (_) { }
 
             const globalID = Date.now();
             localStorage.setItem('globalHighlightID', globalID);
@@ -8641,18 +8933,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           try {
             const range = currentSelection.getRangeAt(0);
             let rect = range.getBoundingClientRect();
-            
+
             // For large block selections, getBoundingClientRect might return invalid dimensions
             // Fallback: use startContainer's position if rect is invalid
             if (!rect || rect.width === 0 || rect.height === 0) {
-              const startElement = range.startContainer.nodeType === 1 
-                ? range.startContainer 
+              const startElement = range.startContainer.nodeType === 1
+                ? range.startContainer
                 : range.startContainer.parentElement;
               if (startElement) {
                 rect = startElement.getBoundingClientRect();
               }
             }
-            
+
             // If rect is still invalid, try to get from a visible text node
             if (!rect || rect.width === 0 || rect.height === 0) {
               // Find first visible text node in selection
@@ -8663,8 +8955,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   acceptNode: (node) => {
                     const nodeRange = document.createRange();
                     nodeRange.selectNodeContents(node);
-                    return range.intersectsNode(node) 
-                      ? NodeFilter.FILTER_ACCEPT 
+                    return range.intersectsNode(node)
+                      ? NodeFilter.FILTER_ACCEPT
                       : NodeFilter.FILTER_REJECT;
                   }
                 }
@@ -8674,7 +8966,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 rect = firstTextNode.parentElement.getBoundingClientRect();
               }
             }
-            
+
             // Final fallback: use center of viewport if rect is still invalid
             if (!rect || rect.width === 0 || rect.height === 0) {
               rect = {
@@ -8684,25 +8976,25 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 height: 0
               };
             }
-            
+
             const toolbarWidth = 44; // width for pen button only
-            
+
             // Calculate center position - works for both directions
             const centerX = rect.left + (rect.width / 2);
             const leftPos = centerX - (toolbarWidth / 2);
-            
+
             // Ensure toolbar stays within viewport
             const viewportWidth = window.innerWidth;
             const finalLeft = Math.max(10, Math.min(leftPos, viewportWidth - toolbarWidth - 10));
-            
+
             toolbar.style.left = `${finalLeft}px`;
             toolbar.style.top = `${rect.top + window.scrollY - 40}px`;
-            
+
             // Ensure toolbar doesn't go above viewport
             if (rect.top < 50) {
               toolbar.style.top = `${rect.bottom + window.scrollY + 10}px`;
             }
-            
+
             document.body.appendChild(toolbar);
             isCreatingToolbar = false;
           } catch (err) {
@@ -8738,7 +9030,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         removeAllHighlightButtons();
         return;
       }
-      
+
       // Small delay to let selectionchange fire first, then check if toolbar should appear
       setTimeout(() => {
         const selection = window.getSelection();
@@ -8759,7 +9051,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               if (previewContainer && (previewContainer.contains(container) || previewContainer === container)) {
                 return; // Don't show in search preview
               }
-              
+
               const chatMessagesDiv = document.getElementById('chatMessagesDiv');
               if (chatMessagesDiv) {
                 // Use same improved logic for large block selections
@@ -8767,21 +9059,21 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 while (startElement && startElement.nodeType !== 1) {
                   startElement = startElement.parentElement;
                 }
-                
+
                 let endElement = range.endContainer;
                 while (endElement && endElement.nodeType !== 1) {
                   endElement = endElement.parentElement;
                 }
-                
+
                 let element = container;
                 while (element && element.nodeType !== 1) {
                   element = element.parentElement;
                 }
-                
+
                 const isStartInChat = startElement && chatMessagesDiv.contains(startElement);
                 const isEndInChat = endElement && chatMessagesDiv.contains(endElement);
                 const isElementInChat = element && chatMessagesDiv.contains(element);
-                
+
                 if (isStartInChat || isEndInChat || isElementInChat) {
                   // Valid selection in chat area - trigger toolbar creation
                   handleSelectionChange();
@@ -8796,7 +9088,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       }, 50); // Slightly longer delay to ensure selection is stable after double-click or large block selection
     };
     document.addEventListener('mouseup', handleMouseUp);
-    
+
     // Also listen for dblclick to ensure double-click selections are handled
     const handleDoubleClick = () => {
       // Don't show highlight toolbar for viewers
@@ -8804,7 +9096,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         removeAllHighlightButtons();
         return;
       }
-      
+
       // Double-click creates selection, wait a bit then check
       setTimeout(() => {
         const selection = window.getSelection();
@@ -8840,21 +9132,21 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           const firebaseDb = await import('firebase/database');
           const { ref, onValue } = firebaseDb;
           const { database } = await import('../firebase-init'); // Get database instance
-          
+
           // Check for shared project first (from localStorage or state)
           let companyEmail = localStorage.getItem('sharedCompanyEmail') || sharedCompanyEmail;
           if (!companyEmail) {
             companyEmail = localStorage.getItem("companyEmail");
           }
-          
+
           // For shared chats, ensure we're listening to the correct company
           if (currentChat && currentChat.isShared && currentChat.companyEmail) {
             companyEmail = currentChat.companyEmail;
             console.log("[Listener] Using shared company email for listener:", companyEmail);
           }
-          
+
           console.log("[Listener] Using company email:", companyEmail, "sharedCompanyEmail from localStorage:", localStorage.getItem('sharedCompanyEmail'));
-          
+
           // Ensure companyEmail has all periods replaced with commas for Firebase paths
           if (companyEmail) {
             companyEmail = companyEmail.replace(/\./g, ',');
@@ -8863,7 +9155,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           // Read currentProject from localStorage to avoid stale closure issues
           // This ensures we always use the most up-to-date project, especially after refresh
           const activeProject = localStorage.getItem('currentProject') || currentProject || 'default';
-          
+
           // Listen ONLY to highlight-related nodes (avoid triggering on chat message changes)
           const highlightsPath = `Companies/${companyEmail}/projects/${activeProject}/highlights`;
           const annotationHistoryPath = `Companies/${companyEmail}/projects/${activeProject}/annotationHistory`;
@@ -8882,14 +9174,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             if (highlightReloadTimeout) {
               clearTimeout(highlightReloadTimeout);
             }
-            
+
             // Debounce: wait 100ms before reloading (allows multiple rapid updates to batch)
             highlightReloadTimeout = setTimeout(async () => {
               // Prevent concurrent reloads
               if (isReloadingHighlights) {
                 return;
               }
-              
+
               isReloadingHighlights = true;
               try {
                 // console.log("[Listener] Highlights-related data changed - reloading highlights");
@@ -8910,11 +9202,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           // Private chats are stored in a separate secure path
           const isPrivateChat = currentChat && currentChat.isPublic === false;
           const userEmailFormatted = auth.currentUser?.email?.replace(/\./g, ',');
-          
+
           // Determine the correct path and whether we're listening to a specific chat
           let messagePath;
           let isSpecificChatPath = false;
-          
+
           if (isPrivateChat && userEmailFormatted && !currentChat?.isShared) {
             // Private chat - listen to secure path (specific chat)
             messagePath = `Companies/${companyEmail}/projects/${activeProject}/privateChats/${userEmailFormatted}/${currentChat.id}`;
@@ -8929,7 +9221,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             messagePath = `Companies/${companyEmail}/projects/${activeProject}/groqChats`;
             isSpecificChatPath = false;
           }
-          
+
           const listenerRef2 = ref(database, messagePath);
 
           // Define the callback for onValue for messages
@@ -8937,17 +9229,17 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             if (!currentChat) {
               return; // Don't clear messages when currentChat is null - might be a stale callback
             }
-            
+
             const snapshotVal = snapshot.val();
-            
+
             if (!snapshotVal) {
               // No data at this path - but don't clear if we already have messages locally
               // This prevents race conditions where save happens but read is stale
               return;
             }
-            
+
             let chatData;
-            
+
             if (isSpecificChatPath) {
               // We're listening to a specific chat path - snapshotVal IS the chat data directly
               chatData = snapshotVal;
@@ -8956,11 +9248,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               const targetChatId = currentChat.isShared && currentChat.originalId ? currentChat.originalId : currentChat.id;
               chatData = snapshotVal[targetChatId];
             }
-            
+
             if (chatData && chatData.messages) {
-                  const chatMessages = Array.isArray(chatData.messages)
-                    ? chatData.messages
-                    : Object.values(chatData.messages);
+              const chatMessages = Array.isArray(chatData.messages)
+                ? chatData.messages
+                : Object.values(chatData.messages);
               // Only update messages if Firebase has equal or more messages than local
               // This prevents overwriting local state with stale Firebase data
               setMessages(prevMessages => {
@@ -8969,10 +9261,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 }
                 return prevMessages;
               });
-              
-                  setTimeout(() => {
-                    loadHighlights();
-                  }, 50);
+
+              setTimeout(() => {
+                loadHighlights();
+              }, 50);
             }
             // If chatData exists but no messages, keep current local messages
             // Don't reset to empty - that causes the "How can I help?" screen to flash
@@ -8988,7 +9280,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     };
 
     setupListener();
-    
+
     // Cleanup function: unsubscribe all listeners and clear timeouts
     return () => {
       // Clear any pending highlight reload
@@ -8996,7 +9288,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         clearTimeout(highlightReloadTimeout);
         highlightReloadTimeout = null;
       }
-      
+
       unsubscribeFunctions.forEach(unsubscribe => {
         try {
           if (typeof unsubscribe === 'function') {
@@ -9008,19 +9300,19 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       });
       unsubscribeFunctions = [];
     };
-    async function updateEmail(){
-      if(currentChat) {
-    if (currentChat.isShared) {
-   //   localStorage.setItem('companyEmail', sharedCompanyEmail);
+    async function updateEmail() {
+      if (currentChat) {
+        if (currentChat.isShared) {
+          //   localStorage.setItem('companyEmail', sharedCompanyEmail);
           //   console.log('companyEmail', sharedCompanyEmail);
         } else {
-     // localStorage.setItem('companyEmail', await getMainCompanyEmail());
-      console.log('companyEmail', localStorage.getItem('companyEmail'));
+          // localStorage.setItem('companyEmail', await getMainCompanyEmail());
+          console.log('companyEmail', localStorage.getItem('companyEmail'));
+        }
+      }
     }
-  }
-  }
     updateEmail();
-    
+
     // Cleanup function: Remove listener when dependencies change or component unmounts
     // (Cleanup is handled in the return statement above)
   }, [isSharedView, currentChat, sharedCompanyEmail, originalSanitizedUrl, isInsideExtension, currentProject, isLoggedIn]); // Dependencies
@@ -9038,7 +9330,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   useEffect(() => {
     setProjectDropdownOpen(false);
   }, [currentChat?.id]);
-  
+
   // Set up typing indicator listener for current conversation
   useEffect(() => {
     // Clean up previous listener
@@ -9046,13 +9338,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       typingListenerRef.current();
       typingListenerRef.current = null;
     }
-    
+
     // Only listen if we have a conversation ID
     if (!currentChat?.id) {
       setTypingUsers([]);
       return;
     }
-    
+
     // Set up typing listener
     const cleanup = listenToTyping(currentChat.id, (users) => {
       // Filter out current user from typing list (compare by uid)
@@ -9060,9 +9352,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       const otherTypingUsers = users.filter(user => user.userId !== currentUserId);
       setTypingUsers(otherTypingUsers);
     });
-    
+
     typingListenerRef.current = cleanup;
-    
+
     return () => {
       if (typingListenerRef.current) {
         typingListenerRef.current();
@@ -9092,11 +9384,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
     try {
       const { saveFirebaseData } = await import('../funcs');
-      
+
       // Get company email for the project
       const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
       const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-      
+
       if (!targetCompanyEmail || !currentProject) {
         showToast("Could not find project information", "error");
         return;
@@ -9104,7 +9396,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       // Determine if chat is private or public
       const isPrivateChat = currentChat.isPublic === false;
-      
+
       // Get the correct Firebase path
       const chatBasePath = getChatBasePath(
         targetCompanyEmail,
@@ -9113,15 +9405,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         isPrivateChat,
         auth.currentUser?.email
       );
-      
+
       await saveFirebaseData(`${chatBasePath}/title`, newTitle.trim());
-      
+
       // Update current chat state
       setCurrentChat({
         ...currentChat,
         title: newTitle.trim()
       });
-      
+
       showToast("Chat renamed successfully", "success");
       setProjectDropdownOpen(false);
     } catch (error) {
@@ -9144,7 +9436,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     try {
       const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
       const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-      
+
       if (!targetCompanyEmail || !currentProject) {
         showToast("Could not find project information", "error");
         return;
@@ -9158,7 +9450,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       }
 
       const formattedEmail = memberEmail.replace(/\./g, ',');
-      
+
       // Ensure all permissions are explicitly set with boolean values
       // Missing permissions default to false
       // Note: modifyAnnotations has been merged into createAnnotations
@@ -9168,14 +9460,14 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         deleteAnnotations: permissionsObject.deleteAnnotations ?? false,
         share: permissionsObject.share ?? false
       };
-      
+
       // Cleanup: Remove modifyAnnotations if it exists in old data
       // We'll explicitly remove it from Firebase by not including it in the update
-      
+
       // Save entire permissions object to Firebase (this will overwrite and remove modifyAnnotations)
       const permissionsPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members/${formattedEmail}/permissions`;
       await saveFirebaseData(permissionsPath, completePermissions);
-      
+
       // Update local state
       setAdminPanelMembers(prev => prev.map(m => {
         if (m.email === memberEmail) {
@@ -9186,7 +9478,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         }
         return m;
       }));
-      
+
       showToast(`Permissions updated for ${memberEmail}`, "success");
     } catch (error) {
       console.error("Error updating permissions:", error);
@@ -9197,16 +9489,16 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
   // Toggle permission in permissions modal
   const togglePermission = (permissionKey) => {
     if (!editingMember) return;
-    
+
     // Ignore modifyAnnotations - it's been merged into createAnnotations
     if (permissionKey === 'modifyAnnotations') {
       console.warn('modifyAnnotations has been merged into createAnnotations. Ignoring toggle.');
       return;
     }
-    
+
     // Ensure permissions object exists and has all keys
     const currentPermissions = editingMember.permissions || {};
-    
+
     // Toggle the specific permission
     // Note: modifyAnnotations has been merged into createAnnotations, so we don't include it
     const newPermissions = {
@@ -9216,13 +9508,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       share: currentPermissions.share ?? false,
       [permissionKey]: !(currentPermissions[permissionKey] ?? false)
     };
-    
+
     const updatedMember = { ...editingMember, permissions: newPermissions };
     setEditingMember(updatedMember);
-    
+
     // Update real state immediately
     setAdminPanelMembers(prev => prev.map(m => m.email === editingMember.email ? updatedMember : m));
-    
+
     // Save entire permissions object to Firebase
     handlePermissionUpdate(editingMember.email, newPermissions);
   };
@@ -9232,7 +9524,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     try {
       const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
       const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-      
+
       if (!targetCompanyEmail || !currentProject) {
         showToast("Could not find project information", "error");
         return;
@@ -9240,9 +9532,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       const formattedEmail = memberEmail.replace(/\./g, ',');
       const rolePath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members/${formattedEmail}/role`;
-      
+
       await saveFirebaseData(rolePath, newRole);
-      
+
       // If changing to editor, set default permissions
       if (newRole === 'editor') {
         const permissionsPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members/${formattedEmail}/permissions`;
@@ -9252,7 +9544,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         const permissionsPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members/${formattedEmail}/permissions`;
         await saveFirebaseData(permissionsPath, null);
       }
-      
+
       // Update local state
       setAdminPanelMembers(prev => prev.map(member => {
         if (member.email === memberEmail) {
@@ -9260,7 +9552,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             ...member,
             role: newRole
           };
-          
+
           // Update permissions based on role
           // Note: modifyAnnotations has been merged into createAnnotations
           if (newRole === 'editor') {
@@ -9273,12 +9565,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           } else {
             updatedMember.permissions = null;
           }
-          
+
           return updatedMember;
         }
         return member;
       }));
-      
+
       showToast(`Role updated to ${newRole} for ${memberEmail}`, "success");
     } catch (error) {
       console.error("Error updating role:", error);
@@ -9299,33 +9591,33 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
     try {
       const { deleteFirebaseData, getFirebaseData } = await import('../funcs');
-      
+
       // Get company email for the project
       const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
       const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-      
+
       if (!targetCompanyEmail || !currentProject) {
         showToast("Could not find project information", "error");
         return;
       }
 
       const currentUserEmail = auth.currentUser.email.replace(/\./g, ',');
-      
+
       // Remove user from project members
       const memberPath = `Companies/${targetCompanyEmail}/projects/${currentProject}/members/${currentUserEmail}`;
       await deleteFirebaseData(memberPath);
-      
+
       // Remove reverse mapping
       const reverseMappingPath = `emailToSharedProjects/${currentUserEmail}/${targetCompanyEmail}/${currentProject}`;
       await deleteFirebaseData(reverseMappingPath);
-      
+
       // Clear shared project data from localStorage
       localStorage.removeItem('sharedCompanyEmail');
       localStorage.removeItem('sharedProjectId');
-      
+
       // Switch to default project or first available project
       handleProjectChange('default');
-      
+
       showToast("You have left the project", "success");
       setProjectDropdownOpen(false);
     } catch (error) {
@@ -9348,11 +9640,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     try {
       const { remove } = await import('firebase/database');
       const { ref } = await import('firebase/database');
-      
+
       // Get company email for the project
       const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
       const targetCompanyEmail = sharedCompanyEmail || localStorage.getItem('companyEmail');
-      
+
       if (!targetCompanyEmail || !currentProject) {
         showToast("Could not find project information", "error");
         return;
@@ -9360,7 +9652,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       // Determine if chat is private or public
       const isPrivateChat = currentChat.isPublic === false;
-      
+
       // Get the correct Firebase path
       let chatRef;
       if (isPrivateChat && auth.currentUser?.email) {
@@ -9373,18 +9665,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       }
 
       await remove(chatRef);
-      
+
       // Clear current chat and create a new one
       setCurrentChat(null);
       setMessages([]);
       setInputValue('');
-      
+
       showToast("Chat deleted successfully", "success");
     } catch (error) {
       console.error("Error deleting chat:", error);
       showToast("Failed to delete chat", "error");
     }
-    
+
     setProjectDropdownOpen(false);
   };
 
@@ -9469,7 +9761,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
       // Add shared flag to the original chat in Firebase
       const originalChatData = await getFirebaseData(originalChatPath);
-      
+
       if (originalChatData) {
         const updatedChatData = {
           ...originalChatData,
@@ -9483,21 +9775,21 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         // Add sender to sharedPeople list
         const sharedPeoplePath = `${originalChatPath}/sharedPeople`;
         const existingSharedPeople = await getFirebaseData(sharedPeoplePath) || {};
-        
+
         // Add current user to shared people list if not already present
         if (!existingSharedPeople[currentUser.email]) {
           // Get sender name from userProfile or fallback
-          const senderName = (userProfile?.firstName && userProfile?.lastName) 
+          const senderName = (userProfile?.firstName && userProfile?.lastName)
             ? `${userProfile.firstName} ${userProfile.lastName}`
             : (userProfile?.username || currentUser.displayName || currentUser.email.split('@')[0]);
-          
+
           const senderData = {
             email: currentUser.email,
             name: senderName,
             addedAt: Date.now(),
             addedBy: 'sender'
           };
-          
+
           await saveFirebaseData(`${sharedPeoplePath}/${currentUser.email.replace(/\./g, ',')}`, senderData);
           console.log('✅ Added sender to sharedPeople list:', currentUser.email);
         }
@@ -9541,18 +9833,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     if (!currentChat?.privateUser) {
       try {
         const { getFirebaseData } = await import('../funcs');
-        
+
         // Get current user's company email
         const currentUserEmail = currentUser.email.replace(/\./g, ',');
         const currentUserCompany = await getFirebaseData(`emailToCompanyDirectory/${currentUserEmail}`);
-        
+
         // Get recipient's company email
         const recipientEmail = shareEmail.replace(/\./g, ',');
         const recipientCompany = await getFirebaseData(`emailToCompanyDirectory/${recipientEmail}`);
-        
+
         // Check if both users are in the same company
-        if (currentUserCompany && recipientCompany && 
-            currentUserCompany.replace(/\./g, ',') === recipientCompany.replace(/\./g, ',')) {
+        if (currentUserCompany && recipientCompany &&
+          currentUserCompany.replace(/\./g, ',') === recipientCompany.replace(/\./g, ',')) {
           showToast("Cannot share a public chat with someone in the same company.Move the chat to private and share it again", "error");
           return;
         }
@@ -9574,7 +9866,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       const publicShareId = shareLink.match(/share=([^&]+)/)?.[1];
 
       // Get sender name from userProfile or fallback
-      const senderDisplayName = (userProfile?.firstName && userProfile?.lastName) 
+      const senderDisplayName = (userProfile?.firstName && userProfile?.lastName)
         ? `${userProfile.firstName} ${userProfile.lastName}`
         : (userProfile?.username || currentUser.displayName || currentUser.email);
 
@@ -9599,7 +9891,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             const emailForLookup = currentUser.email.replace(/\./g, ',');
             targetCompanyEmail = await getFirebaseData(`emailToCompanyDirectory/${emailForLookup}`);
           }
-        } catch (_) {}
+        } catch (_) { }
 
         const originalChatId = currentChat?.originalId || currentChat?.id;
         const originalPath = targetCompanyEmail && originalChatId
@@ -9630,22 +9922,22 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       // Create shared contact relationship (bidirectional) for chat shares
       if (shareMode === 'chat') {
         // Use contact's email as key to prevent duplicates when sharing multiple chats with same person
-        
+
         // Add receiver as shared contact for sender (key = recipient's formatted email)
         const senderContactData = {
-        email: shareEmail,
-        name: shareEmail.split('@')[0], // Use email prefix as default name
-        sharedChats: {
-          [publicShareId]: {
-            chatId: publicShareId,
-            chatTitle: currentChat.title || 'Untitled Chat',
-            timestamp: Date.now()
-          }
-        },
-        addedBy: 'sender',
-        lastSharedTimestamp: Date.now()
-      };
-      
+          email: shareEmail,
+          name: shareEmail.split('@')[0], // Use email prefix as default name
+          sharedChats: {
+            [publicShareId]: {
+              chatId: publicShareId,
+              chatTitle: currentChat.title || 'Untitled Chat',
+              timestamp: Date.now()
+            }
+          },
+          addedBy: 'sender',
+          lastSharedTimestamp: Date.now()
+        };
+
         // Check if contact already exists and merge shared chats
         const existingSenderContact = await getFirebaseData(`SharedContacts/${senderEmailFormatted}/${recipientEmail}`);
         if (existingSenderContact && existingSenderContact.sharedChats) {
@@ -9654,25 +9946,25 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             [publicShareId]: senderContactData.sharedChats[publicShareId]
           };
         }
-        
+
         await saveFirebaseData(`SharedContacts/${senderEmailFormatted}/${recipientEmail}`, senderContactData);
 
         // Add sender as shared contact for receiver (key = sender's formatted email)
         // Use the same senderDisplayName calculated above
         const receiverContactData = {
-        email: currentUser.email,
-        name: senderDisplayName,
-        sharedChats: {
-          [publicShareId]: {
-            chatId: publicShareId,
-            chatTitle: currentChat.title || 'Untitled Chat',
-            timestamp: Date.now()
-          }
-        },
-        addedBy: 'receiver',
-        lastSharedTimestamp: Date.now()
-      };
-      
+          email: currentUser.email,
+          name: senderDisplayName,
+          sharedChats: {
+            [publicShareId]: {
+              chatId: publicShareId,
+              chatTitle: currentChat.title || 'Untitled Chat',
+              timestamp: Date.now()
+            }
+          },
+          addedBy: 'receiver',
+          lastSharedTimestamp: Date.now()
+        };
+
         // Check if contact already exists and merge shared chats
         const existingReceiverContact = await getFirebaseData(`SharedContacts/${recipientEmail}/${senderEmailFormatted}`);
         if (existingReceiverContact && existingReceiverContact.sharedChats) {
@@ -9681,7 +9973,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             [publicShareId]: receiverContactData.sharedChats[publicShareId]
           };
         }
-        
+
         await saveFirebaseData(`SharedContacts/${recipientEmail}/${senderEmailFormatted}`, receiverContactData);
       }
 
@@ -9786,7 +10078,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     // Check for sharedCompanyEmail in localStorage
     // ChatSidebar is responsible for setting/clearing this when user selects projects
     const storedSharedCompany = localStorage.getItem('sharedCompanyEmail');
-    
+
     if (storedSharedCompany) {
       // Removed console.log for performance
       setSharedCompanyEmail(storedSharedCompany);
@@ -9797,7 +10089,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       setSharedCompanyEmail(null);
       setIsSharedView(false);
     }
-    
+
     // Reload highlights after project change to ensure correct data is loaded
     // Removed console.log for performance
     loadHighlights();
@@ -9814,7 +10106,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       setCurrentChatID(null);
     }
   }, [currentChat]);
-  
+
 
 
 
@@ -9849,7 +10141,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       // Prevent scrolling with multiple methods
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
-      
+
       // Also prevent wheel and touch events
       document.addEventListener('wheel', preventScroll, { passive: false });
       document.addEventListener('touchmove', preventScroll, { passive: false });
@@ -9857,7 +10149,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
       // Restore scrolling
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
-      
+
       document.removeEventListener('wheel', preventScroll);
       document.removeEventListener('touchmove', preventScroll);
     }
@@ -9962,7 +10254,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
     };
   }, [isCustomSidebarVisible])
 
-  
+
   useEffect(() => {
     async function populateLibrary() {
       if (isLibraryVisible) {
@@ -10071,13 +10363,13 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           )}
 
           {/* Header bar - always visible */}
-             <div style={{
+          <div style={{
             padding: '0.75rem 1rem 1.25rem 1rem',
-               textAlign: 'center',
-               display: 'flex',
-               flexDirection: 'column',
-               justifyContent: 'center',
-               alignItems: 'center',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
             position: 'relative',
             overflow: 'visible',
             gap: '0.5rem'
@@ -10087,8 +10379,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-               position: 'relative'
-             }}>
+              position: 'relative'
+            }}>
               {/* Dropdown arrow - only for shared projects and public chats (not private chats) */}
               {isProjectShared && auth.currentUser && (!currentChat || currentChat.isPublic !== false) && (
                 <button
@@ -10121,12 +10413,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   }}
                   data-project-dropdown="toggle"
                 >
-                  <svg 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -10190,7 +10482,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         </svg>
                         <span>Manage Members</span>
                       </button>
-                      
+
                       <button
                         onClick={handleViewMembers}
                         style={{
@@ -10224,49 +10516,49 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         </svg>
                         <span>View Members</span>
                       </button>
-                      
+
                       {/* Share Project button - only shown when user has share permission */}
                       {!sharePermissionLoading && canShare && (
-                      <button
-                        onClick={() => {
-                          setProjectDropdownOpen(false);
-                          setShareModalProjectId(currentProject);
-                          setShowShareModal(true);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          background: 'transparent',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '0.9rem',
-                          color: '#1f2937',
-                          textAlign: 'left',
-                          transition: 'background 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = '#f3f4f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = 'transparent';
-                        }}
-                        data-project-dropdown="item"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="18" cy="5" r="3"></circle>
-                          <circle cx="6" cy="12" r="3"></circle>
-                          <circle cx="18" cy="19" r="3"></circle>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                        </svg>
-                        <span>Share Project</span>
-                      </button>
+                        <button
+                          onClick={() => {
+                            setProjectDropdownOpen(false);
+                            setShareModalProjectId(currentProject);
+                            setShowShareModal(true);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.9rem',
+                            color: '#1f2937',
+                            textAlign: 'left',
+                            transition: 'background 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                          }}
+                          data-project-dropdown="item"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                          </svg>
+                          <span>Share Project</span>
+                        </button>
                       )}
-                      
+
                       <button
                         onClick={() => {
                           if (!currentChat) {
@@ -10304,7 +10596,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         </svg>
                         <span>Delete Chat</span>
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           if (!currentChat) {
@@ -10381,7 +10673,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         </svg>
                         <span>View Members</span>
                       </button>
-                      
+
                       {/* Share Project button - only shown when user has share permission */}
                       {!sharePermissionLoading && canShare && (
                         <button
@@ -10423,7 +10715,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                           <span>Share Project</span>
                         </button>
                       )}
-                      
+
                       <button
                         onClick={() => {
                           if (!currentChat) {
@@ -10461,7 +10753,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         </svg>
                         <span>Delete Chat</span>
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           if (!currentChat) {
@@ -10507,1454 +10799,536 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
             {/* Share button - only visible when chat has messages (positioned absolutely) */}
             {SHARE_BUTTON_ENABLED && currentChat && messages.length > 0 && !isInsideExtension && (
-                 <button
-                   onClick={() => {
-                     if (!auth.currentUser) {
-                       showToast("Please log in to share chats", "info");
-                       return;
-                     }
-                     
-                     // Check if this is a shared chat from sharedChats path (received from someone else)
-                     // Disable sharing only for chats that have originalId (from sharedChats path) and are not from the sender
-                     if (currentChat.originalId && !currentChat.isSender) {
-                       showToast("Only the original creator can share this chat", "error");
-                       return;
-                     }
-                     
-                     handleShareChat(currentChat);
-                   }}
-                   style={{
-                     position: 'absolute',
-                     right: '10rem',
-                     background: (currentChat.originalId && !currentChat.isSender) ? '#f3f4f6' : 'white',
-                     border: '1px solid rgba(0,0,0,0.08)',
-                     borderRadius: '12px',
-                     padding: '0.625rem 1rem',
-                     fontSize: '0.875rem',
-                     color: (currentChat.originalId && !currentChat.isSender) ? '#9ca3af' : '#1f2937',
-                     cursor: (currentChat.originalId && !currentChat.isSender) ? 'not-allowed' : 'pointer',
-                     minWidth: 'auto',
-                     display: 'flex',
-                     alignItems: 'center',
-                     justifyContent: 'center',
-                     gap: '0.5rem',
-                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                     outline: 'none',
-                     fontWeight: '500',
-                     opacity: (currentChat.originalId && !currentChat.isSender) ? 0.6 : 1
-                   }}
-                   onMouseEnter={(e) => {
-                     if (!(currentChat.originalId && !currentChat.isSender)) {
-                       e.target.style.borderColor = 'rgba(0,0,0,0.15)';
-                       e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-                       e.target.style.transform = 'translateY(-1px)';
-                     }
-                   }}
-                   onMouseLeave={(e) => {
-                     if (!(currentChat.originalId && !currentChat.isSender)) {
-                       e.target.style.borderColor = 'rgba(0,0,0,0.08)';
-                       e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                       e.target.style.transform = 'translateY(0)';
-                     }
-                   }}
-                   title={
-                     (currentChat.originalId && !currentChat.isSender) 
-                       ? "Only the original creator can share this chat"
-                       : "Share this chat"
-                   }
-                 >
-                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256">
-                     <path fill="currentColor" d="m237.66 106.35l-80-80A8 8 0 0 0 144 32v40.35c-25.94 2.22-54.59 14.92-78.16 34.91c-28.38 24.08-46.05 55.11-49.76 87.37a12 12 0 0 0 20.68 9.58c11-11.71 50.14-48.74 107.24-52V192a8 8 0 0 0 13.66 5.65l80-80a8 8 0 0 0 0-11.3ZM160 172.69V144a8 8 0 0 0-8-8c-28.08 0-55.43 7.33-81.29 21.8a196.17 196.17 0 0 0-36.57 26.52c5.8-23.84 20.42-46.51 42.05-64.86C99.41 99.77 127.75 88 152 88a8 8 0 0 0 8-8V51.32L220.69 112Z"/>
-                   </svg>
-                   <span style={{ fontWeight: '500' }}>Share</span>
-                 </button>
-               )}
+              <button
+                onClick={() => {
+                  if (!auth.currentUser) {
+                    showToast("Please log in to share chats", "info");
+                    return;
+                  }
 
-               {/* Model selection dropdown - always visible */}
-               {!isInsideExtension && (
-                 <div style={{
-                   position: 'absolute',
-                   top: '6px',
-                   left: '1.5rem',
-                   zIndex: 1000
-                 }} className="model-dropdown-container">
-                   <button
-                     onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                     style={{
-                       background: 'white',
-                       border: '1px solid rgba(0,0,0,0.08)',
-                       borderRadius: '12px',
-                       padding: '0.625rem 1rem',
-                       fontSize: '0.875rem',
-                       color: '#1f2937',
-                       cursor: 'pointer',
-                       minWidth: '140px',
-                       display: 'flex',
-                       alignItems: 'center',
-                       justifyContent: 'space-between',
-                       gap: '0.5rem',
-                       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                       boxShadow: 'none',
-                       outline: 'none',
-                       fontWeight: '500'
-                     }}
-                     onMouseEnter={(e) => {
-                       e.target.style.borderColor = 'rgba(0,0,0,0.15)';
-                       e.target.style.transform = 'translateY(-1px)';
-                     }}
-                     onMouseLeave={(e) => {
-                       e.target.style.borderColor = 'rgba(0,0,0,0.08)';
-                       e.target.style.boxShadow = 'none';
-                       e.target.style.transform = 'translateY(0)';
-                     }}
-                     title="Select AI model"
-                   >
-                     <span style={{ fontWeight: '500' }}>
-                       {availableModels.find(m => m.value === selectedModel)?.label}
-                     </span>
-                     <svg 
-                       width="16" 
-                       height="16" 
-                       viewBox="0 0 24 24" 
-                       fill="none" 
-                       stroke="currentColor" 
-                       strokeWidth="2"
-                       style={{
-                         transform: isModelDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                         transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                         opacity: '0.6'
-                       }}
-                     >
-                       <polyline points="6,9 12,15 18,9"></polyline>
-                     </svg>
-                   </button>
-                   
-                   {isModelDropdownOpen && (
-                     <div style={{
-                       position: 'absolute',
-                       top: '100%',
-                       left: '0',
-                       right: '0',
-                       marginTop: '0.5rem',
-                       background: 'white',
-                       border: '1px solid rgba(0,0,0,0.08)',
-                       borderRadius: '12px',
-                       boxShadow: 'none',
-                       overflow: 'hidden',
-                       zIndex: 1001,
-                       backdropFilter: 'blur(8px)',
-                       WebkitBackdropFilter: 'blur(8px)',
-                       width: '320px'
-                     }}>
-                       {availableModels.map((model, index) => (
-                         <button
-                           key={model.value}
-                           onClick={() => {
-                             setSelectedModel(model.value);
-                             setIsModelDropdownOpen(false);
-                           }}
-                           style={{
-                             width: '100%',
-                             padding: '0.875rem 1.25rem',
-                             background: selectedModel === model.value ? 'rgb(245, 243, 240)' : 'transparent',
-                             border: 'none',
-                             textAlign: 'left',
-                             cursor: 'pointer',
-                             transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                             borderBottom: index < availableModels.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                             display: 'flex',
-                             flexDirection: 'column',
-                             gap: '0.375rem'
-                           }}
-                           onMouseEnter={(e) => {
-                             if (selectedModel !== model.value) {
-                               e.target.style.background = 'rgb(249, 248, 246)';
-                             }
-                           }}
-                           onMouseLeave={(e) => {
-                             if (selectedModel !== model.value) {
-                               e.target.style.background = 'transparent';
-                             }
-                           }}
-                         >
-                           <div style={{
-                             display: 'flex',
-                             alignItems: 'center',
-                             justifyContent: 'space-between',
-                             width: '100%'
-                           }}>
-                             <span style={{
-                               fontWeight: selectedModel === model.value ? '600' : '500',
-                               color: selectedModel === model.value ? '#0f172a' : '#334155',
-                               fontSize: '0.875rem',
-                               letterSpacing: '-0.01em'
-                             }}>
-                               {model.label}
-                             </span>
-                             {selectedModel === model.value && (
-                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#3b82f6' }}>
-                                 <polyline points="20,6 9,17 4,12"></polyline>
-                               </svg>
-                             )}
-                           </div>
-                           <span style={{
-                             fontSize: '0.75rem',
-                             color: '#64748b',
-                             lineHeight: '1.3',
-                             fontWeight: '400'
-                           }}>
-                             {model.description}
-                           </span>
-                         </button>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               )}
+                  // Check if this is a shared chat from sharedChats path (received from someone else)
+                  // Disable sharing only for chats that have originalId (from sharedChats path) and are not from the sender
+                  if (currentChat.originalId && !currentChat.isSender) {
+                    showToast("Only the original creator can share this chat", "error");
+                    return;
+                  }
 
-               {/* Project Members Avatars - visible for shared projects with members, but not for private chats */}
-               {isProjectShared && projectMembers.length > 0 && !isInsideExtension && (!currentChat || currentChat.isPublic !== false) && (
-                 <div style={{
-                   position: 'absolute',
-                   left: '12rem',
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '4px',
-                   zIndex: 999
-                 }}>
-                   <div style={{
-                     display: 'flex',
-                     alignItems: 'center'
-                   }}>
-                     {projectMembers.slice(0, 5).map((member, index) => (
-                       <div
-                         key={member.email}
-                         onClick={() => {
-                           setShowAllMembers(true);
-                           setSelectedMemberEmail(member.email);
-                           setMemberSearchTerm('');
-                           setShowMobileMemberDetails(false);
-                           // Fetch member details if not already loaded
-                           if (!memberDetails[member.email]) {
-                             fetchMemberDetails(member.email, member.userCompanyEmail || companyEmail);
-                           }
-                         }}
-                         style={{
-                           width: '32px',
-                           height: '32px',
-                           borderRadius: '50%',
-                           border: '2px solid white',
-                           marginLeft: index === 0 ? 0 : '-8px',
-                           overflow: 'hidden',
-                           backgroundColor: '#e5e7eb',
-                           display: 'flex',
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                           zIndex: projectMembers.length - index,
-                           cursor: 'pointer',
-                           position: 'relative',
-                           transition: 'transform 0.2s'
-                         }}
-                         onMouseEnter={(e) => {
-                           e.currentTarget.style.transform = 'scale(1.1)';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.currentTarget.style.transform = 'scale(1)';
-                         }}
-                         title={`${member.name}${member.role === 'owner' ? ' (Owner)' : ''}`}
-                      >
-                        {/* Profile picture - always render img tag if URL exists */}
-                        <img
-                          src={member.profilePic || ''}
-                          alt={member.name}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            display: member.profilePic ? 'block' : 'none'
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            // Show the fallback initial
-                            const fallback = e.target.nextElementSibling;
-                            if (fallback) fallback.style.display = 'flex';
-                          }}
-                          onLoad={(e) => {
-                            // Make sure image is visible if it loads successfully
-                            e.target.style.display = 'block';
-                            // Hide the fallback
-                            const fallback = e.target.nextElementSibling;
-                            if (fallback) fallback.style.display = 'none';
-                          }}
-                        />
-                        {/* Fallback initial letter */}
-                        <div style={{
-                          display: member.profilePic ? 'none' : 'flex',
-                          width: '100%',
-                          height: '100%',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                          color: 'white',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          textTransform: 'uppercase',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0
-                        }}>
-                          {(() => {
-                            // Use firstName and lastName initials only (no email fallback)
-                            const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
-                            const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                            
-                            if (firstInitial && lastInitial) {
-                              return firstInitial + lastInitial;
-                            } else if (firstInitial) {
-                              return firstInitial + firstInitial;
-                            }
-                            return 'U';
-                          })()}
-                        </div>
-                      </div>
-                    ))}
-                     {projectMembers.length > 5 && (
-                       <button
-                         onClick={() => {
-                           setShowAllMembers(true);
-                           setSelectedMemberEmail(null);
-                           setMemberSearchTerm('');
-                           setShowMobileMemberDetails(false);
-                         }}
-                         style={{
-                           width: '32px',
-                           height: '32px',
-                           borderRadius: '50%',
-                           border: '2px solid white',
-                           marginLeft: '-8px',
-                           backgroundColor: '#374151',
-                           display: 'flex',
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                           color: 'white',
-                           fontSize: '11px',
-                           fontWeight: '600',
-                           zIndex: 0,
-                           cursor: 'pointer',
-                           padding: 0,
-                           outline: 'none'
-                         }}
-                         title={`View all ${projectMembers.length} members`}
-                         onMouseEnter={(e) => {
-                           e.target.style.backgroundColor = '#4b5563';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.target.style.backgroundColor = '#374151';
-                         }}
-                       >
-                         +{projectMembers.length - 5}
-                       </button>
-                     )}
-                   </div>
-                 </div>
-               )}
+                  handleShareChat(currentChat);
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '10rem',
+                  background: (currentChat.originalId && !currentChat.isSender) ? '#f3f4f6' : 'white',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  borderRadius: '12px',
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.875rem',
+                  color: (currentChat.originalId && !currentChat.isSender) ? '#9ca3af' : '#1f2937',
+                  cursor: (currentChat.originalId && !currentChat.isSender) ? 'not-allowed' : 'pointer',
+                  minWidth: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  outline: 'none',
+                  fontWeight: '500',
+                  opacity: (currentChat.originalId && !currentChat.isSender) ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!(currentChat.originalId && !currentChat.isSender)) {
+                    e.target.style.borderColor = 'rgba(0,0,0,0.15)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!(currentChat.originalId && !currentChat.isSender)) {
+                    e.target.style.borderColor = 'rgba(0,0,0,0.08)';
+                    e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                    e.target.style.transform = 'translateY(0)';
+                  }
+                }}
+                title={
+                  (currentChat.originalId && !currentChat.isSender)
+                    ? "Only the original creator can share this chat"
+                    : "Share this chat"
+                }
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256">
+                  <path fill="currentColor" d="m237.66 106.35l-80-80A8 8 0 0 0 144 32v40.35c-25.94 2.22-54.59 14.92-78.16 34.91c-28.38 24.08-46.05 55.11-49.76 87.37a12 12 0 0 0 20.68 9.58c11-11.71 50.14-48.74 107.24-52V192a8 8 0 0 0 13.66 5.65l80-80a8 8 0 0 0 0-11.3ZM160 172.69V144a8 8 0 0 0-8-8c-28.08 0-55.43 7.33-81.29 21.8a196.17 196.17 0 0 0-36.57 26.52c5.8-23.84 20.42-46.51 42.05-64.86C99.41 99.77 127.75 88 152 88a8 8 0 0 0 8-8V51.32L220.69 112Z" />
+                </svg>
+                <span style={{ fontWeight: '500' }}>Share</span>
+              </button>
+            )}
 
-              {/* View All Members Modal - New Design (Admin Only) - REMOVED: Using unified modal below */}
-              {false && showAllMembers && isProjectOwner && (
-                <div
+            {/* Model selection dropdown - always visible */}
+            {!isInsideExtension && (
+              <div style={{
+                position: 'absolute',
+                top: '6px',
+                left: '1.5rem',
+                zIndex: 1000
+              }} className="model-dropdown-container">
+                <button
+                  onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
                   style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 50,
+                    background: 'white',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '12px',
+                    padding: '0.625rem 1rem',
+                    fontSize: '0.875rem',
+                    color: '#1f2937',
+                    cursor: 'pointer',
+                    minWidth: '140px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'rgba(17, 24, 39, 0.4)',
-                    backdropFilter: 'blur(4px)',
-                    WebkitBackdropFilter: 'blur(4px)',
-                    padding: '16px',
-                    transition: 'opacity 0.3s'
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: 'none',
+                    outline: 'none',
+                    fontWeight: '500'
                   }}
-                  onClick={() => {
-                    setShowAllMembers(false);
-                    setSelectedMemberEmail(null);
-                    setMemberSearchTerm('');
-                    setShowMobileMemberDetails(false);
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = 'rgba(0,0,0,0.15)';
+                    e.target.style.transform = 'translateY(-1px)';
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setShowAllMembers(false);
-                      setSelectedMemberEmail(null);
-                      setMemberSearchTerm('');
-                      setShowMobileMemberDetails(false);
-                    }
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = 'rgba(0,0,0,0.08)';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.transform = 'translateY(0)';
                   }}
+                  title="Select AI model"
                 >
-                  {/* Modal Card */}
-                  <div
+                  <span style={{ fontWeight: '500' }}>
+                    {availableModels.find(m => m.value === selectedModel)?.label}
+                  </span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
                     style={{
-                      backgroundColor: 'white',
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                      width: '100%',
-                      maxWidth: '900px',
-                      height: '60vh',
-                      maxHeight: '650px',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'row',
-                      border: '1px solid rgba(17, 24, 39, 0.05)',
-                      animation: 'fadeIn 0.2s ease-out'
+                      transform: isModelDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      opacity: '0.6'
                     }}
-                    onClick={(e) => e.stopPropagation()}
                   >
-                    {/* LEFT PANEL (List) */}
-                    <div
-                      style={{
-                        display: (showMobileMemberDetails && window.innerWidth < 768) ? 'none' : 'flex',
-                        flexDirection: 'column',
-                        backgroundColor: 'white',
-                        borderRight: '1px solid #f3f4f6',
-                        height: '100%',
-                        width: '100%',
-                        maxWidth: '38%',
-                        transition: 'all 0.3s'
-                      }}
-                    >
-                      {/* Header */}
-                      <div style={{ padding: '16px 0', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '0 16px' }}>
-                          <h2 style={{
-                            fontSize: '18px',
-                            fontWeight: '600',
-                            color: '#111827',
-                            margin: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                          }}>
-                            Project Members
-                            <span style={{
-                              backgroundColor: '#f3f4f6',
-                              color: '#4b5563',
-                              fontSize: '12px',
-                              fontWeight: '700',
-                              padding: '2px 8px',
-                              borderRadius: '9999px'
-                            }}>
-                              {projectMembers.length}
-                            </span>
-                          </h2>
-                        </div>
-                        
-                        {/* Search Input */}
-                        <div style={{ position: 'relative', margin: '0 16px' }}>
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            style={{
-                              position: 'absolute',
-                              left: '12px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              color: '#9ca3af',
-                              pointerEvents: 'none'
-                            }}
-                          >
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                          </svg>
-                          <input
-                            type="text"
-                            placeholder="Search people..."
-                            value={memberSearchTerm}
-                            onChange={(e) => setMemberSearchTerm(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '12px 12px 12px 36px',
-                              border: 'none',
-                              backgroundColor: '#f3f4f6',
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              outline: 'none',
-                              transition: 'all 0.2s',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)',
-                              boxSizing: 'border-box'
-                            }}
-                            onFocus={(e) => {
-                              e.target.style.backgroundColor = '#f3f4f6';
-                            }}
-                            onBlur={(e) => {
-                              e.target.style.backgroundColor = '#f3f4f6';
-                            }}
-                          />
-                        </div>
-                      </div>
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                  </svg>
+                </button>
 
-                      {/* List */}
-                      <div style={{
-                        flex: 1,
-                        overflowY: 'auto',
-                        padding: '8px 0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px'
-                      }}>
-                        {(() => {
-                          const lowerTerm = memberSearchTerm.toLowerCase();
-                          const filtered = projectMembers.filter(m => {
-                            const fullName = `${m.firstName || ''} ${m.lastName || ''}`.toLowerCase();
-                            const email = m.email.toLowerCase();
-                            const name = m.name.toLowerCase();
-                            return fullName.includes(lowerTerm) || email.includes(lowerTerm) || name.includes(lowerTerm);
-                          });
-
-                          // Sort: Current user first, then alphabetical
-                          const sorted = filtered.sort((a, b) => {
-                            const isCurrentA = auth.currentUser?.email === a.email;
-                            const isCurrentB = auth.currentUser?.email === b.email;
-                            if (isCurrentA) return -1;
-                            if (isCurrentB) return 1;
-                            const nameA = (a.firstName || a.name || '').toLowerCase();
-                            const nameB = (b.firstName || b.name || '').toLowerCase();
-                            return nameA.localeCompare(nameB);
-                          });
-
-                          return sorted.length > 0 ? (
-                            sorted.map((member) => {
-                              const isSelected = selectedMemberEmail === member.email;
-                              const isCurrentUser = auth.currentUser?.email === member.email;
-                              const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
-                              const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                              const initials = firstInitial && lastInitial ? firstInitial + lastInitial : 
-                                            firstInitial ? firstInitial + firstInitial : 
-                                            (member.name || 'U').substring(0, 2).toUpperCase();
-                              
-                              // Role pill colors
-                              const roleColors = {
-                                owner: { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
-                                editor: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
-                                member: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
-                                viewer: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' }
-                              };
-                              const roleColor = roleColors[member.role] || roleColors.member;
-                              const roleLabel = member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer';
-
-                              return (
-                                <div
-                                  key={member.email}
-                                  onClick={() => {
-                                    setSelectedMemberEmail(member.email);
-                                    // Only hide left panel on mobile devices
-                                    if (window.innerWidth < 768) {
-                                      setShowMobileMemberDetails(true);
-                                    }
-                                    // Fetch member details if not already loaded
-                                    if (!memberDetails[member.email]) {
-                                      fetchMemberDetails(member.email, member.userCompanyEmail || companyEmail);
-                                    }
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '12px',
-                                    margin: '0 16px',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    backgroundColor: isSelected ? '#f3f4f6' : 'transparent',
-                                    boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)' : 'none'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!isSelected) {
-                                      e.currentTarget.style.backgroundColor = '#f9fafb';
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (!isSelected) {
-                                      e.currentTarget.style.backgroundColor = 'transparent';
-                                    }
-                                  }}
-                                  role="button"
-                                  tabIndex={0}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      setSelectedMemberEmail(member.email);
-                                      if (window.innerWidth < 768) {
-                                        setShowMobileMemberDetails(true);
-                                      }
-                                      if (!memberDetails[member.email]) {
-                                        fetchMemberDetails(member.email, member.userCompanyEmail || companyEmail);
-                                      }
-                                    }
-                                  }}
-                                >
-                                  {/* Avatar */}
-                                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                                    {member.profilePic ? (
-                                      <img
-                                        src={member.profilePic}
-                                        alt={member.name}
-                                        style={{
-                                          width: '42px',
-                                          height: '42px',
-                                          borderRadius: '50%',
-                                          objectFit: 'cover',
-                                          border: '1px solid #e5e7eb',
-                                          display: 'block'
-                                        }}
-                                        onError={(e) => {
-                                          e.target.style.display = 'none';
-                                          const fallback = e.target.nextElementSibling;
-                                          if (fallback) fallback.style.display = 'flex';
-                                        }}
-                                      />
-                                    ) : null}
-                                    <div
-                                      style={{
-                                        display: member.profilePic ? 'none' : 'flex',
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: '50%',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '16px',
-                                        fontWeight: '500',
-                                        border: '1px solid #e5e7eb',
-                                        backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                                        color: 'white',
-                                        textTransform: 'uppercase'
-                                      }}
-                                    >
-                                      {(() => {
-                                        const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
-                                        const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                                        if (firstInitial && lastInitial) {
-                                          return firstInitial + lastInitial;
-                                        } else if (firstInitial) {
-                                          return firstInitial + firstInitial;
-                                        }
-                                        return 'U';
-                                      })()}
-                                    </div>
-                                    {isCurrentUser && (
-                                      <div style={{
-                                        position: 'absolute',
-                                        bottom: '-4px',
-                                        right: '-4px',
-                                        width: '16px',
-                                        height: '16px',
-                                        backgroundColor: '#10b981',
-                                        border: '2px solid white',
-                                        borderRadius: '50%'
-                                      }} title="You" />
-                                    )}
-                                  </div>
-
-                                  {/* Text Info */}
-                                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                      <span style={{
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        color: isSelected ? '#111827' : '#374151',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                        flex: 1,
-                                        minWidth: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        {isCurrentUser ? 'You' : `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name}
-                                      </span>
-                                      <span style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        padding: '2px 8px',
-                                        borderRadius: '9999px',
-                                        fontSize: '12px',
-                                        fontWeight: '500',
-                                        border: `1px solid ${roleColor.border}`,
-                                        backgroundColor: roleColor.bg,
-                                        color: roleColor.text,
-                                        marginLeft: '8px',
-                                        transform: 'scale(0.9)',
-                                        transformOrigin: 'right',
-                                        flexShrink: 0
-                                      }}>
-                                        {roleLabel}
-                                      </span>
-                                    </div>
-                                    <span style={{
-                                      fontSize: '12px',
-                                      color: '#9ca3af',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                      marginTop: '2px',
-                                      textAlign: 'left'
-                                    }}>
-                                      {member.email}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              height: '160px',
-                              color: '#9ca3af'
-                            }}>
-                              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.5, marginBottom: '8px' }}>
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                              </svg>
-                              <p style={{ fontSize: '14px', margin: 0 }}>No members found</p>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                      
-                      {/* Footer gradient hint */}
-                      <div style={{ height: '16px', background: 'linear-gradient(to top, white, transparent)', flexShrink: 0 }} />
-                    </div>
-
-                    {/* RIGHT PANEL (Details) - Desktop */}
-                    <div
-                      style={{
-                        display: selectedMemberEmail ? 'flex' : 'none',
-                        flexDirection: 'column',
-                        backgroundColor: 'white',
-                        height: '100%',
-                        width: '100%',
-                        maxWidth: '62%',
-                        position: 'relative',
-                        transition: 'all 0.3s'
-                      }}
-                      className="member-details-panel"
-                    >
-                      {/* Close Button (Desktop Only) */}
+                {isModelDropdownOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '0',
+                    right: '0',
+                    marginTop: '0.5rem',
+                    background: 'white',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '12px',
+                    boxShadow: 'none',
+                    overflow: 'hidden',
+                    zIndex: 1001,
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    width: '320px'
+                  }}>
+                    {availableModels.map((model, index) => (
                       <button
+                        key={model.value}
                         onClick={() => {
-                          setShowAllMembers(false);
-                          setSelectedMemberEmail(null);
-                          setMemberSearchTerm('');
-                          setShowMobileMemberDetails(false);
+                          setSelectedModel(model.value);
+                          setIsModelDropdownOpen(false);
                         }}
                         style={{
-                          display: 'flex',
-                          position: 'absolute',
-                          top: '16px',
-                          right: '16px',
-                          zIndex: 10,
-                          padding: '8px',
-                          color: '#9ca3af',
-                          backgroundColor: 'transparent',
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          background: selectedModel === model.value ? 'rgb(245, 243, 240)' : 'transparent',
                           border: 'none',
-                          borderRadius: '50%',
+                          textAlign: 'left',
                           cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          alignItems: 'center',
-                          justifyContent: 'center'
+                          transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                          borderBottom: index < availableModels.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.375rem'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.color = '#4b5563';
-                          e.target.style.backgroundColor = '#f3f4f6';
+                          if (selectedModel !== model.value) {
+                            e.target.style.background = 'rgb(249, 248, 246)';
+                          }
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.color = '#9ca3af';
-                          e.target.style.backgroundColor = 'transparent';
+                          if (selectedModel !== model.value) {
+                            e.target.style.background = 'transparent';
+                          }
                         }}
                       >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                      </button>
-
-                      {selectedMemberEmail && (() => {
-                        const member = projectMembers.find(m => m.email === selectedMemberEmail);
-                        if (!member) return null;
-                        
-                        const isCurrentUser = auth.currentUser?.email === member.email;
-                        const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
-                        const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                        const initials = firstInitial && lastInitial ? firstInitial + lastInitial : 
-                                      firstInitial ? firstInitial + firstInitial : 
-                                      (member.name || 'U').substring(0, 2).toUpperCase();
-                        const details = memberDetails[member.email] || {};
-                        const roleColors = {
-                          owner: { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
-                          editor: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
-                          member: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
-                          viewer: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' }
-                        };
-                        const roleColor = roleColors[member.role] || roleColors.member;
-                        const roleLabel = member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer';
-                        const fullName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name;
-                        const username = details.username || member.name || member.email.split('@')[0];
-                        const bio = details.bio || null;
-                        const joinedDate = member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown';
-
-                        return (
-                          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', backgroundColor: 'white' }}>
-                            <div style={{ flex: 1, padding: '24px 40px', overflowY: 'auto' }}>
-                              {/* Header Section: Avatar & Primary Info */}
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '32px' }}>
-                                <div style={{ position: 'relative', marginBottom: '20px', cursor: 'default' }}>
-                                  {member.profilePic ? (
-                                    <img
-                                      src={member.profilePic}
-                                      alt={username}
-                                      style={{
-                                        width: '112px',
-                                        height: '112px',
-                                        borderRadius: '50%',
-                                        objectFit: 'cover',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                        border: '4px solid white'
-                                      }}
-                                      onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        const fallback = e.target.nextElementSibling;
-                                        if (fallback) fallback.style.display = 'flex';
-                                      }}
-                                    />
-                                  ) : null}
-                                  <div style={{
-                                    display: member.profilePic ? 'none' : 'flex',
-                                    width: '96px',
-                                    height: '96px',
-                                    borderRadius: '50%',
-                                    backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                                    color: 'white',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '32px',
-                                    fontWeight: '600',
-                                    textTransform: 'uppercase',
-                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                    border: '4px solid white'
-                                  }}>
-                                    {(() => {
-                                      const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
-                                      const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                                      if (firstInitial && lastInitial) {
-                                        return firstInitial + lastInitial;
-                                      } else if (firstInitial) {
-                                        return firstInitial + firstInitial;
-                                      }
-                                      return 'U';
-                                    })()}
-                                  </div>
-                                  <div style={{ position: 'absolute', bottom: '4px', right: '4px', transform: 'translate(4px, 4px)' }}>
-                                    <span style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      padding: '2px 8px',
-                                      borderRadius: '9999px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      borderWidth: '2px',
-                                      borderStyle: 'solid',
-                                      borderColor: 'white',
-                                      backgroundColor: roleColor.bg,
-                                      color: roleColor.text,
-                                      boxShadow: '0 0 0 2px ' + roleColor.border
-                                    }}>
-                                      {roleLabel}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                <h2 style={{
-                                  fontSize: '24px',
-                                  fontWeight: '700',
-                                  color: '#111827',
-                                  letterSpacing: '-0.025em',
-                                  margin: 0
-                                }}>
-                                  {fullName}
-                                </h2>
-                                </div>
-                                <p style={{
-                                  color: '#6b7280',
-                                  fontWeight: '500',
-                                  marginTop: '4px',
-                                  margin: 0
-                                }}>
-                                  @{username}
-                                </p>
-                              </div>
-
-                              {/* Content Grid */}
-                              <div style={{ maxWidth: '448px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
-                                {/* About Section */}
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                    <div style={{
-                                      marginTop: '2px',
-                                      padding: '8px',
-                                      backgroundColor: '#f3f4f6',
-                                      borderRadius: '6px',
-                                      flexShrink: 0,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="12" cy="7" r="4"></circle>
-                                      </svg>
-                                    </div>
-                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                      <h3 style={{
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        color: '#9ca3af',
-                                        letterSpacing: '0.05em',
-                                        marginBottom: '4px',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        About
-                                      </h3>
-                                      {bio ? (
-                                        <p style={{
-                                          fontSize: '14px',
-                                          color: '#374151',
-                                          lineHeight: '1.625',
-                                          whiteSpace: 'pre-line',
-                                          margin: 0,
-                                          textAlign: 'left'
-                                        }}>
-                                          {bio}
-                                        </p>
-                                      ) : (
-                                        <p style={{
-                                          fontSize: '14px',
-                                          color: '#9ca3af',
-                                          fontStyle: 'italic',
-                                          margin: 0,
-                                          textAlign: 'left'
-                                        }}>
-                                          No bio provided.
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Contact & Meta Section */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                    <div style={{
-                                      padding: '8px',
-                                      backgroundColor: '#f3f4f6',
-                                      borderRadius: '6px',
-                                      flexShrink: 0,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
-                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                        <polyline points="22,6 12,13 2,6"></polyline>
-                                      </svg>
-                                    </div>
-                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                      <h3 style={{
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        color: '#9ca3af',
-                                        letterSpacing: '0.05em',
-                                        marginBottom: '2px',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        Email Address
-                                      </h3>
-                                      <p style={{
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        color: '#111827',
-                                        userSelect: 'all',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        {member.email}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                    <div style={{
-                                      padding: '8px',
-                                      backgroundColor: '#f3f4f6',
-                                      borderRadius: '6px',
-                                      flexShrink: 0,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                      </svg>
-                                    </div>
-                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                      <h3 style={{
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        color: '#9ca3af',
-                                        letterSpacing: '0.05em',
-                                        marginBottom: '2px',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        Joined
-                                      </h3>
-                                      <p style={{
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        color: '#111827',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        {joinedDate}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Permissions / Actions Card */}
-                                <div style={{ marginTop: '24px', paddingTop: '20px' }}>
-                                  {isCurrentUser ? (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        e.currentTarget.blur();
-                                        setShowAllMembers(false);
-                                        setShowAccountSettingsModal(true);
-                                      }}
-                                      style={{
-                                        width: '100%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        padding: '12px',
-                                        backgroundColor: '#111827',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                        outline: 'none'
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.target.style.backgroundColor = '#1f2937';
-                                        e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.target.style.backgroundColor = '#111827';
-                                        e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                                      }}
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                      </svg>
-                                      <span>Edit Profile</span>
-                                    </button>
-                                  ) : (
-                                    <div style={{
-                                      backgroundColor: '#f9fafb',
-                                      borderRadius: '12px',
-                                      padding: '16px',
-                                      border: '1px solid #f3f4f6',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '16px'
-                                    }}>
-                                      <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between'
-                                      }}>
-                                        <div style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '8px'
-                                        }}>
-                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
-                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                          </svg>
-                                          <span style={{
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            color: '#374151'
-                                          }}>
-                                            Access Level
-                                          </span>
-                                        </div>
-                                        {isProjectOwner ? (
-                                          <select
-                                            defaultValue={roleLabel}
-                                            onChange={(e) => {
-                                              // Handle role change
-                                              console.log('Role changed to:', e.target.value);
-                                            }}
-                                            style={{
-                                              backgroundColor: 'white',
-                                              border: '1px solid #e5e7eb',
-                                              color: '#111827',
-                                              fontSize: '14px',
-                                              borderRadius: '8px',
-                                              padding: '6px 12px',
-                                              cursor: 'pointer',
-                                              outline: 'none'
-                                            }}
-                                            onFocus={(e) => {
-                                              e.target.style.borderColor = '#111827';
-                                            }}
-                                            onBlur={(e) => {
-                                              e.target.style.borderColor = '#e5e7eb';
-                                            }}
-                                          >
-                                            <option value="Owner">Owner</option>
-                                            <option value="Editor">Editor</option>
-                                            <option value="Viewer">Viewer</option>
-                                          </select>
-                                        ) : (
-                                          <span style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            padding: '2px 8px',
-                                            borderRadius: '9999px',
-                                            fontSize: '12px',
-                                            fontWeight: '500',
-                                            border: `1px solid ${roleColor.border}`,
-                                            backgroundColor: roleColor.bg,
-                                            color: roleColor.text
-                                          }}>
-                                            {roleLabel}
-                                          </span>
-                                        )}
-                                      </div>
-                                      
-                                      {isProjectOwner && (
-                                        <div style={{
-                                          paddingTop: '12px',
-                                          borderTop: '1px solid rgba(229, 231, 235, 0.6)',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'space-between'
-                                        }}>
-                                          <span style={{
-                                            fontSize: '12px',
-                                            color: '#6b7280'
-                                          }}>
-                                            Remove from project
-                                          </span>
-                                          <button
-                                            onClick={() => {
-                                              // Handle remove member
-                                              console.log('Remove member:', member.email);
-                                            }}
-                                            style={{
-                                              fontSize: '12px',
-                                              fontWeight: '500',
-                                              color: '#dc2626',
-                                              backgroundColor: '#fef2f2',
-                                              padding: '6px 12px',
-                                              borderRadius: '8px',
-                                              border: 'none',
-                                              cursor: 'pointer',
-                                              transition: 'all 0.2s',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '4px'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                              e.target.style.color = '#b91c1c';
-                                              e.target.style.backgroundColor = '#fee2e2';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                              e.target.style.color = '#dc2626';
-                                              e.target.style.backgroundColor = '#fef2f2';
-                                            }}
-                                          >
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                              <polyline points="3 6 5 6 21 6"></polyline>
-                                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            </svg>
-                                            Remove
-                                          </button>
-                                        </div>
-                                      )}
-                                      {!isProjectOwner && (
-                                        <p style={{
-                                          fontSize: '12px',
-                                          color: '#9ca3af',
-                                          fontStyle: 'italic',
-                                          marginTop: '8px',
-                                          margin: 0
-                                        }}>
-                                          Only owners can manage access permissions.
-                                        </p>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Message Button for Other Users */}
-                                {!isCurrentUser && (
-                                  <div style={{ marginTop: '24px', paddingTop: '20px' }}>
-                                    <button
-                                      onClick={() => {
-                                        // Open message/chat with this user
-                                        console.log('Message user clicked', member.email);
-                                      }}
-                                      style={{
-                                        width: '100%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        padding: '12px',
-                                        backgroundColor: '#111827',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.target.style.backgroundColor = '#1f2937';
-                                        e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.target.style.backgroundColor = '#111827';
-                                        e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                                      }}
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                      </svg>
-                                      <span>Message</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      {!selectedMemberEmail && (
                         <div style={{
-                          flex: 1,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#9ca3af'
+                          justifyContent: 'space-between',
+                          width: '100%'
                         }}>
-                          Select a member to view details
+                          <span style={{
+                            fontWeight: selectedModel === model.value ? '600' : '500',
+                            color: selectedModel === model.value ? '#0f172a' : '#334155',
+                            fontSize: '0.875rem',
+                            letterSpacing: '-0.01em'
+                          }}>
+                            {model.label}
+                          </span>
+                          {selectedModel === model.value && (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#3b82f6' }}>
+                              <polyline points="20,6 9,17 4,12"></polyline>
+                            </svg>
+                          )}
                         </div>
-                      )}
-                    </div>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          lineHeight: '1.3',
+                          fontWeight: '400'
+                        }}>
+                          {model.description}
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              {/* View All Members Modal - Unified View (Same for Owner and Shared Users) */}
-              {showAllMembers && (
-                <div
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 50,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'rgba(17, 24, 39, 0.4)',
-                    backdropFilter: 'blur(4px)',
-                    WebkitBackdropFilter: 'blur(4px)',
-                    padding: '16px',
-                    transition: 'opacity 0.3s'
-                  }}
-                  onClick={() => {
+            {/* Project Members Avatars - visible for shared projects with members, but not for private chats */}
+            {isProjectShared && projectMembers.length > 0 && !isInsideExtension && (!currentChat || currentChat.isPublic !== false) && (
+              <div style={{
+                position: 'absolute',
+                left: '12rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                zIndex: 999
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  {projectMembers.slice(0, 5).map((member, index) => (
+                    <div
+                      key={member.email}
+                      onClick={() => {
+                        setShowAllMembers(true);
+                        setSelectedMemberEmail(member.email);
+                        setMemberSearchTerm('');
+                        setShowMobileMemberDetails(false);
+                        // Fetch member details if not already loaded
+                        if (!memberDetails[member.email]) {
+                          fetchMemberDetails(member.email, member.userCompanyEmail || companyEmail);
+                        }
+                      }}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        border: '2px solid white',
+                        marginLeft: index === 0 ? 0 : '-8px',
+                        overflow: 'hidden',
+                        backgroundColor: '#e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        zIndex: projectMembers.length - index,
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'transform 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                      title={`${member.name}${member.role === 'owner' ? ' (Owner)' : ''}`}
+                    >
+                      {/* Profile picture - always render img tag if URL exists */}
+                      <img
+                        src={member.profilePic || ''}
+                        alt={member.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: member.profilePic ? 'block' : 'none'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          // Show the fallback initial
+                          const fallback = e.target.nextElementSibling;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                        onLoad={(e) => {
+                          // Make sure image is visible if it loads successfully
+                          e.target.style.display = 'block';
+                          // Hide the fallback
+                          const fallback = e.target.nextElementSibling;
+                          if (fallback) fallback.style.display = 'none';
+                        }}
+                      />
+                      {/* Fallback initial letter */}
+                      <div style={{
+                        display: member.profilePic ? 'none' : 'flex',
+                        width: '100%',
+                        height: '100%',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}>
+                        {(() => {
+                          // Use firstName and lastName initials only (no email fallback)
+                          const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
+                          const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
+
+                          if (firstInitial && lastInitial) {
+                            return firstInitial + lastInitial;
+                          } else if (firstInitial) {
+                            return firstInitial + firstInitial;
+                          }
+                          return 'U';
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                  {projectMembers.length > 5 && (
+                    <button
+                      onClick={() => {
+                        setShowAllMembers(true);
+                        setSelectedMemberEmail(null);
+                        setMemberSearchTerm('');
+                        setShowMobileMemberDetails(false);
+                      }}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        border: '2px solid white',
+                        marginLeft: '-8px',
+                        backgroundColor: '#374151',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        color: 'white',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        zIndex: 0,
+                        cursor: 'pointer',
+                        padding: 0,
+                        outline: 'none'
+                      }}
+                      title={`View all ${projectMembers.length} members`}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#4b5563';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#374151';
+                      }}
+                    >
+                      +{projectMembers.length - 5}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* View All Members Modal - New Design (Admin Only) - REMOVED: Using unified modal below */}
+            {false && showAllMembers && isProjectOwner && (
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  zIndex: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(17, 24, 39, 0.4)',
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                  padding: '16px',
+                  transition: 'opacity 0.3s'
+                }}
+                onClick={() => {
+                  setShowAllMembers(false);
+                  setSelectedMemberEmail(null);
+                  setMemberSearchTerm('');
+                  setShowMobileMemberDetails(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
                     setShowAllMembers(false);
                     setSelectedMemberEmail(null);
                     setMemberSearchTerm('');
                     setShowMobileMemberDetails(false);
+                  }
+                }}
+              >
+                {/* Modal Card */}
+                <div
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    width: '100%',
+                    maxWidth: '900px',
+                    height: '60vh',
+                    maxHeight: '650px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    border: '1px solid rgba(17, 24, 39, 0.05)',
+                    animation: 'fadeIn 0.2s ease-out'
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setShowAllMembers(false);
-                      setSelectedMemberEmail(null);
-                      setMemberSearchTerm('');
-                      setShowMobileMemberDetails(false);
-                    }
-                  }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Modal Card */}
+                  {/* LEFT PANEL (List) */}
                   <div
                     style={{
+                      display: (showMobileMemberDetails && window.innerWidth < 768) ? 'none' : 'flex',
+                      flexDirection: 'column',
                       backgroundColor: 'white',
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                      borderRight: '1px solid #f3f4f6',
+                      height: '100%',
                       width: '100%',
-                      maxWidth: '900px',
-                      height: '60vh',
-                      maxHeight: '650px',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'row',
-                      border: '1px solid rgba(17, 24, 39, 0.05)',
-                      animation: 'fadeIn 0.2s ease-out'
+                      maxWidth: '38%',
+                      transition: 'all 0.3s'
                     }}
-                    onClick={(e) => e.stopPropagation()}
                   >
-                    {/* LEFT PANEL (List) */}
-                    <div
-                      style={{
-                        display: (showMobileMemberDetails && window.innerWidth < 768) ? 'none' : 'flex',
-                        flexDirection: 'column',
-                        backgroundColor: 'white',
-                        borderRight: '1px solid #f3f4f6',
-                        height: '100%',
-                        width: '100%',
-                        maxWidth: '38%',
-                        transition: 'all 0.3s'
-                      }}
-                    >
-                      {/* Header */}
-                      <div style={{ padding: '20px 0', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '12px',
-                        padding: '0 20px'
-                    }}>
-                      <h2 style={{
-                        margin: 0,
+                    {/* Header */}
+                    <div style={{ padding: '16px 0', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '0 16px' }}>
+                        <h2 style={{
                           fontSize: '18px',
-                        fontWeight: '600',
-                        color: '#111827'
-                      }}>
-                          {isProjectOwner ? 'Project Members' : 'Members'}
-                      </h2>
-                        <span style={{
-                          display: 'inline-flex',
+                          fontWeight: '600',
+                          color: '#111827',
+                          margin: 0,
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          padding: '2px 8px',
-                          backgroundColor: '#f3f4f6',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#4b5563',
-                          border: '1px solid #e5e7eb',
-                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                          gap: '8px'
                         }}>
-                          {projectMembers.length}
-                        </span>
-                      </div>
-                        {/* Search Input */}
-                        <div style={{ position: 'relative', margin: '0 20px' }}>
-                          <input
-                            type="text"
-                            placeholder={isProjectOwner ? "Search people..." : "Search members..."}
-                            value={memberSearchTerm}
-                            onChange={(e) => setMemberSearchTerm(e.target.value)}
-                        style={{
-                              width: '100%',
-                              padding: '12px 12px 12px 36px',
-                          border: 'none',
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              outline: 'none',
-                              transition: 'all 0.2s',
-                              backgroundColor: '#f3f4f6',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)',
-                              boxSizing: 'border-box'
-                            }}
-                            onFocus={(e) => {
-                          e.target.style.backgroundColor = '#f3f4f6';
-                        }}
-                            onBlur={(e) => {
-                              e.target.style.backgroundColor = '#f3f4f6';
-                            }}
-                          />
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            style={{
-                              position: 'absolute',
-                              left: '12px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              color: '#9ca3af'
-                            }}
-                          >
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                          </svg>
-                    </div>
+                          Project Members
+                          <span style={{
+                            backgroundColor: '#f3f4f6',
+                            color: '#4b5563',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            padding: '2px 8px',
+                            borderRadius: '9999px'
+                          }}>
+                            {projectMembers.length}
+                          </span>
+                        </h2>
                       </div>
 
-                      {/* Members List */}
-                      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-                        {projectMembers
-                          .filter(member => {
-                            if (!memberSearchTerm) return true;
-                            const searchLower = memberSearchTerm.toLowerCase();
-                            const name = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name;
-                            return name.toLowerCase().includes(searchLower) || member.email.toLowerCase().includes(searchLower);
-                          })
-                          .sort((a, b) => {
-                            // Sort: Current user first, then alphabetical
-                            const isCurrentA = auth.currentUser?.email === a.email;
-                            const isCurrentB = auth.currentUser?.email === b.email;
-                            if (isCurrentA && !isCurrentB) return -1;
-                            if (!isCurrentA && isCurrentB) return 1;
-                            
-                            // Then alphabetical by name
-                            const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.name || '';
-                            const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim() || b.name || '';
-                            return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
-                          })
-                          .map((member) => {
+                      {/* Search Input */}
+                      <div style={{ position: 'relative', margin: '0 16px' }}>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{
+                            position: 'absolute',
+                            left: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#9ca3af',
+                            pointerEvents: 'none'
+                          }}
+                        >
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input
+                          type="text"
+                          placeholder="Search people..."
+                          value={memberSearchTerm}
+                          onChange={(e) => setMemberSearchTerm(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px 12px 36px',
+                            border: 'none',
+                            backgroundColor: '#f3f4f6',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.backgroundColor = '#f3f4f6';
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* List */}
+                    <div style={{
+                      flex: 1,
+                      overflowY: 'auto',
+                      padding: '8px 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}>
+                      {(() => {
+                        const lowerTerm = memberSearchTerm.toLowerCase();
+                        const filtered = projectMembers.filter(m => {
+                          const fullName = `${m.firstName || ''} ${m.lastName || ''}`.toLowerCase();
+                          const email = m.email.toLowerCase();
+                          const name = m.name.toLowerCase();
+                          return fullName.includes(lowerTerm) || email.includes(lowerTerm) || name.includes(lowerTerm);
+                        });
+
+                        // Sort: Current user first, then alphabetical
+                        const sorted = filtered.sort((a, b) => {
+                          const isCurrentA = auth.currentUser?.email === a.email;
+                          const isCurrentB = auth.currentUser?.email === b.email;
+                          if (isCurrentA) return -1;
+                          if (isCurrentB) return 1;
+                          const nameA = (a.firstName || a.name || '').toLowerCase();
+                          const nameB = (b.firstName || b.name || '').toLowerCase();
+                          return nameA.localeCompare(nameB);
+                        });
+
+                        return sorted.length > 0 ? (
+                          sorted.map((member) => {
                             const isSelected = selectedMemberEmail === member.email;
                             const isCurrentUser = auth.currentUser?.email === member.email;
-                            
+                            const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
+                            const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
+                            const initials = firstInitial && lastInitial ? firstInitial + lastInitial :
+                              firstInitial ? firstInitial + firstInitial :
+                                (member.name || 'U').substring(0, 2).toUpperCase();
+
                             // Role pill colors
                             const roleColors = {
                               owner: { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
@@ -11964,39 +11338,54 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                             };
                             const roleColor = roleColors[member.role] || roleColors.member;
                             const roleLabel = member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer';
-                            
+
                             return (
-                        <div
-                          key={`${member.email}-${memberPresence[member.email] || 'offline'}`}
+                              <div
+                                key={member.email}
                                 onClick={() => {
                                   setSelectedMemberEmail(member.email);
+                                  // Only hide left panel on mobile devices
                                   if (window.innerWidth < 768) {
                                     setShowMobileMemberDetails(true);
                                   }
+                                  // Fetch member details if not already loaded
                                   if (!memberDetails[member.email]) {
                                     fetchMemberDetails(member.email, member.userCompanyEmail || companyEmail);
                                   }
                                 }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            padding: '12px',
-                                  margin: '0 20px',
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                  padding: '12px',
+                                  margin: '0 16px',
                                   borderRadius: '8px',
                                   cursor: 'pointer',
                                   transition: 'all 0.2s',
                                   backgroundColor: isSelected ? '#f3f4f6' : 'transparent',
                                   boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)' : 'none'
-                          }}
-                          onMouseEnter={(e) => {
+                                }}
+                                onMouseEnter={(e) => {
                                   if (!isSelected) {
                                     e.currentTarget.style.backgroundColor = '#f9fafb';
                                   }
-                          }}
-                          onMouseLeave={(e) => {
+                                }}
+                                onMouseLeave={(e) => {
                                   if (!isSelected) {
                                     e.currentTarget.style.backgroundColor = 'transparent';
+                                  }
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    setSelectedMemberEmail(member.email);
+                                    if (window.innerWidth < 768) {
+                                      setShowMobileMemberDetails(true);
+                                    }
+                                    if (!memberDetails[member.email]) {
+                                      fetchMemberDetails(member.email, member.userCompanyEmail || companyEmail);
+                                    }
                                   }
                                 }}
                               >
@@ -12024,12 +11413,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                   <div
                                     style={{
                                       display: member.profilePic ? 'none' : 'flex',
-                                      width: '42px',
-                                      height: '42px',
+                                      width: '48px',
+                                      height: '48px',
                                       borderRadius: '50%',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      fontSize: '14px',
+                                      fontSize: '16px',
                                       fontWeight: '500',
                                       border: '1px solid #e5e7eb',
                                       backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
@@ -12048,18 +11437,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                       return 'U';
                                     })()}
                                   </div>
-                                  {/* Presence Status Indicator */}
-                          <div style={{
-                                    position: 'absolute',
-                                    bottom: '-2px',
-                                    right: '0px',
-                                    width: '14px',
-                                    height: '14px',
-                            borderRadius: '50%',
-                                    backgroundColor: getPresenceColor(memberPresence[member.email] || 'offline'),
-                                    border: '2px solid white',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                  }} title={getPresenceLabel(memberPresence[member.email] || 'offline')} />
+                                  {isCurrentUser && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      bottom: '-4px',
+                                      right: '-4px',
+                                      width: '16px',
+                                      height: '16px',
+                                      backgroundColor: '#10b981',
+                                      border: '2px solid white',
+                                      borderRadius: '50%'
+                                    }} title="You" />
+                                  )}
                                 </div>
 
                                 {/* Text Info */}
@@ -12069,21 +11458,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                       fontSize: '14px',
                                       fontWeight: '500',
                                       color: isSelected ? '#111827' : '#374151',
-                            overflow: 'hidden',
+                                      overflow: 'hidden',
                                       textOverflow: 'ellipsis',
                                       whiteSpace: 'nowrap',
                                       flex: 1,
                                       minWidth: 0,
                                       textAlign: 'left'
                                     }}>
-                                      {isCurrentUser ? 'You' : (() => {
-                                        const fullName = `${member.firstName || ''} ${member.lastName || ''}`.trim();
-                                        return fullName || member.name;
-                                      })()}
+                                      {isCurrentUser ? 'You' : `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name}
                                     </span>
                                     <span style={{
                                       display: 'inline-flex',
-                            alignItems: 'center',
+                                      alignItems: 'center',
                                       padding: '2px 8px',
                                       borderRadius: '9999px',
                                       fontSize: '12px',
@@ -12094,8 +11480,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                       marginLeft: '8px',
                                       transform: 'scale(0.9)',
                                       transformOrigin: 'right',
-                            flexShrink: 0
-                          }}>
+                                      flexShrink: 0
+                                    }}>
                                       {roleLabel}
                                     </span>
                                   </div>
@@ -12113,423 +11499,1953 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                 </div>
                               </div>
                             );
-                          })}
-                      </div>
-                      
-                      {/* Footer gradient hint */}
-                      <div style={{ height: '16px', background: 'linear-gradient(to top, white, transparent)', flexShrink: 0 }} />
-                    </div>
-
-                    {/* RIGHT PANEL (Details) - Desktop */}
-                    <div
-                      style={{
-                        display: selectedMemberEmail ? 'flex' : 'none',
-                        flexDirection: 'column',
-                        backgroundColor: 'white',
-                        height: '100%',
-                        width: '100%',
-                        maxWidth: '62%',
-                        position: 'relative',
-                        transition: 'all 0.3s'
-                      }}
-                      className="member-details-panel"
-                    >
-                      {/* Close Button (Desktop Only) */}
-                      <button
-                        onClick={() => {
-                          setShowAllMembers(false);
-                          setSelectedMemberEmail(null);
-                          setMemberSearchTerm('');
-                          setShowMobileMemberDetails(false);
-                        }}
-                        style={{
-                          display: 'flex',
-                          position: 'absolute',
-                          top: '16px',
-                          right: '16px',
-                          zIndex: 10,
-                          padding: '8px',
-                          color: '#9ca3af',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          borderRadius: '50%',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.color = '#4b5563';
-                          e.target.style.backgroundColor = '#f3f4f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.color = '#9ca3af';
-                          e.target.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                      </button>
-
-                      {selectedMemberEmail && (() => {
-                        const member = projectMembers.find(m => m.email === selectedMemberEmail);
-                        if (!member) return null;
-                        
-                        const isCurrentUser = auth.currentUser?.email === member.email;
-                        const details = memberDetails[member.email] || {};
-                        const roleColors = {
-                          owner: { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
-                          editor: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
-                          member: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
-                          viewer: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' }
-                        };
-                        const roleColor = roleColors[member.role] || roleColors.member;
-                        const roleLabel = member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer';
-                        const fullName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name;
-                        const username = details.username || member.name || member.email.split('@')[0];
-                        const bio = details.bio || null;
-                        const joinedDate = member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown';
-
-                        return (
-                          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', backgroundColor: 'white' }}>
-                            <div style={{ flex: 1, padding: '24px 40px', overflowY: 'auto' }}>
-                              {/* Header Section: Avatar & Primary Info */}
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '32px' }}>
-                                <div style={{ position: 'relative', marginBottom: '20px', cursor: 'default' }}>
-                            {member.profilePic ? (
-                              <img
-                                src={member.profilePic}
-                                      alt={username}
-                                style={{
-                                        width: '112px',
-                                        height: '112px',
-                                        borderRadius: '50%',
-                                        objectFit: 'cover',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                        border: '4px solid white'
-                                }}
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  const fallback = e.target.nextElementSibling;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div style={{
-                              display: member.profilePic ? 'none' : 'flex',
-                                    width: '96px',
-                                    height: '96px',
-                                    borderRadius: '50%',
-                              backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                              color: 'white',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '32px',
-                              fontWeight: '600',
-                                    textTransform: 'uppercase',
-                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                    border: '4px solid white'
-                            }}>
-                              {(() => {
-                                const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
-                                const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                                if (firstInitial && lastInitial) {
-                                  return firstInitial + lastInitial;
-                                } else if (firstInitial) {
-                                  return firstInitial + firstInitial;
-                                }
-                                return 'U';
-                              })()}
-                            </div>
-                                  <div style={{ position: 'absolute', bottom: '4px', right: '4px', transform: 'translate(4px, 4px)' }}>
-                                    <span style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      padding: '2px 8px',
-                                      borderRadius: '9999px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      borderWidth: '2px',
-                                      borderStyle: 'solid',
-                                      borderColor: 'white',
-                                      backgroundColor: roleColor.bg,
-                                      color: roleColor.text,
-                                      boxShadow: '0 0 0 2px ' + roleColor.border
-                                    }}>
-                                      {roleLabel}
-                                    </span>
-                          </div>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                  <h2 style={{
-                                    fontSize: '24px',
-                                    fontWeight: '700',
-                                    color: '#111827',
-                                    letterSpacing: '-0.025em',
-                                    margin: 0
-                                  }}>
-                                    {fullName}
-                                  </h2>
-                                </div>
-                                <p style={{
-                                  color: '#6b7280',
-                                  fontWeight: '500',
-                                  marginTop: '4px',
-                                  margin: 0
-                                }}>
-                                  @{username}
-                                </p>
-                              </div>
-
-                              {/* Content Grid */}
-                              <div style={{ maxWidth: '448px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
-                                {/* About Section */}
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <div style={{
-                                      marginTop: '2px',
-                                      padding: '8px',
-                                      backgroundColor: '#f3f4f6',
-                                      borderRadius: '6px',
-                                      flexShrink: 0,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="12" cy="7" r="4"></circle>
-                                      </svg>
-                                    </div>
-                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                      <h3 style={{
-                                        fontSize: '12px',
-                              fontWeight: '600',
-                                        color: '#9ca3af',
-                                        letterSpacing: '0.05em',
-                                        marginBottom: '4px',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        About
-                                      </h3>
-                                      {bio ? (
-                                        <p style={{
-                                          fontSize: '14px',
-                                          color: '#374151',
-                                          lineHeight: '1.625',
-                                          whiteSpace: 'pre-line',
-                                          margin: 0,
-                                          textAlign: 'left'
-                                        }}>
-                                          {bio}
-                                        </p>
-                                      ) : (
-                                        <p style={{
-                                          fontSize: '14px',
-                                          color: '#9ca3af',
-                                          fontStyle: 'italic',
-                                          margin: 0,
-                                          textAlign: 'left'
-                                        }}>
-                                          No bio provided.
-                                        </p>
-                                      )}
-                            </div>
-                                  </div>
-                                </div>
-
-                                {/* Contact & Meta Section */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <div style={{
-                                      padding: '8px',
-                                      backgroundColor: '#f3f4f6',
-                                      borderRadius: '6px',
-                                      flexShrink: 0,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
-                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                        <polyline points="22,6 12,13 2,6"></polyline>
-                                      </svg>
-                                    </div>
-                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                      <h3 style={{
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        color: '#9ca3af',
-                                        letterSpacing: '0.05em',
-                                        marginBottom: '2px',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        Email Address
-                                      </h3>
-                                      <p style={{
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        color: '#111827',
-                                        userSelect: 'all',
-                                        margin: 0,
-                                        textAlign: 'left'
-                            }}>
-                              {member.email}
-                                      </p>
-                            </div>
-                          </div>
-
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                    <div style={{
-                                      padding: '8px',
-                                      backgroundColor: '#f3f4f6',
-                                      borderRadius: '6px',
-                                      flexShrink: 0,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                      </svg>
-                                    </div>
-                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                      <h3 style={{
-                                        fontSize: '12px',
-                              fontWeight: '600',
-                                        color: '#9ca3af',
-                                        letterSpacing: '0.05em',
-                                        marginBottom: '2px',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        Joined
-                                      </h3>
-                                      <p style={{
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        color: '#111827',
-                                        margin: 0,
-                                        textAlign: 'left'
-                                      }}>
-                                        {joinedDate}
-                                      </p>
-                        </div>
-                                  </div>
-                                </div>
-
-                                {/* Edit Profile Button for Current User */}
-                                <div style={{ marginTop: '24px', paddingTop: '20px' }}>
-                                  {isCurrentUser ? (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        e.currentTarget.blur();
-                                        setShowAllMembers(false);
-                                        setShowAccountSettingsModal(true);
-                                      }}
-                                      style={{
-                                        width: '100%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        padding: '12px',
-                                        backgroundColor: '#111827',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                        outline: 'none'
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.target.style.backgroundColor = '#1f2937';
-                                        e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.target.style.backgroundColor = '#111827';
-                                        e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                                      }}
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                      </svg>
-                                      <span>Edit Profile</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => {
-                                        // Open message/chat with this user
-                                        console.log('Message user clicked', member.email);
-                                      }}
-                                      style={{
-                                        width: '100%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        padding: '12px',
-                                        backgroundColor: '#111827',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.target.style.backgroundColor = '#1f2937';
-                                        e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.target.style.backgroundColor = '#111827';
-                                        e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                                      }}
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                      </svg>
-                                      <span>Message</span>
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                          })
+                        ) : (
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '160px',
+                            color: '#9ca3af'
+                          }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.5, marginBottom: '8px' }}>
+                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                              <circle cx="9" cy="7" r="4"></circle>
+                              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            <p style={{ fontSize: '14px', margin: 0 }}>No members found</p>
                           </div>
                         );
                       })()}
-                      {!selectedMemberEmail && (
-                        <div style={{
-                          flex: 1,
+                    </div>
+
+                    {/* Footer gradient hint */}
+                    <div style={{ height: '16px', background: 'linear-gradient(to top, white, transparent)', flexShrink: 0 }} />
+                  </div>
+
+                  {/* RIGHT PANEL (Details) - Desktop */}
+                  <div
+                    style={{
+                      display: selectedMemberEmail ? 'flex' : 'none',
+                      flexDirection: 'column',
+                      backgroundColor: 'white',
+                      height: '100%',
+                      width: '100%',
+                      maxWidth: '62%',
+                      position: 'relative',
+                      transition: 'all 0.3s'
+                    }}
+                    className="member-details-panel"
+                  >
+                    {/* Close Button (Desktop Only) */}
+                    <button
+                      onClick={() => {
+                        setShowAllMembers(false);
+                        setSelectedMemberEmail(null);
+                        setMemberSearchTerm('');
+                        setShowMobileMemberDetails(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        position: 'absolute',
+                        top: '16px',
+                        right: '16px',
+                        zIndex: 10,
+                        padding: '8px',
+                        color: '#9ca3af',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#4b5563';
+                        e.target.style.backgroundColor = '#f3f4f6';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#9ca3af';
+                        e.target.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+
+                    {selectedMemberEmail && (() => {
+                      const member = projectMembers.find(m => m.email === selectedMemberEmail);
+                      if (!member) return null;
+
+                      const isCurrentUser = auth.currentUser?.email === member.email;
+                      const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
+                      const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
+                      const initials = firstInitial && lastInitial ? firstInitial + lastInitial :
+                        firstInitial ? firstInitial + firstInitial :
+                          (member.name || 'U').substring(0, 2).toUpperCase();
+                      const details = memberDetails[member.email] || {};
+                      const roleColors = {
+                        owner: { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
+                        editor: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
+                        member: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
+                        viewer: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' }
+                      };
+                      const roleColor = roleColors[member.role] || roleColors.member;
+                      const roleLabel = member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer';
+                      const fullName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name;
+                      const username = details.username || member.name || member.email.split('@')[0];
+                      const bio = details.bio || null;
+                      const joinedDate = member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown';
+
+                      return (
+                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', backgroundColor: 'white' }}>
+                          <div style={{ flex: 1, padding: '24px 40px', overflowY: 'auto' }}>
+                            {/* Header Section: Avatar & Primary Info */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '32px' }}>
+                              <div style={{ position: 'relative', marginBottom: '20px', cursor: 'default' }}>
+                                {member.profilePic ? (
+                                  <img
+                                    src={member.profilePic}
+                                    alt={username}
+                                    style={{
+                                      width: '112px',
+                                      height: '112px',
+                                      borderRadius: '50%',
+                                      objectFit: 'cover',
+                                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                      border: '4px solid white'
+                                    }}
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      const fallback = e.target.nextElementSibling;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div style={{
+                                  display: member.profilePic ? 'none' : 'flex',
+                                  width: '96px',
+                                  height: '96px',
+                                  borderRadius: '50%',
+                                  backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                                  color: 'white',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '32px',
+                                  fontWeight: '600',
+                                  textTransform: 'uppercase',
+                                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                  border: '4px solid white'
+                                }}>
+                                  {(() => {
+                                    const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
+                                    const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
+                                    if (firstInitial && lastInitial) {
+                                      return firstInitial + lastInitial;
+                                    } else if (firstInitial) {
+                                      return firstInitial + firstInitial;
+                                    }
+                                    return 'U';
+                                  })()}
+                                </div>
+                                <div style={{ position: 'absolute', bottom: '4px', right: '4px', transform: 'translate(4px, 4px)' }}>
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '2px 8px',
+                                    borderRadius: '9999px',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    borderWidth: '2px',
+                                    borderStyle: 'solid',
+                                    borderColor: 'white',
+                                    backgroundColor: roleColor.bg,
+                                    color: roleColor.text,
+                                    boxShadow: '0 0 0 2px ' + roleColor.border
+                                  }}>
+                                    {roleLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                <h2 style={{
+                                  fontSize: '24px',
+                                  fontWeight: '700',
+                                  color: '#111827',
+                                  letterSpacing: '-0.025em',
+                                  margin: 0
+                                }}>
+                                  {fullName}
+                                </h2>
+                              </div>
+                              <p style={{
+                                color: '#6b7280',
+                                fontWeight: '500',
+                                marginTop: '4px',
+                                margin: 0
+                              }}>
+                                @{username}
+                              </p>
+                            </div>
+
+                            {/* Content Grid */}
+                            <div style={{ maxWidth: '448px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+                              {/* About Section */}
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                  <div style={{
+                                    marginTop: '2px',
+                                    padding: '8px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
+                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                      <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                  </div>
+                                  <div style={{ flex: 1, textAlign: 'left' }}>
+                                    <h3 style={{
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      color: '#9ca3af',
+                                      letterSpacing: '0.05em',
+                                      marginBottom: '4px',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      About
+                                    </h3>
+                                    {bio ? (
+                                      <p style={{
+                                        fontSize: '14px',
+                                        color: '#374151',
+                                        lineHeight: '1.625',
+                                        whiteSpace: 'pre-line',
+                                        margin: 0,
+                                        textAlign: 'left'
+                                      }}>
+                                        {bio}
+                                      </p>
+                                    ) : (
+                                      <p style={{
+                                        fontSize: '14px',
+                                        color: '#9ca3af',
+                                        fontStyle: 'italic',
+                                        margin: 0,
+                                        textAlign: 'left'
+                                      }}>
+                                        No bio provided.
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Contact & Meta Section */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                  <div style={{
+                                    padding: '8px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
+                                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                      <polyline points="22,6 12,13 2,6"></polyline>
+                                    </svg>
+                                  </div>
+                                  <div style={{ flex: 1, textAlign: 'left' }}>
+                                    <h3 style={{
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      color: '#9ca3af',
+                                      letterSpacing: '0.05em',
+                                      marginBottom: '2px',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      Email Address
+                                    </h3>
+                                    <p style={{
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      color: '#111827',
+                                      userSelect: 'all',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      {member.email}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                  <div style={{
+                                    padding: '8px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
+                                      <circle cx="12" cy="12" r="10"></circle>
+                                      <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                  </div>
+                                  <div style={{ flex: 1, textAlign: 'left' }}>
+                                    <h3 style={{
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      color: '#9ca3af',
+                                      letterSpacing: '0.05em',
+                                      marginBottom: '2px',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      Joined
+                                    </h3>
+                                    <p style={{
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      color: '#111827',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      {joinedDate}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Permissions / Actions Card */}
+                              <div style={{ marginTop: '24px', paddingTop: '20px' }}>
+                                {isCurrentUser ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.currentTarget.blur();
+                                      setShowAllMembers(false);
+                                      setShowAccountSettingsModal(true);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '8px',
+                                      padding: '12px',
+                                      backgroundColor: '#111827',
+                                      color: 'white',
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      borderRadius: '12px',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                      outline: 'none'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = '#1f2937';
+                                      e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = '#111827';
+                                      e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                                    }}
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    <span>Edit Profile</span>
+                                  </button>
+                                ) : (
+                                  <div style={{
+                                    backgroundColor: '#f9fafb',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    border: '1px solid #f3f4f6',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '16px'
+                                  }}>
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between'
+                                    }}>
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                      }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
+                                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                        </svg>
+                                        <span style={{
+                                          fontSize: '14px',
+                                          fontWeight: '500',
+                                          color: '#374151'
+                                        }}>
+                                          Access Level
+                                        </span>
+                                      </div>
+                                      {isProjectOwner ? (
+                                        <select
+                                          defaultValue={roleLabel}
+                                          onChange={(e) => {
+                                            // Handle role change
+                                            console.log('Role changed to:', e.target.value);
+                                          }}
+                                          style={{
+                                            backgroundColor: 'white',
+                                            border: '1px solid #e5e7eb',
+                                            color: '#111827',
+                                            fontSize: '14px',
+                                            borderRadius: '8px',
+                                            padding: '6px 12px',
+                                            cursor: 'pointer',
+                                            outline: 'none'
+                                          }}
+                                          onFocus={(e) => {
+                                            e.target.style.borderColor = '#111827';
+                                          }}
+                                          onBlur={(e) => {
+                                            e.target.style.borderColor = '#e5e7eb';
+                                          }}
+                                        >
+                                          <option value="Owner">Owner</option>
+                                          <option value="Editor">Editor</option>
+                                          <option value="Viewer">Viewer</option>
+                                        </select>
+                                      ) : (
+                                        <span style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          padding: '2px 8px',
+                                          borderRadius: '9999px',
+                                          fontSize: '12px',
+                                          fontWeight: '500',
+                                          border: `1px solid ${roleColor.border}`,
+                                          backgroundColor: roleColor.bg,
+                                          color: roleColor.text
+                                        }}>
+                                          {roleLabel}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {isProjectOwner && (
+                                      <div style={{
+                                        paddingTop: '12px',
+                                        borderTop: '1px solid rgba(229, 231, 235, 0.6)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                      }}>
+                                        <span style={{
+                                          fontSize: '12px',
+                                          color: '#6b7280'
+                                        }}>
+                                          Remove from project
+                                        </span>
+                                        <button
+                                          onClick={() => {
+                                            // Handle remove member
+                                            console.log('Remove member:', member.email);
+                                          }}
+                                          style={{
+                                            fontSize: '12px',
+                                            fontWeight: '500',
+                                            color: '#dc2626',
+                                            backgroundColor: '#fef2f2',
+                                            padding: '6px 12px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.target.style.color = '#b91c1c';
+                                            e.target.style.backgroundColor = '#fee2e2';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.target.style.color = '#dc2626';
+                                            e.target.style.backgroundColor = '#fef2f2';
+                                          }}
+                                        >
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                          </svg>
+                                          Remove
+                                        </button>
+                                      </div>
+                                    )}
+                                    {!isProjectOwner && (
+                                      <p style={{
+                                        fontSize: '12px',
+                                        color: '#9ca3af',
+                                        fontStyle: 'italic',
+                                        marginTop: '8px',
+                                        margin: 0
+                                      }}>
+                                        Only owners can manage access permissions.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Message Button for Other Users */}
+                              {!isCurrentUser && (
+                                <div style={{ marginTop: '24px', paddingTop: '20px' }}>
+                                  <button
+                                    onClick={() => {
+                                      // Open message/chat with this user
+                                      console.log('Message user clicked', member.email);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '8px',
+                                      padding: '12px',
+                                      backgroundColor: '#111827',
+                                      color: 'white',
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      borderRadius: '12px',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = '#1f2937';
+                                      e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = '#111827';
+                                      e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                                    }}
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                    <span>Message</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {!selectedMemberEmail && (
+                      <div style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#9ca3af'
+                      }}>
+                        Select a member to view details
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* View All Members Modal - Unified View (Same for Owner and Shared Users) */}
+            {showAllMembers && (
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  zIndex: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(17, 24, 39, 0.4)',
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                  padding: '16px',
+                  transition: 'opacity 0.3s'
+                }}
+                onClick={() => {
+                  setShowAllMembers(false);
+                  setSelectedMemberEmail(null);
+                  setMemberSearchTerm('');
+                  setShowMobileMemberDetails(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setShowAllMembers(false);
+                    setSelectedMemberEmail(null);
+                    setMemberSearchTerm('');
+                    setShowMobileMemberDetails(false);
+                  }
+                }}
+              >
+                {/* Modal Card */}
+                <div
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    width: '100%',
+                    maxWidth: '900px',
+                    height: '60vh',
+                    maxHeight: '650px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    border: '1px solid rgba(17, 24, 39, 0.05)',
+                    animation: 'fadeIn 0.2s ease-out'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* LEFT PANEL (List) */}
+                  <div
+                    style={{
+                      display: (showMobileMemberDetails && window.innerWidth < 768) ? 'none' : 'flex',
+                      flexDirection: 'column',
+                      backgroundColor: 'white',
+                      borderRight: '1px solid #f3f4f6',
+                      height: '100%',
+                      width: '100%',
+                      maxWidth: '38%',
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    {/* Header */}
+                    <div style={{ padding: '20px 0', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '12px',
+                        padding: '0 20px'
+                      }}>
+                        <h2 style={{
+                          margin: 0,
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          color: '#111827'
+                        }}>
+                          {isProjectOwner ? 'Project Members' : 'Members'}
+                        </h2>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '2px 8px',
+                          backgroundColor: '#f3f4f6',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#4b5563',
+                          border: '1px solid #e5e7eb',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                        }}>
+                          {projectMembers.length}
+                        </span>
+                      </div>
+                      {/* Search Input */}
+                      <div style={{ position: 'relative', margin: '0 20px' }}>
+                        <input
+                          type="text"
+                          placeholder={isProjectOwner ? "Search people..." : "Search members..."}
+                          value={memberSearchTerm}
+                          onChange={(e) => setMemberSearchTerm(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 12px 12px 36px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                            backgroundColor: '#f3f4f6',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.backgroundColor = '#f3f4f6';
+                          }}
+                        />
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{
+                            position: 'absolute',
+                            left: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#9ca3af'
+                          }}
+                        >
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Members List */}
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+                      {projectMembers
+                        .filter(member => {
+                          if (!memberSearchTerm) return true;
+                          const searchLower = memberSearchTerm.toLowerCase();
+                          const name = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name;
+                          return name.toLowerCase().includes(searchLower) || member.email.toLowerCase().includes(searchLower);
+                        })
+                        .sort((a, b) => {
+                          // Sort: Current user first, then alphabetical
+                          const isCurrentA = auth.currentUser?.email === a.email;
+                          const isCurrentB = auth.currentUser?.email === b.email;
+                          if (isCurrentA && !isCurrentB) return -1;
+                          if (!isCurrentA && isCurrentB) return 1;
+
+                          // Then alphabetical by name
+                          const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.name || '';
+                          const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim() || b.name || '';
+                          return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
+                        })
+                        .map((member) => {
+                          const isSelected = selectedMemberEmail === member.email;
+                          const isCurrentUser = auth.currentUser?.email === member.email;
+
+                          // Role pill colors
+                          const roleColors = {
+                            owner: { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
+                            editor: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
+                            member: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
+                            viewer: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' }
+                          };
+                          const roleColor = roleColors[member.role] || roleColors.member;
+                          const roleLabel = member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer';
+
+                          return (
+                            <div
+                              key={`${member.email}-${memberPresence[member.email] || 'offline'}`}
+                              onClick={() => {
+                                setSelectedMemberEmail(member.email);
+                                if (window.innerWidth < 768) {
+                                  setShowMobileMemberDetails(true);
+                                }
+                                if (!memberDetails[member.email]) {
+                                  fetchMemberDetails(member.email, member.userCompanyEmail || companyEmail);
+                                }
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px',
+                                margin: '0 20px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                backgroundColor: isSelected ? '#f3f4f6' : 'transparent',
+                                boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(229, 231, 235, 0.5)' : 'none'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }
+                              }}
+                            >
+                              {/* Avatar */}
+                              <div style={{ position: 'relative', flexShrink: 0 }}>
+                                {member.profilePic ? (
+                                  <img
+                                    src={member.profilePic}
+                                    alt={member.name}
+                                    style={{
+                                      width: '42px',
+                                      height: '42px',
+                                      borderRadius: '50%',
+                                      objectFit: 'cover',
+                                      border: '1px solid #e5e7eb',
+                                      display: 'block'
+                                    }}
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      const fallback = e.target.nextElementSibling;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div
+                                  style={{
+                                    display: member.profilePic ? 'none' : 'flex',
+                                    width: '42px',
+                                    height: '42px',
+                                    borderRadius: '50%',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    border: '1px solid #e5e7eb',
+                                    backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                                    color: 'white',
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  {(() => {
+                                    const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
+                                    const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
+                                    if (firstInitial && lastInitial) {
+                                      return firstInitial + lastInitial;
+                                    } else if (firstInitial) {
+                                      return firstInitial + firstInitial;
+                                    }
+                                    return 'U';
+                                  })()}
+                                </div>
+                                {/* Presence Status Indicator */}
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: '-2px',
+                                  right: '0px',
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  backgroundColor: getPresenceColor(memberPresence[member.email] || 'offline'),
+                                  border: '2px solid white',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                }} title={getPresenceLabel(memberPresence[member.email] || 'offline')} />
+                              </div>
+
+                              {/* Text Info */}
+                              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    color: isSelected ? '#111827' : '#374151',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    flex: 1,
+                                    minWidth: 0,
+                                    textAlign: 'left'
+                                  }}>
+                                    {isCurrentUser ? 'You' : (() => {
+                                      const fullName = `${member.firstName || ''} ${member.lastName || ''}`.trim();
+                                      return fullName || member.name;
+                                    })()}
+                                  </span>
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '2px 8px',
+                                    borderRadius: '9999px',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    border: `1px solid ${roleColor.border}`,
+                                    backgroundColor: roleColor.bg,
+                                    color: roleColor.text,
+                                    marginLeft: '8px',
+                                    transform: 'scale(0.9)',
+                                    transformOrigin: 'right',
+                                    flexShrink: 0
+                                  }}>
+                                    {roleLabel}
+                                  </span>
+                                </div>
+                                <span style={{
+                                  fontSize: '12px',
+                                  color: '#9ca3af',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  marginTop: '2px',
+                                  textAlign: 'left'
+                                }}>
+                                  {member.email}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    {/* Footer gradient hint */}
+                    <div style={{ height: '16px', background: 'linear-gradient(to top, white, transparent)', flexShrink: 0 }} />
+                  </div>
+
+                  {/* RIGHT PANEL (Details) - Desktop */}
+                  <div
+                    style={{
+                      display: selectedMemberEmail ? 'flex' : 'none',
+                      flexDirection: 'column',
+                      backgroundColor: 'white',
+                      height: '100%',
+                      width: '100%',
+                      maxWidth: '62%',
+                      position: 'relative',
+                      transition: 'all 0.3s'
+                    }}
+                    className="member-details-panel"
+                  >
+                    {/* Close Button (Desktop Only) */}
+                    <button
+                      onClick={() => {
+                        setShowAllMembers(false);
+                        setSelectedMemberEmail(null);
+                        setMemberSearchTerm('');
+                        setShowMobileMemberDetails(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        position: 'absolute',
+                        top: '16px',
+                        right: '16px',
+                        zIndex: 10,
+                        padding: '8px',
+                        color: '#9ca3af',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#4b5563';
+                        e.target.style.backgroundColor = '#f3f4f6';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#9ca3af';
+                        e.target.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+
+                    {selectedMemberEmail && (() => {
+                      const member = projectMembers.find(m => m.email === selectedMemberEmail);
+                      if (!member) return null;
+
+                      const isCurrentUser = auth.currentUser?.email === member.email;
+                      const details = memberDetails[member.email] || {};
+                      const roleColors = {
+                        owner: { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
+                        editor: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
+                        member: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
+                        viewer: { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' }
+                      };
+                      const roleColor = roleColors[member.role] || roleColors.member;
+                      const roleLabel = member.role === 'owner' ? 'Owner' : member.role === 'editor' ? 'Editor' : 'Viewer';
+                      const fullName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.name;
+                      const username = details.username || member.name || member.email.split('@')[0];
+                      const bio = details.bio || null;
+                      const joinedDate = member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown';
+
+                      return (
+                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', backgroundColor: 'white' }}>
+                          <div style={{ flex: 1, padding: '24px 40px', overflowY: 'auto' }}>
+                            {/* Header Section: Avatar & Primary Info */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '32px' }}>
+                              <div style={{ position: 'relative', marginBottom: '20px', cursor: 'default' }}>
+                                {member.profilePic ? (
+                                  <img
+                                    src={member.profilePic}
+                                    alt={username}
+                                    style={{
+                                      width: '112px',
+                                      height: '112px',
+                                      borderRadius: '50%',
+                                      objectFit: 'cover',
+                                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                      border: '4px solid white'
+                                    }}
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      const fallback = e.target.nextElementSibling;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div style={{
+                                  display: member.profilePic ? 'none' : 'flex',
+                                  width: '96px',
+                                  height: '96px',
+                                  borderRadius: '50%',
+                                  backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                                  color: 'white',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '32px',
+                                  fontWeight: '600',
+                                  textTransform: 'uppercase',
+                                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                  border: '4px solid white'
+                                }}>
+                                  {(() => {
+                                    const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
+                                    const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
+                                    if (firstInitial && lastInitial) {
+                                      return firstInitial + lastInitial;
+                                    } else if (firstInitial) {
+                                      return firstInitial + firstInitial;
+                                    }
+                                    return 'U';
+                                  })()}
+                                </div>
+                                <div style={{ position: 'absolute', bottom: '4px', right: '4px', transform: 'translate(4px, 4px)' }}>
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '2px 8px',
+                                    borderRadius: '9999px',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    borderWidth: '2px',
+                                    borderStyle: 'solid',
+                                    borderColor: 'white',
+                                    backgroundColor: roleColor.bg,
+                                    color: roleColor.text,
+                                    boxShadow: '0 0 0 2px ' + roleColor.border
+                                  }}>
+                                    {roleLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                <h2 style={{
+                                  fontSize: '24px',
+                                  fontWeight: '700',
+                                  color: '#111827',
+                                  letterSpacing: '-0.025em',
+                                  margin: 0
+                                }}>
+                                  {fullName}
+                                </h2>
+                              </div>
+                              <p style={{
+                                color: '#6b7280',
+                                fontWeight: '500',
+                                marginTop: '4px',
+                                margin: 0
+                              }}>
+                                @{username}
+                              </p>
+                            </div>
+
+                            {/* Content Grid */}
+                            <div style={{ maxWidth: '448px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+                              {/* About Section */}
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                  <div style={{
+                                    marginTop: '2px',
+                                    padding: '8px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
+                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                      <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                  </div>
+                                  <div style={{ flex: 1, textAlign: 'left' }}>
+                                    <h3 style={{
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      color: '#9ca3af',
+                                      letterSpacing: '0.05em',
+                                      marginBottom: '4px',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      About
+                                    </h3>
+                                    {bio ? (
+                                      <p style={{
+                                        fontSize: '14px',
+                                        color: '#374151',
+                                        lineHeight: '1.625',
+                                        whiteSpace: 'pre-line',
+                                        margin: 0,
+                                        textAlign: 'left'
+                                      }}>
+                                        {bio}
+                                      </p>
+                                    ) : (
+                                      <p style={{
+                                        fontSize: '14px',
+                                        color: '#9ca3af',
+                                        fontStyle: 'italic',
+                                        margin: 0,
+                                        textAlign: 'left'
+                                      }}>
+                                        No bio provided.
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Contact & Meta Section */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                  <div style={{
+                                    padding: '8px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
+                                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                      <polyline points="22,6 12,13 2,6"></polyline>
+                                    </svg>
+                                  </div>
+                                  <div style={{ flex: 1, textAlign: 'left' }}>
+                                    <h3 style={{
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      color: '#9ca3af',
+                                      letterSpacing: '0.05em',
+                                      marginBottom: '2px',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      Email Address
+                                    </h3>
+                                    <p style={{
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      color: '#111827',
+                                      userSelect: 'all',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      {member.email}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                  <div style={{
+                                    padding: '8px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#6b7280' }}>
+                                      <circle cx="12" cy="12" r="10"></circle>
+                                      <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                  </div>
+                                  <div style={{ flex: 1, textAlign: 'left' }}>
+                                    <h3 style={{
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      color: '#9ca3af',
+                                      letterSpacing: '0.05em',
+                                      marginBottom: '2px',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      Joined
+                                    </h3>
+                                    <p style={{
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      color: '#111827',
+                                      margin: 0,
+                                      textAlign: 'left'
+                                    }}>
+                                      {joinedDate}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Edit Profile Button for Current User */}
+                              <div style={{ marginTop: '24px', paddingTop: '20px' }}>
+                                {isCurrentUser ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.currentTarget.blur();
+                                      setShowAllMembers(false);
+                                      setShowAccountSettingsModal(true);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '8px',
+                                      padding: '12px',
+                                      backgroundColor: '#111827',
+                                      color: 'white',
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      borderRadius: '12px',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                      outline: 'none'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = '#1f2937';
+                                      e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = '#111827';
+                                      e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                                    }}
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    <span>Edit Profile</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      // Open message/chat with this user
+                                      console.log('Message user clicked', member.email);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '8px',
+                                      padding: '12px',
+                                      backgroundColor: '#111827',
+                                      color: 'white',
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      borderRadius: '12px',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = '#1f2937';
+                                      e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = '#111827';
+                                      e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                                    }}
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                    <span>Message</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {!selectedMemberEmail && (
+                      <div style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#9ca3af'
+                      }}>
+                        Select a member to view details
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Panel Modal - Table-based ChatGPT Style */}
+            {showAdminPanel && isProjectOwner && (
+              <>
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
+                    zIndex: 10000
+                  }}
+                  onClick={() => {
+                    setShowAdminPanel(false);
+                    setEditingMember(null);
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    backgroundColor: '#fafafa',
+                    color: '#353740',
+                    width: '90%',
+                    maxWidth: '1024px',
+                    maxHeight: '90vh',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    zIndex: 10001,
+                    borderRadius: '8px',
+                    boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Container */}
+                  <div style={{
+                    padding: '40px 32px',
+                    overflowY: 'auto',
+                    flex: 1
+                  }}>
+                    {/* Stats Cards */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '24px',
+                      marginBottom: '16px',
+                      paddingBottom: '16px',
+                      borderBottom: '1px solid #f7f7f8',
+                      flexWrap: 'nowrap',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {[
+                        {
+                          label: 'Owners',
+                          value: adminPanelMembers.filter(m => m.role === 'owner').length,
+                          Icon: HiOutlineShieldCheck
+                        },
+                        {
+                          label: 'Editors',
+                          value: adminPanelMembers.filter(m => m.role === 'editor').length,
+                          Icon: HiOutlinePencil
+                        },
+                        {
+                          label: 'Viewers',
+                          value: adminPanelMembers.filter(m => m.role === 'viewer').length,
+                          Icon: HiOutlineEye
+                        },
+                      ].map((stat, idx) => (
+                        <div key={idx} style={{
+                          backgroundColor: 'transparent',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#9ca3af'
+                          gap: '8px',
+                          flexShrink: 0
                         }}>
-                          Select a member to view details
+                          <div style={{
+                            color: '#8e8ea0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <stat.Icon size={16} />
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontFamily: 'system-ui, -apple-system, sans-serif'
+                          }}>
+                            <span style={{
+                              fontSize: '14px',
+                              fontWeight: '400',
+                              color: '#8e8ea0'
+                            }}>
+                              {stat.value}
+                            </span>
+                            <span style={{
+                              fontSize: '14px',
+                              color: '#8e8ea0',
+                              fontWeight: '400'
+                            }}>
+                              {stat.label}
+                            </span>
+                          </div>
                         </div>
-                      )}
+                      ))}
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div style={{
+                      backgroundColor: 'white',
+                      border: '1px solid rgba(229, 231, 235, 0.6)',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                    }}>
+                      {/* Toolbar */}
+                      <div style={{
+                        padding: '12px 16px',
+                        borderBottom: '1px solid #f3f4f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        backgroundColor: 'white',
+                        flexWrap: 'wrap'
+                      }}>
+                        <div style={{
+                          position: 'relative',
+                          maxWidth: '384px',
+                          width: '100%',
+                          flex: '0 1 300px'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '12px',
+                            transform: 'translateY(-50%)',
+                            pointerEvents: 'none',
+                            color: '#9ca3af',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <HiSearch size={16} />
+                          </div>
+                          <input
+                            type="text"
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              paddingLeft: '40px',
+                              paddingRight: '12px',
+                              paddingTop: '6px',
+                              paddingBottom: '6px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              backgroundColor: 'transparent',
+                              fontSize: '14px',
+                              color: '#353740',
+                              outline: 'none',
+                              transition: 'all 0.2s',
+                              lineHeight: '20px'
+                            }}
+                            placeholder="Search users..."
+                            value={adminSearchQuery}
+                            onChange={(e) => setAdminSearchQuery(e.target.value)}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#10a37f';
+                              e.target.style.boxShadow = '0 0 0 1px #10a37f';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = '#e5e7eb';
+                              e.target.style.boxShadow = 'none';
+                            }}
+                          />
+                        </div>
+                        {/* Role Filters */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          flexShrink: 0,
+                          marginLeft: 'auto'
+                        }}>
+                          {['owner', 'editor', 'viewer'].map((role) => {
+                            const roleColors = {
+                              owner: {
+                                bg: '#f0f4ff',
+                                border: '#e0e7ff',
+                                text: '#6366f1'
+                              },
+                              editor: {
+                                bg: '#eff6ff',
+                                border: '#dbeafe',
+                                text: '#2563eb'
+                              },
+                              viewer: {
+                                bg: '#fffbeb',
+                                border: '#fef3c7',
+                                text: '#d97706'
+                              }
+                            };
+
+                            const colors = roleColors[role];
+                            const isActive = adminRoleFilter === role;
+
+                            return (
+                              <button
+                                key={role}
+                                onClick={() => setAdminRoleFilter(adminRoleFilter === role ? null : role)}
+                                style={{
+                                  padding: '4px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: '500',
+                                  color: isActive ? colors.text : '#8e8ea0',
+                                  backgroundColor: isActive ? colors.bg : 'transparent',
+                                  border: '1px solid',
+                                  borderColor: isActive ? colors.border : 'transparent',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  textTransform: 'capitalize',
+                                  fontFamily: 'system-ui, -apple-system, sans-serif'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isActive) {
+                                    e.target.style.backgroundColor = colors.bg;
+                                    e.target.style.borderColor = colors.border;
+                                    e.target.style.color = colors.text;
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isActive) {
+                                    e.target.style.backgroundColor = 'transparent';
+                                    e.target.style.borderColor = 'transparent';
+                                    e.target.style.color = '#8e8ea0';
+                                  }
+                                }}
+                              >
+                                {role}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Table */}
+                      <div style={{
+                        overflowX: 'auto',
+                        overflowY: 'auto',
+                        maxHeight: '350px'
+                      }}>
+                        <table style={{
+                          width: '100%',
+                          borderCollapse: 'separate',
+                          borderSpacing: 0
+                        }}>
+                          <thead style={{ backgroundColor: 'rgba(249, 250, 251, 0.5)' }}>
+                            <tr>
+                              <th style={{
+                                padding: '12px 24px',
+                                textAlign: 'left',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                User
+                              </th>
+                              <th style={{
+                                padding: '12px 24px',
+                                textAlign: 'left',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                Role
+                              </th>
+                              <th style={{
+                                padding: '12px 24px',
+                                textAlign: 'left',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                Permissions
+                              </th>
+                              <th style={{
+                                padding: '12px 24px',
+                                textAlign: 'left',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                Joined
+                              </th>
+                              <th style={{
+                                padding: '12px 24px',
+                                textAlign: 'right',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#6b7280',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody style={{ backgroundColor: 'white' }}>
+                            {adminPanelMembers
+                              .filter(member => {
+                                // Search filter
+                                const query = adminSearchQuery.toLowerCase();
+                                const matchesSearch = member.name.toLowerCase().includes(query) ||
+                                  member.email.toLowerCase().includes(query);
+
+                                // Role filter
+                                const matchesRole = adminRoleFilter === null || member.role === adminRoleFilter;
+
+                                return matchesSearch && matchesRole;
+                              })
+                              .map((member) => {
+                                const activePerms = member.permissions
+                                  ? Object.values(member.permissions).filter(Boolean).length
+                                  : 0;
+
+                                return (
+                                  <tr
+                                    key={member.email}
+                                    style={{
+                                      transition: 'background-color 0.2s',
+                                      cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#f9fafb';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'white';
+                                    }}
+                                  >
+                                    <td style={{
+                                      padding: '14px 24px',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        {member.profilePic ? (
+                                          <img
+                                            src={member.profilePic}
+                                            alt={member.name}
+                                            onError={(e) => {
+                                              e.target.style.display = 'none';
+                                              const fallback = e.target.nextElementSibling;
+                                              if (fallback) fallback.style.display = 'flex';
+                                            }}
+                                            style={{
+                                              width: '32px',
+                                              height: '32px',
+                                              borderRadius: '50%',
+                                              objectFit: 'cover',
+                                              marginRight: '12px',
+                                              display: 'block',
+                                              border: '1px solid #e5e7eb'
+                                            }}
+                                          />
+                                        ) : null}
+                                        <div
+                                          style={{
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
+                                            display: member.profilePic ? 'none' : 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            color: 'white',
+                                            textTransform: 'uppercase',
+                                            marginRight: '12px'
+                                          }}
+                                        >
+                                          {(() => {
+                                            // Use firstName and lastName initials only (no email fallback)
+                                            const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
+                                            const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
+
+                                            if (firstInitial && lastInitial) {
+                                              return firstInitial + lastInitial;
+                                            } else if (firstInitial) {
+                                              return firstInitial + firstInitial;
+                                            }
+                                            return 'U';
+                                          })()}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            color: '#202123',
+                                            textAlign: 'left'
+                                          }}>
+                                            {member.name}
+                                          </div>
+                                          <div style={{
+                                            fontSize: '12px',
+                                            color: '#6b7280',
+                                            textAlign: 'left'
+                                          }}>
+                                            {member.email}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td style={{
+                                      padding: '14px 24px',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'left'
+                                    }}>
+                                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                                        {member.role === 'owner' ? (
+                                          <span style={{
+                                            fontSize: '12px',
+                                            fontWeight: '500',
+                                            padding: '4px 12px',
+                                            borderRadius: '8px',
+                                            backgroundColor: '#f0f4ff',
+                                            border: '1px solid #e0e7ff',
+                                            color: '#6366f1',
+                                            fontFamily: 'system-ui, -apple-system, sans-serif'
+                                          }}>
+                                            Owner
+                                          </span>
+                                        ) : (
+                                          <select
+                                            value={member.role || 'editor'}
+                                            onChange={(e) => {
+                                              e.stopPropagation();
+                                              handleRoleChange(member.email, e.target.value);
+                                            }}
+                                            style={{
+                                              appearance: 'none',
+                                              display: 'block',
+                                              width: '112px',
+                                              paddingLeft: '12px',
+                                              paddingRight: '32px',
+                                              paddingTop: '4px',
+                                              paddingBottom: '4px',
+                                              borderRadius: '8px',
+                                              fontSize: '12px',
+                                              fontWeight: '500',
+                                              border: '1px solid',
+                                              backgroundColor: member.role === 'editor' ? '#eff6ff' : '#fffbeb',
+                                              borderColor: member.role === 'editor' ? '#dbeafe' : '#fef3c7',
+                                              color: member.role === 'editor' ? '#2563eb' : '#d97706',
+                                              cursor: 'pointer',
+                                              transition: 'all 0.2s',
+                                              outline: 'none',
+                                              fontFamily: 'system-ui, -apple-system, sans-serif'
+                                            }}
+                                            onFocus={(e) => {
+                                              e.target.style.boxShadow = '0 0 0 2px rgba(37, 99, 235, 0.2)';
+                                            }}
+                                            onBlur={(e) => {
+                                              e.target.style.boxShadow = 'none';
+                                            }}
+                                          >
+                                            <option value="editor">Editor</option>
+                                            <option value="viewer">Viewer</option>
+                                          </select>
+                                        )}
+                                        {member.role !== 'owner' && (
+                                          <span style={{
+                                            position: 'absolute',
+                                            right: '8px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            pointerEvents: 'none',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20" style={{ display: 'block' }}>
+                                              <path fill={member.role === 'editor' ? '#2563eb' : '#d97706'} d="M10.103 12.778L16.81 6.08a.69.69 0 0 1 .99.012a.726.726 0 0 1-.012 1.012l-7.203 7.193a.69.69 0 0 1-.985-.006L2.205 6.72a.727.727 0 0 1 0-1.01a.69.69 0 0 1 .99 0l6.908 7.068Z" />
+                                            </svg>
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td style={{
+                                      padding: '14px 24px',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'left'
+                                    }}>
+                                      {member.role === 'editor' && member.permissions ? (
+                                        <button
+                                          onClick={() => {
+                                            // Normalize permissions to ensure all keys are present
+                                            const normalizedPermissions = {
+                                              createHighlights: member.permissions.createHighlights ?? false,
+                                              createAnnotations: member.permissions.createAnnotations ?? false,
+                                              modifyAnnotations: member.permissions.modifyAnnotations ?? false,
+                                              deleteAnnotations: member.permissions.deleteAnnotations ?? false,
+                                              share: member.permissions.share ?? false
+                                            };
+                                            setEditingMember({ ...member, permissions: normalizedPermissions });
+                                          }}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontSize: '14px',
+                                            color: '#6b7280',
+                                            backgroundColor: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            transition: 'color 0.2s',
+                                            padding: 0
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.target.style.color = '#10a37f';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.target.style.color = '#6b7280';
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', gap: '2px' }}>
+                                            {[...Array(5)].map((_, i) => (
+                                              <div
+                                                key={i}
+                                                style={{
+                                                  height: '6px',
+                                                  width: '6px',
+                                                  borderRadius: '50%',
+                                                  backgroundColor: i < activePerms ? '#10a37f' : '#e5e7eb'
+                                                }}
+                                              />
+                                            ))}
+                                          </div>
+                                          <span style={{
+                                            fontSize: '12px',
+                                            fontWeight: '500',
+                                            textDecoration: 'underline',
+                                            textDecorationColor: 'transparent',
+                                            transition: 'text-decoration-color 0.2s'
+                                          }}
+                                            onMouseEnter={(e) => {
+                                              e.target.style.textDecorationColor = '#10a37f';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.target.style.textDecorationColor = 'transparent';
+                                            }}
+                                          >
+                                            Edit
+                                          </span>
+                                        </button>
+                                      ) : (
+                                        <span style={{ color: '#9ca3af', fontSize: '14px' }}>—</span>
+                                      )}
+                                    </td>
+                                    <td style={{
+                                      padding: '14px 24px',
+                                      whiteSpace: 'nowrap',
+                                      fontSize: '14px',
+                                      color: '#6b7280',
+                                      textAlign: 'left'
+                                    }}>
+                                      {member.joinedDate || '—'}
+                                    </td>
+                                    <td style={{
+                                      padding: '14px 24px',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'right',
+                                      fontSize: '14px',
+                                      fontWeight: '500'
+                                    }}>
+                                      <button
+                                        onClick={() => {
+                                          if (window.confirm('Remove this user from the workspace?')) {
+                                            // TODO: Implement delete functionality
+                                            showToast('Delete functionality coming soon', 'info');
+                                          }
+                                        }}
+                                        style={{
+                                          color: '#9ca3af',
+                                          backgroundColor: 'transparent',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          transition: 'color 0.2s',
+                                          padding: '4px',
+                                          fontSize: '15px'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.target.style.color = '#dc2626';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.target.style.color = '#9ca3af';
+                                        }}
+                                      >
+                                        <HiOutlineTrash size={15} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* Admin Panel Modal - Table-based ChatGPT Style */}
-              {showAdminPanel && isProjectOwner && (
-                <>
+                {/* Permissions Modal */}
+                {editingMember && (
                   <div
                     style={{
                       position: 'fixed',
@@ -12540,896 +13456,276 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       backgroundColor: 'rgba(0, 0, 0, 0.4)',
                       backdropFilter: 'blur(4px)',
                       WebkitBackdropFilter: 'blur(4px)',
-                      zIndex: 10000
-                    }}
-                    onClick={() => {
-                      setShowAdminPanel(false);
-                      setEditingMember(null);
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: 'fixed',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      backgroundColor: '#fafafa',
-                      color: '#353740',
-                      width: '90%',
-                      maxWidth: '1024px',
-                      maxHeight: '90vh',
-                      overflow: 'hidden',
+                      zIndex: 10002,
                       display: 'flex',
-                      flexDirection: 'column',
-                      zIndex: 10001,
-                      borderRadius: '8px',
-                      boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)'
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '16px'
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={() => setEditingMember(null)}
                   >
-                    {/* Container */}
-                    <div style={{
-                      padding: '40px 32px',
-                      overflowY: 'auto',
-                      flex: 1
-                    }}>
-                      {/* Stats Cards */}
+                    <div
+                      style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        maxWidth: '448px',
+                        width: '100%',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(243, 244, 246, 1)',
+                        animation: 'fadeIn 0.2s ease-out',
+                        transform: 'scale(0.95)',
+                        transition: 'transform 0.2s'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div style={{
+                        padding: '20px',
+                        borderBottom: '1px solid #f3f4f6',
                         display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '24px',
-                        marginBottom: '16px',
-                        paddingBottom: '16px',
-                        borderBottom: '1px solid #f7f7f8',
-                        flexWrap: 'nowrap',
-                        whiteSpace: 'nowrap'
+                        backgroundColor: 'white'
                       }}>
-                        {[
-                          { 
-                            label: 'Owners', 
-                            value: adminPanelMembers.filter(m => m.role === 'owner').length,
-                            Icon: HiOutlineShieldCheck
-                          },
-                          { 
-                            label: 'Editors', 
-                            value: adminPanelMembers.filter(m => m.role === 'editor').length,
-                            Icon: HiOutlinePencil
-                          },
-                          { 
-                            label: 'Viewers', 
-                            value: adminPanelMembers.filter(m => m.role === 'viewer').length,
-                            Icon: HiOutlineEye
-                          },
-                        ].map((stat, idx) => (
-                          <div key={idx} style={{
+                        <div>
+                          <h3 style={{
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            color: '#111827',
+                            margin: 0
+                          }}>
+                            Permissions
+                          </h3>
+                          <p style={{
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            margin: '2px 0 0 0'
+                          }}>
+                            Access controls for <span style={{ fontWeight: '500' }}>{editingMember.name}</span>
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setEditingMember(null)}
+                          style={{
+                            color: '#9ca3af',
                             backgroundColor: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'color 0.2s',
+                            padding: '4px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            flexShrink: 0
+                            justifyContent: 'center'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.color = '#4b5563';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.color = '#9ca3af';
+                          }}
+                        >
+                          <HiX size={18} />
+                        </button>
+                      </div>
+
+                      <div style={{
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '20px'
+                      }}>
+                        {[
+                          { key: 'createHighlights', label: 'Create Highlights', desc: 'Can create new text highlights.' },
+                          { key: 'createAnnotations', label: 'Create/Modify Annotations', desc: 'Can create and edit annotations.' },
+                          { key: 'deleteAnnotations', label: 'Delete Annotations', desc: 'Can remove annotations.' },
+                          { key: 'share', label: 'Share', desc: 'Can share projects with others.' }
+                        ].map((permission) => (
+                          <div key={permission.key} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
                           }}>
                             <div style={{
-                              color: '#8e8ea0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
+                              textAlign: 'left',
+                              flex: 1
                             }}>
-                              <stat.Icon size={16} />
-                            </div>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontFamily: 'system-ui, -apple-system, sans-serif'
-                            }}>
-                              <span style={{
+                              <p style={{
                                 fontSize: '14px',
-                                fontWeight: '400',
-                                color: '#8e8ea0'
+                                fontWeight: '500',
+                                color: '#111827',
+                                margin: 0,
+                                textAlign: 'left'
                               }}>
-                                {stat.value}
-                              </span>
-                              <span style={{
-                                fontSize: '14px',
-                                color: '#8e8ea0',
-                                fontWeight: '400'
+                                {permission.label}
+                              </p>
+                              <p style={{
+                                fontSize: '12px',
+                                color: '#6b7280',
+                                margin: '2px 0 0 0',
+                                textAlign: 'left'
                               }}>
-                                {stat.label}
-                              </span>
+                                {permission.desc}
+                              </p>
                             </div>
+                            <button
+                              onClick={() => togglePermission(permission.key)}
+                              style={{
+                                position: 'relative',
+                                display: 'inline-flex',
+                                height: '20px',
+                                width: '36px',
+                                alignItems: 'center',
+                                borderRadius: '9999px',
+                                transition: 'background-color 0.2s',
+                                outline: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                backgroundColor: editingMember.permissions?.[permission.key] ? '#10a37f' : '#e5e7eb',
+                                boxShadow: '0 0 0 2px transparent',
+                                transition: 'all 0.2s'
+                              }}
+                              onFocus={(e) => {
+                                e.target.style.boxShadow = '0 0 0 2px rgba(0, 0, 0, 0.1)';
+                              }}
+                              onBlur={(e) => {
+                                e.target.style.boxShadow = '0 0 0 2px transparent';
+                              }}
+                            >
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  height: '14px',
+                                  width: '14px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'white',
+                                  transform: editingMember.permissions?.[permission.key] ? 'translateX(16px)' : 'translateX(2px)',
+                                  transition: 'transform 0.2s',
+                                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
+                                }}
+                              />
+                            </button>
                           </div>
                         ))}
                       </div>
 
-                      {/* Main Content Area */}
                       <div style={{
-                        backgroundColor: 'white',
-                        border: '1px solid rgba(229, 231, 235, 0.6)',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                        padding: '12px 20px',
+                        backgroundColor: 'rgba(249, 250, 251, 0.5)',
+                        borderTop: '1px solid #f3f4f6',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '8px'
                       }}>
-                        {/* Toolbar */}
-                        <div style={{
-                          padding: '12px 16px',
-                          borderBottom: '1px solid #f3f4f6',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          backgroundColor: 'white',
-                          flexWrap: 'wrap'
-                        }}>
-                          <div style={{
-                            position: 'relative',
-                            maxWidth: '384px',
-                            width: '100%',
-                            flex: '0 1 300px'
-                          }}>
-                            <div style={{
-                              position: 'absolute',
-                              top: '50%',
-                              left: '12px',
-                              transform: 'translateY(-50%)',
-                              pointerEvents: 'none',
-                              color: '#9ca3af',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              <HiSearch size={16} />
-                            </div>
-                            <input
-                              type="text"
-                              style={{
-                                display: 'block',
-                                width: '100%',
-                                paddingLeft: '40px',
-                                paddingRight: '12px',
-                                paddingTop: '6px',
-                                paddingBottom: '6px',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '6px',
-                                backgroundColor: 'transparent',
-                                fontSize: '14px',
-                                color: '#353740',
-                                outline: 'none',
-                                transition: 'all 0.2s',
-                                lineHeight: '20px'
-                              }}
-                              placeholder="Search users..."
-                              value={adminSearchQuery}
-                              onChange={(e) => setAdminSearchQuery(e.target.value)}
-                              onFocus={(e) => {
-                                e.target.style.borderColor = '#10a37f';
-                                e.target.style.boxShadow = '0 0 0 1px #10a37f';
-                              }}
-                              onBlur={(e) => {
-                                e.target.style.borderColor = '#e5e7eb';
-                                e.target.style.boxShadow = 'none';
-                              }}
-                            />
-                          </div>
-                          {/* Role Filters */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            flexShrink: 0,
-                            marginLeft: 'auto'
-                          }}>
-                            {['owner', 'editor', 'viewer'].map((role) => {
-                              const roleColors = {
-                                owner: {
-                                  bg: '#f0f4ff',
-                                  border: '#e0e7ff',
-                                  text: '#6366f1'
-                                },
-                                editor: {
-                                  bg: '#eff6ff',
-                                  border: '#dbeafe',
-                                  text: '#2563eb'
-                                },
-                                viewer: {
-                                  bg: '#fffbeb',
-                                  border: '#fef3c7',
-                                  text: '#d97706'
-                                }
-                              };
-                              
-                              const colors = roleColors[role];
-                              const isActive = adminRoleFilter === role;
-                              
-                              return (
-                                <button
-                                  key={role}
-                                  onClick={() => setAdminRoleFilter(adminRoleFilter === role ? null : role)}
-                                  style={{
-                                    padding: '4px 12px',
-                                    fontSize: '12px',
-                                    fontWeight: '500',
-                                    color: isActive ? colors.text : '#8e8ea0',
-                                    backgroundColor: isActive ? colors.bg : 'transparent',
-                                    border: '1px solid',
-                                    borderColor: isActive ? colors.border : 'transparent',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    textTransform: 'capitalize',
-                                    fontFamily: 'system-ui, -apple-system, sans-serif'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!isActive) {
-                                      e.target.style.backgroundColor = colors.bg;
-                                      e.target.style.borderColor = colors.border;
-                                      e.target.style.color = colors.text;
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (!isActive) {
-                                      e.target.style.backgroundColor = 'transparent';
-                                      e.target.style.borderColor = 'transparent';
-                                      e.target.style.color = '#8e8ea0';
-                                    }
-                                  }}
-                                >
-                                  {role}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Table */}
-                        <div style={{ 
-                          overflowX: 'auto',
-                          overflowY: 'auto',
-                          maxHeight: '350px'
-                        }}>
-                          <table style={{
-                            width: '100%',
-                            borderCollapse: 'separate',
-                            borderSpacing: 0
-                          }}>
-                            <thead style={{ backgroundColor: 'rgba(249, 250, 251, 0.5)' }}>
-                              <tr>
-                                <th style={{
-                                  padding: '12px 24px',
-                                  textAlign: 'left',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  color: '#6b7280',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}>
-                                  User
-                                </th>
-                                <th style={{
-                                  padding: '12px 24px',
-                                  textAlign: 'left',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  color: '#6b7280',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}>
-                                  Role
-                                </th>
-                                <th style={{
-                                  padding: '12px 24px',
-                                  textAlign: 'left',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  color: '#6b7280',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}>
-                                  Permissions
-                                </th>
-                                <th style={{
-                                  padding: '12px 24px',
-                                  textAlign: 'left',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  color: '#6b7280',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}>
-                                  Joined
-                                </th>
-                                <th style={{
-                                  padding: '12px 24px',
-                                  textAlign: 'right',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  color: '#6b7280',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}>
-                                  Actions
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody style={{ backgroundColor: 'white' }}>
-                              {adminPanelMembers
-                                .filter(member => {
-                                  // Search filter
-                                  const query = adminSearchQuery.toLowerCase();
-                                  const matchesSearch = member.name.toLowerCase().includes(query) || 
-                                         member.email.toLowerCase().includes(query);
-                                  
-                                  // Role filter
-                                  const matchesRole = adminRoleFilter === null || member.role === adminRoleFilter;
-                                  
-                                  return matchesSearch && matchesRole;
-                                })
-                                .map((member) => {
-                                  const activePerms = member.permissions 
-                                    ? Object.values(member.permissions).filter(Boolean).length 
-                                    : 0;
-                                  
-                                  return (
-                                    <tr 
-                                      key={member.email}
-                                      style={{
-                                        transition: 'background-color 0.2s',
-                                        cursor: 'pointer'
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#f9fafb';
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = 'white';
-                                      }}
-                                    >
-                                      <td style={{
-                                        padding: '14px 24px',
-                                        whiteSpace: 'nowrap'
-                                      }}>
-                                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                                          {member.profilePic ? (
-                                            <img
-                                              src={member.profilePic}
-                                              alt={member.name}
-                                              onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                const fallback = e.target.nextElementSibling;
-                                                if (fallback) fallback.style.display = 'flex';
-                                              }}
-                                              style={{
-                                                width: '32px',
-                                                height: '32px',
-                                                borderRadius: '50%',
-                                                objectFit: 'cover',
-                                                marginRight: '12px',
-                                                display: 'block',
-                                                border: '1px solid #e5e7eb'
-                                              }}
-                                            />
-                                          ) : null}
-                                          <div
-                                            style={{
-                                              width: '32px',
-                                              height: '32px',
-                                              borderRadius: '50%',
-                                              backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
-                                              display: member.profilePic ? 'none' : 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              fontSize: '12px',
-                                              fontWeight: '600',
-                                              color: 'white',
-                                              textTransform: 'uppercase',
-                                              marginRight: '12px'
-                                            }}
-                                          >
-                                            {(() => {
-                                              // Use firstName and lastName initials only (no email fallback)
-                                              const firstInitial = member.firstName && member.firstName.trim() ? member.firstName.trim()[0].toUpperCase() : '';
-                                              const lastInitial = member.lastName && member.lastName.trim() ? member.lastName.trim()[0].toUpperCase() : '';
-                                              
-                                              if (firstInitial && lastInitial) {
-                                                return firstInitial + lastInitial;
-                                              } else if (firstInitial) {
-                                                return firstInitial + firstInitial;
-                                              }
-                                              return 'U';
-                                            })()}
-                                          </div>
-                                          <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{
-                                              fontSize: '14px',
-                                              fontWeight: '500',
-                                              color: '#202123',
-                                              textAlign: 'left'
-                                            }}>
-                                              {member.name}
-                                            </div>
-                                            <div style={{
-                                              fontSize: '12px',
-                                              color: '#6b7280',
-                                              textAlign: 'left'
-                                            }}>
-                                              {member.email}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td style={{
-                                        padding: '14px 24px',
-                                        whiteSpace: 'nowrap',
-                                        textAlign: 'left'
-                                      }}>
-                                        <div style={{ position: 'relative', display: 'inline-block' }}>
-                                          {member.role === 'owner' ? (
-                                            <span style={{
-                                              fontSize: '12px',
-                                              fontWeight: '500',
-                                              padding: '4px 12px',
-                                              borderRadius: '8px',
-                                              backgroundColor: '#f0f4ff',
-                                              border: '1px solid #e0e7ff',
-                                              color: '#6366f1',
-                                              fontFamily: 'system-ui, -apple-system, sans-serif'
-                                            }}>
-                                              Owner
-                                            </span>
-                                          ) : (
-                                            <select
-                                              value={member.role || 'editor'}
-                                              onChange={(e) => {
-                                                e.stopPropagation();
-                                                handleRoleChange(member.email, e.target.value);
-                                              }}
-                                              style={{
-                                                appearance: 'none',
-                                                display: 'block',
-                                                width: '112px',
-                                                paddingLeft: '12px',
-                                                paddingRight: '32px',
-                                                paddingTop: '4px',
-                                                paddingBottom: '4px',
-                                                borderRadius: '8px',
-                                                fontSize: '12px',
-                                                fontWeight: '500',
-                                                border: '1px solid',
-                                                backgroundColor: member.role === 'editor' ? '#eff6ff' : '#fffbeb',
-                                                borderColor: member.role === 'editor' ? '#dbeafe' : '#fef3c7',
-                                                color: member.role === 'editor' ? '#2563eb' : '#d97706',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                outline: 'none',
-                                                fontFamily: 'system-ui, -apple-system, sans-serif'
-                                              }}
-                                              onFocus={(e) => {
-                                                e.target.style.boxShadow = '0 0 0 2px rgba(37, 99, 235, 0.2)';
-                                              }}
-                                              onBlur={(e) => {
-                                                e.target.style.boxShadow = 'none';
-                                              }}
-                                            >
-                                              <option value="editor">Editor</option>
-                                              <option value="viewer">Viewer</option>
-                                            </select>
-                                          )}
-                                          {member.role !== 'owner' && (
-                                            <span style={{
-                                              position: 'absolute',
-                                              right: '8px',
-                                              top: '50%',
-                                              transform: 'translateY(-50%)',
-                                              pointerEvents: 'none',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center'
-                                            }}>
-                                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20" style={{ display: 'block' }}>
-                                                <path fill={member.role === 'editor' ? '#2563eb' : '#d97706'} d="M10.103 12.778L16.81 6.08a.69.69 0 0 1 .99.012a.726.726 0 0 1-.012 1.012l-7.203 7.193a.69.69 0 0 1-.985-.006L2.205 6.72a.727.727 0 0 1 0-1.01a.69.69 0 0 1 .99 0l6.908 7.068Z"/>
-                                              </svg>
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td style={{
-                                        padding: '14px 24px',
-                                        whiteSpace: 'nowrap',
-                                        textAlign: 'left'
-                                      }}>
-                                        {member.role === 'editor' && member.permissions ? (
-                                          <button
-                                            onClick={() => {
-                                              // Normalize permissions to ensure all keys are present
-                                              const normalizedPermissions = {
-                                                createHighlights: member.permissions.createHighlights ?? false,
-                                                createAnnotations: member.permissions.createAnnotations ?? false,
-                                                modifyAnnotations: member.permissions.modifyAnnotations ?? false,
-                                                deleteAnnotations: member.permissions.deleteAnnotations ?? false,
-                                                share: member.permissions.share ?? false
-                                              };
-                                              setEditingMember({ ...member, permissions: normalizedPermissions });
-                                            }}
-                                            style={{
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '8px',
-                                              fontSize: '14px',
-                                              color: '#6b7280',
-                                              backgroundColor: 'transparent',
-                                              border: 'none',
-                                              cursor: 'pointer',
-                                              transition: 'color 0.2s',
-                                              padding: 0
-                                            }}
-                                            onMouseEnter={(e) => {
-                                              e.target.style.color = '#10a37f';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                              e.target.style.color = '#6b7280';
-                                            }}
-                                          >
-                                            <div style={{ display: 'flex', gap: '2px' }}>
-                                              {[...Array(5)].map((_, i) => (
-                                                <div
-                                                  key={i}
-                                                  style={{
-                                                    height: '6px',
-                                                    width: '6px',
-                                                    borderRadius: '50%',
-                                                    backgroundColor: i < activePerms ? '#10a37f' : '#e5e7eb'
-                                                  }}
-                                                />
-                                              ))}
-                                            </div>
-                                            <span style={{
-                                              fontSize: '12px',
-                                              fontWeight: '500',
-                                              textDecoration: 'underline',
-                                              textDecorationColor: 'transparent',
-                                              transition: 'text-decoration-color 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                              e.target.style.textDecorationColor = '#10a37f';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                              e.target.style.textDecorationColor = 'transparent';
-                                            }}
-                                            >
-                                              Edit
-                                            </span>
-                                          </button>
-                                        ) : (
-                                          <span style={{ color: '#9ca3af', fontSize: '14px' }}>—</span>
-                                        )}
-                                      </td>
-                                      <td style={{
-                                        padding: '14px 24px',
-                                        whiteSpace: 'nowrap',
-                                        fontSize: '14px',
-                                        color: '#6b7280',
-                                        textAlign: 'left'
-                                      }}>
-                                        {member.joinedDate || '—'}
-                                      </td>
-                                      <td style={{
-                                        padding: '14px 24px',
-                                        whiteSpace: 'nowrap',
-                                        textAlign: 'right',
-                                        fontSize: '14px',
-                                        fontWeight: '500'
-                                      }}>
-                                        <button
-                                          onClick={() => {
-                                            if (window.confirm('Remove this user from the workspace?')) {
-                                              // TODO: Implement delete functionality
-                                              showToast('Delete functionality coming soon', 'info');
-                                            }
-                                          }}
-                                          style={{
-                                            color: '#9ca3af',
-                                            backgroundColor: 'transparent',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            transition: 'color 0.2s',
-                                            padding: '4px',
-                                            fontSize: '15px'
-                                          }}
-                                          onMouseEnter={(e) => {
-                                            e.target.style.color = '#dc2626';
-                                          }}
-                                          onMouseLeave={(e) => {
-                                            e.target.style.color = '#9ca3af';
-                                          }}
-                                        >
-                                          <HiOutlineTrash size={15} />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                            </tbody>
-                          </table>
-                        </div>
+                        <button
+                          onClick={() => setEditingMember(null)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: 'white',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#f9fafb';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'white';
+                          }}
+                        >
+                          Done
+                        </button>
                       </div>
                     </div>
                   </div>
+                )}
+              </>
+            )}
 
-                  {/* Permissions Modal */}
-                  {editingMember && (
-                    <div
-                      style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                        backdropFilter: 'blur(4px)',
-                        WebkitBackdropFilter: 'blur(4px)',
-                        zIndex: 10002,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '16px'
-                      }}
-                      onClick={() => setEditingMember(null)}
-                    >
-                      <div
-                        style={{
-                          backgroundColor: 'white',
-                          borderRadius: '8px',
-                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                          maxWidth: '448px',
-                          width: '100%',
-                          overflow: 'hidden',
-                          border: '1px solid rgba(243, 244, 246, 1)',
-                          animation: 'fadeIn 0.2s ease-out',
-                          transform: 'scale(0.95)',
-                          transition: 'transform 0.2s'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div style={{
-                          padding: '20px',
-                          borderBottom: '1px solid #f3f4f6',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          backgroundColor: 'white'
-                        }}>
-                          <div>
-                            <h3 style={{
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              color: '#111827',
-                              margin: 0
-                            }}>
-                              Permissions
-                            </h3>
-                            <p style={{
-                              fontSize: '12px',
-                              color: '#6b7280',
-                              margin: '2px 0 0 0'
-                            }}>
-                              Access controls for <span style={{ fontWeight: '500' }}>{editingMember.name}</span>
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => setEditingMember(null)}
-                            style={{
-                              color: '#9ca3af',
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              transition: 'color 0.2s',
-                              padding: '4px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.color = '#4b5563';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.color = '#9ca3af';
-                            }}
-                          >
-                            <HiX size={18} />
-                          </button>
-                        </div>
-
-                        <div style={{
-                          padding: '20px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '20px'
-                        }}>
-                          {[
-                            { key: 'createHighlights', label: 'Create Highlights', desc: 'Can create new text highlights.' },
-                            { key: 'createAnnotations', label: 'Create/Modify Annotations', desc: 'Can create and edit annotations.' },
-                            { key: 'deleteAnnotations', label: 'Delete Annotations', desc: 'Can remove annotations.' },
-                            { key: 'share', label: 'Share', desc: 'Can share projects with others.' }
-                          ].map((permission) => (
-                            <div key={permission.key} style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between'
-                            }}>
-                              <div style={{
-                                textAlign: 'left',
-                                flex: 1
-                              }}>
-                                <p style={{
-                                  fontSize: '14px',
-                                  fontWeight: '500',
-                                  color: '#111827',
-                                  margin: 0,
-                                  textAlign: 'left'
-                                }}>
-                                  {permission.label}
-                                </p>
-                                <p style={{
-                                  fontSize: '12px',
-                                  color: '#6b7280',
-                                  margin: '2px 0 0 0',
-                                  textAlign: 'left'
-                                }}>
-                                  {permission.desc}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => togglePermission(permission.key)}
-                                style={{
-                                  position: 'relative',
-                                  display: 'inline-flex',
-                                  height: '20px',
-                                  width: '36px',
-                                  alignItems: 'center',
-                                  borderRadius: '9999px',
-                                  transition: 'background-color 0.2s',
-                                  outline: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  backgroundColor: editingMember.permissions?.[permission.key] ? '#10a37f' : '#e5e7eb',
-                                  boxShadow: '0 0 0 2px transparent',
-                                  transition: 'all 0.2s'
-                                }}
-                                onFocus={(e) => {
-                                  e.target.style.boxShadow = '0 0 0 2px rgba(0, 0, 0, 0.1)';
-                                }}
-                                onBlur={(e) => {
-                                  e.target.style.boxShadow = '0 0 0 2px transparent';
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    height: '14px',
-                                    width: '14px',
-                                    borderRadius: '50%',
-                                    backgroundColor: 'white',
-                                    transform: editingMember.permissions?.[permission.key] ? 'translateX(16px)' : 'translateX(2px)',
-                                    transition: 'transform 0.2s',
-                                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
-                                  }}
-                                />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div style={{
-                          padding: '12px 20px',
-                          backgroundColor: 'rgba(249, 250, 251, 0.5)',
-                          borderTop: '1px solid #f3f4f6',
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          gap: '8px'
-                        }}>
-                          <button
-                            onClick={() => setEditingMember(null)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'white',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '4px',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              color: '#374151',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.backgroundColor = '#f9fafb';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.backgroundColor = 'white';
-                            }}
-                          >
-                            Done
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-               {/* Annotate and Sidebar buttons - always visible */}
-               <div style={{
-                 position: 'absolute',
-                 top: '6px',
-                 right: '1.5rem',
-                 display: 'flex',
-                 gap: '0.5rem',
-                 alignItems: 'center',
-                 paddingBottom: '6px'
-               }}>
-                   <button
-                    style={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      padding: '0.625rem 1rem',
-                      fontSize: '0.875rem',
-                      color: '#111827',
-                      cursor: 'pointer',
-                      minWidth: 'auto',
-                      display: 'none',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: 'none',
-                      outline: 'none',
-                      fontWeight: '500',
-                      marginBottom: '6px'
-                    }}
-                    onClick={() => {
-                      if (isLoggedIn) {
-                         setIsExtensionSidebarVisible(v => !v)
-                         document.getElementById("sidebar-iframe").src = "extension/popup.html";
-                       }
-                       else
-                         showToast("Must be logged in to use extension features", "error");
-                     }
-                     }
-                   >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256">
-                       <path fill="currentColor" d="M240 100.68a15.86 15.86 0 0 0-4.69-11.31l-68.68-68.69a16 16 0 0 0-22.63 0l-28.43 28.43l-58 21.77a16.06 16.06 0 0 0-10.22 12.35L24.11 222.68A8 8 0 0 0 32 232a8.4 8.4 0 0 0 1.32-.11l139.44-23.24a16 16 0 0 0 12.35-10.17l21.77-58L235.31 112a15.87 15.87 0 0 0 4.69-11.32Zm-69.87 92.19L55.32 212l47.37-47.37a28 28 0 1 0-11.32-11.32L44 200.7L63.13 85.86L118 65.29L190.7 138ZM104 140a12 12 0 1 1 12 12a12 12 0 0 1-12-12Zm96-15.32L131.31 56l24-24L224 100.68Z"/>
-                     </svg>
-                     <span style={{ fontWeight: '500' }}>Annotate</span>
-                   </button>
-                   <button
-                    style={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      padding: '0.625rem 1rem',
-                      fontSize: '0.875rem',
-                      color: '#111827',
-                      cursor: 'pointer',
-                      minWidth: 'auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: 'none',
-                      outline: 'none',
-                      fontWeight: '500',
-                      marginBottom: '6px'
-                    }}
-                    onClick={() => {
-                      setIsCustomSidebarVisible(v => !v);
-                    }}
-                   >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                       <line x1="9" y1="3" x2="9" y2="21"></line>
-                     </svg>
-                     <span style={{ fontWeight: '500' }}>Sidebar</span>
-                   </button>
-                 </div>
-             </div>
+            {/* Annotate and Sidebar buttons - always visible */}
+            <div style={{
+              position: 'absolute',
+              top: '6px',
+              right: '1.5rem',
+              display: 'flex',
+              gap: '0.5rem',
+              alignItems: 'center',
+              paddingBottom: '6px',
+              flexShrink: 0,
+              minWidth: 'fit-content'
+            }}>
+              <button
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.875rem',
+                  color: '#111827',
+                  cursor: 'pointer',
+                  minWidth: 'auto',
+                  display: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: 'none',
+                  outline: 'none',
+                  fontWeight: '500',
+                  marginBottom: '6px'
+                }}
+                onClick={() => {
+                  if (isLoggedIn) {
+                    setIsExtensionSidebarVisible(v => !v)
+                    document.getElementById("sidebar-iframe").src = "extension/popup.html";
+                  }
+                  else
+                    showToast("Must be logged in to use extension features", "error");
+                }
+                }
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256">
+                  <path fill="currentColor" d="M240 100.68a15.86 15.86 0 0 0-4.69-11.31l-68.68-68.69a16 16 0 0 0-22.63 0l-28.43 28.43l-58 21.77a16.06 16.06 0 0 0-10.22 12.35L24.11 222.68A8 8 0 0 0 32 232a8.4 8.4 0 0 0 1.32-.11l139.44-23.24a16 16 0 0 0 12.35-10.17l21.77-58L235.31 112a15.87 15.87 0 0 0 4.69-11.32Zm-69.87 92.19L55.32 212l47.37-47.37a28 28 0 1 0-11.32-11.32L44 200.7L63.13 85.86L118 65.29L190.7 138ZM104 140a12 12 0 1 1 12 12a12 12 0 0 1-12-12Zm96-15.32L131.31 56l24-24L224 100.68Z" />
+                </svg>
+                <span style={{ fontWeight: '500' }}>Annotate</span>
+              </button>
+              <button
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.875rem',
+                  color: '#111827',
+                  cursor: 'pointer',
+                  minWidth: 'auto',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: 'none',
+                  outline: 'none',
+                  fontWeight: '500',
+                  marginBottom: '6px'
+                }}
+                onClick={() => {
+                  setIsCustomSidebarVisible(v => !v);
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="9" y1="3" x2="9" y2="21"></line>
+                </svg>
+                <span style={{ fontWeight: '500' }}>Sidebar</span>
+              </button>
+            </div>
+          </div>
 
           {/* Welcome Screen with Input at Top (shown when no messages) */}
 
@@ -13493,7 +13789,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                               typingUsers.forEach(user => {
                                 if (user.email) {
                                   // Find member by email (case-insensitive)
-                                  const member = projectMembers.find(m => 
+                                  const member = projectMembers.find(m =>
                                     m.email && m.email.toLowerCase() === user.email.toLowerCase()
                                   );
                                   if (member) {
@@ -13521,7 +13817,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       </div>
                     </div>
                   )}
-                  
+
                   <MessageInput
                     inputValue={inputValue}
                     setInputValue={setInputValue}
@@ -13645,6 +13941,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 onPointerMove={handleSelectionOverlayPointerMove}
                 onPointerUp={handleSelectionOverlayPointerUpOrCancel}
                 onPointerCancel={handleSelectionOverlayPointerUpOrCancel}
+                onClick={(e) => {
+                  if (!selectionModeEnabled) return;
+                  if (e.target.closest && e.target.closest('[data-selection-box-id]')) return;
+                  try { phrazeHideAnyOtherPopups(); } catch (_) { }
+                }}
               >
                 {selectionBoxes.map((b) => (
                   <div
@@ -13688,10 +13989,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                               if (typeof window !== 'undefined' && typeof window.phrazeOpenSelectionBoxNotes === 'function') {
                                 window.phrazeOpenSelectionBoxNotes(b.id);
                               }
-                            } catch (_) {}
+                            } catch (_) { }
                           }}
                           onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); try { window.phrazeOpenSelectionBoxNotes && window.phrazeOpenSelectionBoxNotes(b.id); } catch (_) {} } }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); try { window.phrazeOpenSelectionBoxNotes && window.phrazeOpenSelectionBoxNotes(b.id); } catch (_) { } } }}
                           style={{
                             position: 'absolute',
                             left: 6,
@@ -13797,280 +14098,381 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 })()}
               </div>
               {messages.map((message, index) => (
-                                <div
-                    key={message?.messageId || message?.id || index}
-                    data-cursor-anchor-id={(message?.messageId || message?.id) ? String(message.messageId || message.id) : undefined}
-                    style={{
-                      padding: '0 1rem',
-                      maxWidth: `${800}px`,
-                      margin: '0 auto',
-                      width: '100%',
-                      display: 'flex',
-                      justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-                      position: 'relative'
-                    }}
-                  >
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  maxWidth: '85%',
-                  paddingLeft: message.role === 'user' ? '0' : '0'
-                }}>
-                  {/* Username display with profile icon */}
-                  {(() => {
-                    // Helper to normalize email for comparison
-                    const normalizeEmail = (email) => email?.toLowerCase().replace(/\./g, ',');
-                    
-                    // Find sender member if message has senderEmail
-                    const senderEmailNormalized = message.senderEmail ? normalizeEmail(message.senderEmail) : null;
-                    const senderMember = senderEmailNormalized 
-                      ? projectMembers.find(m => normalizeEmail(m.email) === senderEmailNormalized)
-                      : null;
-                    
-                    // Get profile picture and name - prioritize projectMembers, then cache, then message data
-                    let senderProfilePic = null;
-                    let senderName = message.userDisplayName || 'User';
-                    let senderFirstName = null;
-                    let senderLastName = null;
-                    
-                    if (senderMember) {
-                      // For public chats - use projectMembers data
-                      senderProfilePic = senderMember.profilePic || null;
-                      senderName = senderMember.name || message.userDisplayName || 'User';
-                      senderFirstName = senderMember.firstName || null;
-                      senderLastName = senderMember.lastName || null;
-                    } else if (message.senderEmail) {
-                      // For private chats - use cached profile data
-                      const cachedProfile = messageSenderProfiles.get(message.senderEmail);
-                      if (cachedProfile) {
-                        senderProfilePic = cachedProfile.profilePic || null;
-                        senderName = cachedProfile.name || message.userDisplayName || 'User';
-                        senderFirstName = cachedProfile.firstName || null;
-                        senderLastName = cachedProfile.lastName || null;
-                      }
+                <div
+                  id={`message-row-${index}`}
+                  data-message-index={index}
+                  key={message?.messageId || message?.id || index}
+                  data-cursor-anchor-id={(message?.messageId || message?.id) ? String(message.messageId || message.id) : undefined}
+                  role={commentModeEnabled ? 'button' : undefined}
+                  tabIndex={commentModeEnabled ? 0 : undefined}
+                  onClick={commentModeEnabled ? (e) => {
+                    if (e.target.closest('button') || e.target.closest('textarea') || e.target.closest('input')) return;
+                    handleMessageClickForComment(message, index);
+                  } : undefined}
+                  onKeyDown={commentModeEnabled ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      if (e.target.closest('button') || e.target.closest('textarea') || e.target.closest('input')) return;
+                      handleMessageClickForComment(message, index);
                     }
-                    
-                    return (
-                  <div style={{ 
-                    fontSize: '0.8rem', 
-                    marginBottom: '8px', 
-                    fontWeight: '500',
-                    color: '#555',
-                    textAlign: message.role === 'user' ? 'right' : 'left',
-                    paddingRight: message.role === 'user' ? '0' : '0rem',
+                  } : undefined}
+                  style={{
+                    padding: '0 1rem',
+                    maxWidth: `${800}px`,
+                    margin: '0 auto',
+                    width: '100%',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
+                    justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                    position: 'relative',
+                    cursor: commentModeEnabled ? 'pointer' : undefined,
+                    borderRadius: '12px',
+                    transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+                    ...(spotlightMessageIndex === index
+                      ? { backgroundColor: 'rgba(251, 191, 36, 0.35)', boxShadow: '0 0 0 2px rgba(251, 191, 36, 0.6)' }
+                      : {})
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    maxWidth: '85%',
+                    paddingLeft: message.role === 'user' ? '0' : '0'
                   }}>
-                    {message.role === 'user' && (
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: '#e2e8f0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.6rem',
-                        fontWeight: '600',
-                        color: '#334155',
-                            border: '1px solid #cbd5e1',
-                            overflow: 'hidden',
-                            position: 'relative'
-                      }}>
-                            {senderProfilePic ? (
-                              <img
-                                src={senderProfilePic}
-                                alt={senderName}
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  objectFit: 'cover'
-                                }}
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              getUserInitialsFromName(senderFirstName, senderLastName, message.senderEmail?.split('@')[0] || senderName)
-                            )}
-                      </div>
-                    )}
-                        <span>{message.role === 'user' ? senderName : 'Phraze'}</span>
-                    {message.role === 'assistant' && (
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: '#64748b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.6rem',
-                        fontWeight: '600',
-                        color: 'white',
-                        border: '1px solid #475569'
-                      }}>
-                        P
-                      </div>
-                    )}
-                  </div>
-                    );
-                  })()}
-                                     <div
-                     className="message-bubble"
-                     style={{
-                       padding: message.role === 'user' ? '1rem': '0rem',
-                       background: message.role === 'user' ? '#ffffff' : 'transparent',
-                       borderRadius: message.role === 'user' ? '2rem' : '0.5rem',
-                       borderBottomRightRadius: message.role === 'user' ? '5px' : '0.5rem',
-                       color: '#0A0A0A',
-                       display: 'inline-block',
-                       width: '100%',
-                       position: 'relative',
-                       marginTop: '4px'
-                     }}
-                   >
-                  {/* Edit Mode for User Messages */}
-                  {message.role === 'user' && editingMessageIndex === index ? (
-                    <div style={{
-                      position: 'relative',
-                      width: '100%' // Ensure the container takes full width of parent
-                    }}>
-                      <textarea
-                        ref={editTextareaRef}
-                        value={editingMessageContent}
-                        onChange={(e) => setEditingMessageContent(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: 'none',
-                          borderRadius: '0.5rem',
-                          fontSize: '1rem',
-                          lineHeight: '1.5',
-                          resize: 'none',
-                          outline: 'none',
-                          fontFamily: 'inherit',
-                          backgroundColor: '#f9f9f9',
-                          boxSizing: 'border-box' // Ensure padding is included in width calculation
-                        }}
+                    {/* Username display with profile icon */}
+                    {(() => {
+                      // Helper to normalize email for comparison
+                      const normalizeEmail = (email) => email?.toLowerCase().replace(/\./g, ',');
 
-                        disabled={!auth.currentUser}
-                        rows={1}
-                      />
-                      <div style={{
-                        marginTop: '0.5rem',
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        gap: '0.5rem'
-                      }}>
-                        <button
-                          onClick={handleCancelEditing}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            background: 'rgb(235, 235, 235)',
-                            border: 'none',
-                            borderRadius: '0.25rem',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            fontWeight: '500'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleSaveEdit(index)}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            background: 'rgb(235, 235, 235)',
-                            border: 'none',
-                            borderRadius: '0.25rem',
-                            cursor: 'pointer',
-                            color: 'black',
-                            fontSize: '0.75rem',
-                            fontWeight: '500'
-                          }}
-                        >
-                          Save & Update
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Message Content with Image Support */}
-                      <div
-                        id={"message-content" + index}
-                        ref={(el) => setMessageRef(index, el)}
-                        style={{
-                          fontSize: '1rem',
-                          lineHeight: '1.5',
-                          whiteSpace: message.role === 'assistant' ? 'normal' : 'pre-wrap'
+                      // Find sender member if message has senderEmail
+                      const senderEmailNormalized = message.senderEmail ? normalizeEmail(message.senderEmail) : null;
+                      const senderMember = senderEmailNormalized
+                        ? projectMembers.find(m => normalizeEmail(m.email) === senderEmailNormalized)
+                        : null;
+
+                      // Get profile picture and name - prioritize projectMembers, then cache, then message data
+                      let senderProfilePic = null;
+                      let senderName = message.userDisplayName || 'User';
+                      let senderFirstName = null;
+                      let senderLastName = null;
+
+                      if (senderMember) {
+                        // For public chats - use projectMembers data
+                        senderProfilePic = senderMember.profilePic || null;
+                        senderName = senderMember.name || message.userDisplayName || 'User';
+                        senderFirstName = senderMember.firstName || null;
+                        senderLastName = senderMember.lastName || null;
+                      } else if (message.senderEmail) {
+                        // For private chats - use cached profile data
+                        const cachedProfile = messageSenderProfiles.get(message.senderEmail);
+                        if (cachedProfile) {
+                          senderProfilePic = cachedProfile.profilePic || null;
+                          senderName = cachedProfile.name || message.userDisplayName || 'User';
+                          senderFirstName = cachedProfile.firstName || null;
+                          senderLastName = cachedProfile.lastName || null;
+                        }
+                      }
+
+                      return (
+                        <div style={{
+                          fontSize: '0.8rem',
+                          marginBottom: '8px',
+                          fontWeight: '500',
+                          color: '#555',
+                          textAlign: message.role === 'user' ? 'right' : 'left',
+                          paddingRight: message.role === 'user' ? '0' : '0rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
                         }}>
-                        {/* Display quoted messages if present */}
-                        {(() => {
-                          // Support both old single quotedMessage and new quotedMessages array
-                          const quotes = message.quotedMessages || (message.quotedMessage ? [message.quotedMessage] : []);
-                          
-                          if (quotes.length === 0) return null;
-                          
-                          // Use state to track expanded state per message
-                          const expandedKey = `expanded-quotes-${index}`;
-                          const isExpanded = expandedQuotesInMessages.has(expandedKey);
-                          
-                          return (
+                          {message.role === 'user' && (
                             <div style={{
-                              marginBottom: message.content ? '0.75rem' : 0,
-                              padding: '0',
-                              borderRadius: '8px',
-                              overflow: 'visible'
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              backgroundColor: '#e2e8f0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.6rem',
+                              fontWeight: '600',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
+                              overflow: 'hidden',
+                              position: 'relative'
                             }}>
-                              {/* First quoted message (always visible) */}
-                              {quotes[0] && (
+                              {senderProfilePic ? (
+                                <img
+                                  src={senderProfilePic}
+                                  alt={senderName}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                  }}
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                getUserInitialsFromName(senderFirstName, senderLastName, message.senderEmail?.split('@')[0] || senderName)
+                              )}
+                            </div>
+                          )}
+                          <span>{message.role === 'user' ? senderName : 'Phraze'}</span>
+                          {message.role === 'assistant' && (
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              backgroundColor: '#64748b',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.6rem',
+                              fontWeight: '600',
+                              color: 'white',
+                              border: '1px solid #475569'
+                            }}>
+                              P
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    <div
+                      className="message-bubble"
+                      style={{
+                        padding: message.role === 'user' ? '1rem' : '0rem',
+                        background: message.role === 'user' ? '#ffffff' : 'transparent',
+                        borderRadius: message.role === 'user' ? '2rem' : '0.5rem',
+                        borderBottomRightRadius: message.role === 'user' ? '5px' : '0.5rem',
+                        color: '#0A0A0A',
+                        display: 'inline-block',
+                        width: '100%',
+                        position: 'relative',
+                        marginTop: '4px'
+                      }}
+                    >
+                      {/* Edit Mode for User Messages */}
+                      {message.role === 'user' && editingMessageIndex === index ? (
+                        <div style={{
+                          position: 'relative',
+                          width: '100%' // Ensure the container takes full width of parent
+                        }}>
+                          <textarea
+                            ref={editTextareaRef}
+                            value={editingMessageContent}
+                            onChange={(e) => setEditingMessageContent(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem',
+                              border: 'none',
+                              borderRadius: '0.5rem',
+                              fontSize: '1rem',
+                              lineHeight: '1.5',
+                              resize: 'none',
+                              outline: 'none',
+                              fontFamily: 'inherit',
+                              backgroundColor: '#f9f9f9',
+                              boxSizing: 'border-box' // Ensure padding is included in width calculation
+                            }}
+
+                            disabled={!auth.currentUser}
+                            rows={1}
+                          />
+                          <div style={{
+                            marginTop: '0.5rem',
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '0.5rem'
+                          }}>
+                            <button
+                              onClick={handleCancelEditing}
+                              style={{
+                                padding: '0.5rem 0.75rem',
+                                background: 'rgb(235, 235, 235)',
+                                border: 'none',
+                                borderRadius: '0.25rem',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleSaveEdit(index)}
+                              style={{
+                                padding: '0.5rem 0.75rem',
+                                background: 'rgb(235, 235, 235)',
+                                border: 'none',
+                                borderRadius: '0.25rem',
+                                cursor: 'pointer',
+                                color: 'black',
+                                fontSize: '0.75rem',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Save & Update
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Message Content with Image Support */}
+                          <div
+                            id={"message-content" + index}
+                            ref={(el) => setMessageRef(index, el)}
+                            style={{
+                              fontSize: '1rem',
+                              lineHeight: '1.5',
+                              whiteSpace: message.role === 'assistant' ? 'normal' : 'pre-wrap'
+                            }}>
+                            {/* Display quoted messages if present */}
+                            {(() => {
+                              // Support both old single quotedMessage and new quotedMessages array
+                              const quotes = message.quotedMessages || (message.quotedMessage ? [message.quotedMessage] : []);
+
+                              if (quotes.length === 0) return null;
+
+                              // Use state to track expanded state per message
+                              const expandedKey = `expanded-quotes-${index}`;
+                              const isExpanded = expandedQuotesInMessages.has(expandedKey);
+
+                              return (
                                 <div style={{
-                                  padding: '10px 12px',
-                                  backgroundColor: '#f8fafc',
-                                  border: '1px solid rgba(0, 0, 0, 0.05)',
+                                  marginBottom: message.content ? '0.75rem' : 0,
+                                  padding: '0',
                                   borderRadius: '8px',
-                                  borderLeft: '3px solid rgba(0, 0, 0, 0.1)',
-                                  fontSize: '0.8125rem',
-                                  color: 'rgba(0, 0, 0, 0.7)',
-                                  marginBottom: isExpanded && quotes.length > 1 ? '6px' : '0'
+                                  overflow: 'visible'
                                 }}>
-                                  <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    marginBottom: '4px'
-                                  }}>
+                                  {/* First quoted message (always visible) */}
+                                  {quotes[0] && (
                                     <div style={{
-                                      fontSize: '0.75rem',
-                                      fontWeight: '500',
-                                      color: 'rgba(0, 0, 0, 0.5)',
-                                      lineHeight: '1.3'
+                                      padding: '10px 12px',
+                                      backgroundColor: '#f8fafc',
+                                      border: '1px solid rgba(0, 0, 0, 0.05)',
+                                      borderRadius: '8px',
+                                      borderLeft: '3px solid rgba(0, 0, 0, 0.1)',
+                                      fontSize: '0.8125rem',
+                                      color: 'rgba(0, 0, 0, 0.7)',
+                                      marginBottom: isExpanded && quotes.length > 1 ? '6px' : '0'
                                     }}>
-                                      {quotes[0].role === 'user' ? (quotes[0].userDisplayName || 'You') : 'Phraze'}
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        marginBottom: '4px'
+                                      }}>
+                                        <div style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: '500',
+                                          color: 'rgba(0, 0, 0, 0.5)',
+                                          lineHeight: '1.3'
+                                        }}>
+                                          {quotes[0].role === 'user' ? (quotes[0].userDisplayName || 'You') : 'Phraze'}
+                                        </div>
+                                        {quotes.length > 1 && !isExpanded && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setExpandedQuotesInMessages(prev => {
+                                                const newSet = new Set(prev);
+                                                newSet.add(expandedKey);
+                                                return newSet;
+                                              });
+                                            }}
+                                            style={{
+                                              background: 'transparent',
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              padding: '0',
+                                              color: 'rgba(0, 0, 0, 0.4)',
+                                              fontSize: '0.75rem',
+                                              fontWeight: '400',
+                                              textDecoration: 'underline',
+                                              transition: 'color 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.color = 'rgba(0, 0, 0, 0.6)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.color = 'rgba(0, 0, 0, 0.4)';
+                                            }}
+                                          >
+                                            +{quotes.length - 1} more
+                                          </button>
+                                        )}
+                                      </div>
+                                      <div style={{
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        display: isExpanded ? 'block' : '-webkit-box',
+                                        WebkitLineClamp: isExpanded ? 'none' : 2,
+                                        WebkitBoxOrient: isExpanded ? 'horizontal' : 'vertical',
+                                        lineHeight: '1.4',
+                                        color: 'rgba(0, 0, 0, 0.7)',
+                                        fontWeight: '400'
+                                      }}>
+                                        <QuotedMessageContent quote={quotes[0]} isPreview={false} />
+                                      </div>
                                     </div>
-                                    {quotes.length > 1 && !isExpanded && (
+                                  )}
+
+                                  {/* Additional quoted messages */}
+                                  {quotes.length > 1 && isExpanded && (
+                                    <>
+                                      {quotes.slice(1).map((quote, idx) => (
+                                        <div key={idx} style={{
+                                          padding: '10px 12px',
+                                          marginTop: '6px',
+                                          border: '1px solid rgba(0, 0, 0, 0.05)',
+                                          borderRadius: '8px',
+                                          backgroundColor: '#f8fafc',
+                                          borderLeft: '3px solid rgba(0, 0, 0, 0.1)',
+                                          fontSize: '0.8125rem',
+                                          color: 'rgba(0, 0, 0, 0.7)'
+                                        }}>
+                                          <div style={{
+                                            fontSize: '0.75rem',
+                                            fontWeight: '500',
+                                            color: 'rgba(0, 0, 0, 0.5)',
+                                            marginBottom: '4px',
+                                            lineHeight: '1.3'
+                                          }}>
+                                            {quote.role === 'user' ? (quote.userDisplayName || 'You') : 'Phraze'}
+                                          </div>
+                                          <div style={{
+                                            lineHeight: '1.4',
+                                            wordBreak: 'break-word',
+                                            color: 'rgba(0, 0, 0, 0.7)',
+                                            fontWeight: '400'
+                                          }}>
+                                            <QuotedMessageContent quote={quote} isPreview={false} />
+                                          </div>
+                                        </div>
+                                      ))}
                                       <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
+                                        onClick={() => {
                                           setExpandedQuotesInMessages(prev => {
                                             const newSet = new Set(prev);
-                                            newSet.add(expandedKey);
+                                            newSet.delete(expandedKey);
                                             return newSet;
                                           });
                                         }}
                                         style={{
+                                          marginTop: '6px',
+                                          padding: '4px 8px',
                                           background: 'transparent',
                                           border: 'none',
                                           cursor: 'pointer',
-                                          padding: '0',
                                           color: 'rgba(0, 0, 0, 0.4)',
                                           fontSize: '0.75rem',
                                           fontWeight: '400',
                                           textDecoration: 'underline',
-                                          transition: 'color 0.2s'
+                                          transition: 'color 0.2s',
+                                          alignSelf: 'flex-start'
                                         }}
                                         onMouseEnter={(e) => {
                                           e.currentTarget.style.color = 'rgba(0, 0, 0, 0.6)';
@@ -14079,551 +14481,471 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                           e.currentTarget.style.color = 'rgba(0, 0, 0, 0.4)';
                                         }}
                                       >
-                                        +{quotes.length - 1} more
+                                        Show less
                                       </button>
-                                    )}
-                                  </div>
-                                  <div style={{
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    display: isExpanded ? 'block' : '-webkit-box',
-                                    WebkitLineClamp: isExpanded ? 'none' : 2,
-                                    WebkitBoxOrient: isExpanded ? 'horizontal' : 'vertical',
-                                    lineHeight: '1.4',
-                                    color: 'rgba(0, 0, 0, 0.7)',
-                                    fontWeight: '400'
-                                  }}>
-                                    <QuotedMessageContent quote={quotes[0]} isPreview={false} />
-                                  </div>
+                                    </>
+                                  )}
                                 </div>
-                              )}
-                              
-                              {/* Additional quoted messages */}
-                              {quotes.length > 1 && isExpanded && (
-                                <>
-                                  {quotes.slice(1).map((quote, idx) => (
-                                    <div key={idx} style={{
-                                      padding: '10px 12px',
-                                      marginTop: '6px',
-                                      border: '1px solid rgba(0, 0, 0, 0.05)',
-                                      borderRadius: '8px',
-                                      backgroundColor: '#f8fafc',
-                                      borderLeft: '3px solid rgba(0, 0, 0, 0.1)',
-                                      fontSize: '0.8125rem',
-                                      color: 'rgba(0, 0, 0, 0.7)'
-                                    }}>
-                                      <div style={{
-                                        fontSize: '0.75rem',
-                                        fontWeight: '500',
-                                        color: 'rgba(0, 0, 0, 0.5)',
-                                        marginBottom: '4px',
-                                        lineHeight: '1.3'
-                                      }}>
-                                        {quote.role === 'user' ? (quote.userDisplayName || 'You') : 'Phraze'}
-                                      </div>
-                                      <div style={{
-                                        lineHeight: '1.4',
-                                        wordBreak: 'break-word',
-                                        color: 'rgba(0, 0, 0, 0.7)',
-                                        fontWeight: '400'
-                                      }}>
-                                        <QuotedMessageContent quote={quote} isPreview={false} />
-                                      </div>
-                                    </div>
-                                  ))}
-                                  <button
-                                    onClick={() => {
-                                      setExpandedQuotesInMessages(prev => {
-                                        const newSet = new Set(prev);
-                                        newSet.delete(expandedKey);
-                                        return newSet;
-                                      });
-                                    }}
-                                    style={{
-                                      marginTop: '6px',
-                                      padding: '4px 8px',
-                                      background: 'transparent',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      color: 'rgba(0, 0, 0, 0.4)',
-                                      fontSize: '0.75rem',
-                                      fontWeight: '400',
-                                      textDecoration: 'underline',
-                                      transition: 'color 0.2s',
-                                      alignSelf: 'flex-start'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.color = 'rgba(0, 0, 0, 0.6)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.color = 'rgba(0, 0, 0, 0.4)';
-                                    }}
-                                  >
-                                    Show less
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          );
-                        })()}
-                        {/* Display image if present */}
-                        {message.imageUrl && (
-                          <div style={{ marginBottom: message.content ? '0.75rem' : 0 }}>
-                            <img
-                              src={message.imageUrl}
-                              alt="User uploaded"
-                              style={{
-                                maxWidth: '100%',
-                                borderRadius: '0.5rem',
-                                maxHeight: '300px'
-                              }}
-                            />
-                          </div>
-                        )}
-                        {/* Display text content */}
-                        {message.content}
-                      </div>
-
-                      {/* Edit and Copy buttons for user messages */}
-                      {message.role === 'user' && !editingMessageIndex && (
-                        <div
-                          className="message-actions"
-                          style={{
-                            position: 'absolute',
-                            left: '-120px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            display: 'flex',
-                            gap: '8px',
-                            opacity: 0,
-                            transition: 'opacity 0.2s'
-                          }}
-                        >
-                          <button
-                            onClick={() => handleCopyMessage(message.content, index)}
-                            style={{
-                              background: 'rgba(240, 240, 240, 0.8)',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '0.5rem',
-                              borderRadius: '50%',
-                              color: '#6b7280',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '32px',
-                              height: '32px'
-                            }}
-                            title="Copy message"
-                          >
-                            {copiedMessages.has(index) ? (
-                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                <polyline points="20,6 9,17 4,12"></polyline>
-                              </svg>
-                            ) : (
-                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                              </svg>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleStartEditing(index, message.content)}
-                            style={{
-                              background: 'rgba(240, 240, 240, 0.8)',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '0.5rem',
-                              borderRadius: '50%',
-                              color: '#6b7280',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '32px',
-                              height: '32px'
-                            }}
-                            title="Edit message"
-                          >
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => handleQuoteMessage(message, index, e)}
-                            style={{
-                              background: isMultiSelectMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(240, 240, 240, 0.8)',
-                              border: isMultiSelectMode ? '1px solid #3b82f6' : 'none',
-                              cursor: 'pointer',
-                              padding: '0.5rem',
-                              borderRadius: '50%',
-                              color: isMultiSelectMode ? '#3b82f6' : '#6b7280',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '32px',
-                              height: '32px',
-                              transition: 'all 0.2s'
-                            }}
-                            title={isMultiSelectMode ? "Quote message (multi-select mode)" : "Quote message (hold Shift for multi-select)"}
-                          >
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                              <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
-                              <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* AI action buttons for assistant messages */}
-                      {message.role === 'assistant' && !editingMessageIndex && (
-                        <div
-                          className="ai-message-actions"
-                          style={{
-                            marginTop: '8px',
-                            display: 'flex',
-                            gap: '8px',
-                            opacity: 1,
-                            justifyContent: 'flex-start'
-                          }}
-                        >
-                          <button
-                            onClick={() => handleCopyMessage(message.content, index)}
-                            style={{
-                              background: 'rgba(240, 240, 240, 0.8)',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '0.5rem',
-                              borderRadius: '50%',
-                              color: '#6b7280',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '32px',
-                              height: '32px'
-                            }}
-                            title="Copy message"
-                          >
-                            {copiedMessages.has(index) ? (
-                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                <polyline points="20,6 9,17 4,12"></polyline>
-                              </svg>
-                            ) : (
-                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                              </svg>
-                            )}
-                          </button>
-                          <button
-                            onClick={(e) => handleQuoteMessage(message, index, e)}
-                            style={{
-                              background: isMultiSelectMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(240, 240, 240, 0.8)',
-                              border: isMultiSelectMode ? '1px solid #3b82f6' : 'none',
-                              cursor: 'pointer',
-                              padding: '0.5rem',
-                              borderRadius: '50%',
-                              color: isMultiSelectMode ? '#3b82f6' : '#6b7280',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '32px',
-                              height: '32px',
-                              transition: 'all 0.2s'
-                            }}
-                            title={isMultiSelectMode ? "Quote message (multi-select mode)" : "Quote message (hold Shift for multi-select)"}
-                          >
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                              <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
-                              <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path>
-                            </svg>
-                          </button>
-                          <div style={{ position: 'relative' }} className="try-again-dropdown-container">
-                            <button
-                              onClick={() => setTryAgainDropdownOpen(tryAgainDropdownOpen === index ? null : index)}
-                              style={{
-                                background: 'rgba(240, 240, 240, 0.8)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '0.5rem',
-                                borderRadius: '50%',
-                                color: '#6b7280',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '32px',
-                                height: '32px'
-                              }}
-                              title="Try again options"
-                            >
-                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
-                              </svg>
-                            </button>
-                            
-                            {tryAgainDropdownOpen === index && (
-                              <div 
-                                style={{
-                                  position: 'absolute',
-                                  left: '0',
-                                  background: 'white',
-                                  border: '1px solid rgba(0,0,0,0.08)',
-                                  borderRadius: '12px',
-                                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                                  overflow: 'hidden',
-                                  zIndex: 1001,
-                                  backdropFilter: 'blur(8px)',
-                                  WebkitBackdropFilter: 'blur(8px)',
-                                  width: '200px',
-                                  animation: 'fadeIn 0.2s ease-out'
-                                }}
-                                ref={(el) => {
-                                  if (el) {
-                                    // Get the button element (previous sibling)
-                                    const button = el.previousElementSibling;
-                                    if (button) {
-                                      const buttonRect = button.getBoundingClientRect();
-                                      const dropdownHeight = 240; // Height for 4 items (60px each)
-                                      const viewportHeight = window.innerHeight;
-                                      const spaceBelow = viewportHeight - buttonRect.bottom;
-                                      const spaceAbove = buttonRect.top;
-                                      
-                                      // Check if there's enough space below
-                                      if (spaceBelow < dropdownHeight + 30) { // 30px buffer
-                                        // Position above button if there's space above
-                                        if (spaceAbove > dropdownHeight + 30) {
-                                          el.style.bottom = '100%';
-                                          el.style.top = 'auto';
-                                          el.style.marginBottom = '0.5rem';
-                                          el.style.marginTop = '0';
-                                          el.style.maxHeight = 'none';
-                                          el.style.overflowY = 'visible';
-                                        } else {
-                                          // If not enough space above or below, position to fit in viewport
-                                          const availableSpace = Math.max(spaceBelow, spaceAbove);
-                                          if (availableSpace === spaceBelow) {
-                                            // Position below but constrain height
-                                            el.style.top = '100%';
-                                            el.style.bottom = 'auto';
-                                            el.style.marginTop = '0.5rem';
-                                            el.style.marginBottom = '0';
-                                            el.style.maxHeight = `${spaceBelow - 30}px`;
-                                            el.style.overflowY = 'auto';
-                                          } else {
-                                            // Position above but constrain height
-                                            el.style.bottom = '100%';
-                                            el.style.top = 'auto';
-                                            el.style.marginBottom = '0.5rem';
-                                            el.style.marginTop = '0';
-                                            el.style.maxHeight = `${spaceAbove - 30}px`;
-                                            el.style.overflowY = 'auto';
-                                          }
-                                        }
-                                      } else {
-                                        // Position below button (default - enough space)
-                                        el.style.top = '100%';
-                                        el.style.bottom = 'auto';
-                                        el.style.marginTop = '0.5rem';
-                                        el.style.marginBottom = '0';
-                                        el.style.maxHeight = 'none';
-                                        el.style.overflowY = 'visible';
-                                      }
-                                    }
-                                  }
-                                }}
-                              >
-                                <button
-                                  onClick={() => handleTryAgainAction(index, 'try_again')}
+                              );
+                            })()}
+                            {/* Display image if present */}
+                            {message.imageUrl && (
+                              <div style={{ marginBottom: message.content ? '0.75rem' : 0 }}>
+                                <img
+                                  src={message.imageUrl}
+                                  alt="User uploaded"
                                   style={{
-                                    width: '100%',
-                                    padding: '0.75rem 1rem',
-                                    background: 'transparent',
+                                    maxWidth: '100%',
+                                    borderRadius: '0.5rem',
+                                    maxHeight: '300px'
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {/* Display text content */}
+                            {message.content}
+                          </div>
+
+                          {/* Edit and Copy buttons for user messages */}
+                          {message.role === 'user' && !editingMessageIndex && (
+                            <div
+                              className="message-actions"
+                              style={{
+                                position: 'absolute',
+                                left: '-120px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                display: 'flex',
+                                gap: '8px',
+                                opacity: 0,
+                                transition: 'opacity 0.2s'
+                              }}
+                            >
+                              <button
+                                onClick={() => handleCopyMessage(message.content, index)}
+                                style={{
+                                  background: 'rgba(240, 240, 240, 0.8)',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  padding: '0.5rem',
+                                  borderRadius: '50%',
+                                  color: '#6b7280',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px'
+                                }}
+                                title="Copy message"
+                              >
+                                {copiedMessages.has(index) ? (
+                                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                    <polyline points="20,6 9,17 4,12"></polyline>
+                                  </svg>
+                                ) : (
+                                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                  </svg>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleStartEditing(index, message.content)}
+                                style={{
+                                  background: 'rgba(240, 240, 240, 0.8)',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  padding: '0.5rem',
+                                  borderRadius: '50%',
+                                  color: '#6b7280',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px'
+                                }}
+                                title="Edit message"
+                              >
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                              </button>
+                              <button
+                                onClick={(e) => handleQuoteMessage(message, index, e)}
+                                style={{
+                                  background: isMultiSelectMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(240, 240, 240, 0.8)',
+                                  border: isMultiSelectMode ? '1px solid #3b82f6' : 'none',
+                                  cursor: 'pointer',
+                                  padding: '0.5rem',
+                                  borderRadius: '50%',
+                                  color: isMultiSelectMode ? '#3b82f6' : '#6b7280',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  transition: 'all 0.2s'
+                                }}
+                                title={isMultiSelectMode ? "Quote message (multi-select mode)" : "Quote message (hold Shift for multi-select)"}
+                              >
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                  <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
+                                  <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path>
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+
+                          {/* AI action buttons for assistant messages */}
+                          {message.role === 'assistant' && !editingMessageIndex && (
+                            <div
+                              className="ai-message-actions"
+                              style={{
+                                marginTop: '8px',
+                                display: 'flex',
+                                gap: '8px',
+                                opacity: 1,
+                                justifyContent: 'flex-start'
+                              }}
+                            >
+                              <button
+                                onClick={() => handleCopyMessage(message.content, index)}
+                                style={{
+                                  background: 'rgba(240, 240, 240, 0.8)',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  padding: '0.5rem',
+                                  borderRadius: '50%',
+                                  color: '#6b7280',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px'
+                                }}
+                                title="Copy message"
+                              >
+                                {copiedMessages.has(index) ? (
+                                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                    <polyline points="20,6 9,17 4,12"></polyline>
+                                  </svg>
+                                ) : (
+                                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                  </svg>
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => handleQuoteMessage(message, index, e)}
+                                style={{
+                                  background: isMultiSelectMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(240, 240, 240, 0.8)',
+                                  border: isMultiSelectMode ? '1px solid #3b82f6' : 'none',
+                                  cursor: 'pointer',
+                                  padding: '0.5rem',
+                                  borderRadius: '50%',
+                                  color: isMultiSelectMode ? '#3b82f6' : '#6b7280',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  transition: 'all 0.2s'
+                                }}
+                                title={isMultiSelectMode ? "Quote message (multi-select mode)" : "Quote message (hold Shift for multi-select)"}
+                              >
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                  <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
+                                  <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path>
+                                </svg>
+                              </button>
+                              <div style={{ position: 'relative' }} className="try-again-dropdown-container">
+                                <button
+                                  onClick={() => setTryAgainDropdownOpen(tryAgainDropdownOpen === index ? null : index)}
+                                  style={{
+                                    background: 'rgba(240, 240, 240, 0.8)',
                                     border: 'none',
-                                    textAlign: 'left',
                                     cursor: 'pointer',
-                                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    borderBottom: '1px solid rgba(0,0,0,0.04)',
+                                    padding: '0.5rem',
+                                    borderRadius: '50%',
+                                    color: '#6b7280',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '0.75rem',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '500',
-                                    color: '#334155'
+                                    justifyContent: 'center',
+                                    width: '32px',
+                                    height: '32px'
                                   }}
+                                  title="Try again options"
                                 >
                                   <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
                                     <polyline points="23 4 23 10 17 10"></polyline>
                                     <polyline points="1 20 1 14 7 14"></polyline>
                                     <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
                                   </svg>
-                                  Try again
                                 </button>
-                                
-                                <button
-                                  onClick={() => handleTryAgainAction(index, 'add_details')}
-                                  style={{
-                                    width: '100%',
-                                    padding: '0.75rem 1rem',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    borderBottom: '1px solid rgba(0,0,0,0.04)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '500',
-                                    color: '#334155'
-                                  }}
-                                >
-                                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
-                                  </svg>
-                                  Add details
-                                </button>
-                                
-                                <button
-                                  onClick={() => handleTryAgainAction(index, 'more_concise')}
-                                  style={{
-                                    width: '100%',
-                                    padding: '0.75rem 1rem',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    borderBottom: '1px solid rgba(0,0,0,0.04)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '500',
-                                    color: '#334155'
-                                  }}
-                                >
-                                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                    <path d="M8 9h8m-8 4h6"></path>
-                                  </svg>
-                                  More concise
-                                </button>
-                                
-                                <button
-                                  onClick={() => handleBranchChat(index)}
-                                  style={{
-                                    width: '100%',
-                                    padding: '0.75rem 1rem',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '500',
-                                    color: '#334155'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.target.style.background = '#f8fafc';
-                                    e.target.style.color = '#1e293b';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.background = 'transparent';
-                                    e.target.style.color = '#334155';
-                                  }}
-                                >
-                                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                    <path d="M6 3v12"></path>
-                                    <circle cx="18" cy="6" r="3"></circle>
-                                    <circle cx="18" cy="18" r="3"></circle>
-                                    <path d="M18 9a9 9 0 0 1-9 9"></path>
-                                  </svg>
-                                  Branch in new chat
-                                </button>
-                                
+
+                                {tryAgainDropdownOpen === index && (
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      left: '0',
+                                      background: 'white',
+                                      border: '1px solid rgba(0,0,0,0.08)',
+                                      borderRadius: '12px',
+                                      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                                      overflow: 'hidden',
+                                      zIndex: 1001,
+                                      backdropFilter: 'blur(8px)',
+                                      WebkitBackdropFilter: 'blur(8px)',
+                                      width: '200px',
+                                      animation: 'fadeIn 0.2s ease-out'
+                                    }}
+                                    ref={(el) => {
+                                      if (el) {
+                                        // Get the button element (previous sibling)
+                                        const button = el.previousElementSibling;
+                                        if (button) {
+                                          const buttonRect = button.getBoundingClientRect();
+                                          const dropdownHeight = 240; // Height for 4 items (60px each)
+                                          const viewportHeight = window.innerHeight;
+                                          const spaceBelow = viewportHeight - buttonRect.bottom;
+                                          const spaceAbove = buttonRect.top;
+
+                                          // Check if there's enough space below
+                                          if (spaceBelow < dropdownHeight + 30) { // 30px buffer
+                                            // Position above button if there's space above
+                                            if (spaceAbove > dropdownHeight + 30) {
+                                              el.style.bottom = '100%';
+                                              el.style.top = 'auto';
+                                              el.style.marginBottom = '0.5rem';
+                                              el.style.marginTop = '0';
+                                              el.style.maxHeight = 'none';
+                                              el.style.overflowY = 'visible';
+                                            } else {
+                                              // If not enough space above or below, position to fit in viewport
+                                              const availableSpace = Math.max(spaceBelow, spaceAbove);
+                                              if (availableSpace === spaceBelow) {
+                                                // Position below but constrain height
+                                                el.style.top = '100%';
+                                                el.style.bottom = 'auto';
+                                                el.style.marginTop = '0.5rem';
+                                                el.style.marginBottom = '0';
+                                                el.style.maxHeight = `${spaceBelow - 30}px`;
+                                                el.style.overflowY = 'auto';
+                                              } else {
+                                                // Position above but constrain height
+                                                el.style.bottom = '100%';
+                                                el.style.top = 'auto';
+                                                el.style.marginBottom = '0.5rem';
+                                                el.style.marginTop = '0';
+                                                el.style.maxHeight = `${spaceAbove - 30}px`;
+                                                el.style.overflowY = 'auto';
+                                              }
+                                            }
+                                          } else {
+                                            // Position below button (default - enough space)
+                                            el.style.top = '100%';
+                                            el.style.bottom = 'auto';
+                                            el.style.marginTop = '0.5rem';
+                                            el.style.marginBottom = '0';
+                                            el.style.maxHeight = 'none';
+                                            el.style.overflowY = 'visible';
+                                          }
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <button
+                                      onClick={() => handleTryAgainAction(index, 'try_again')}
+                                      style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        borderBottom: '1px solid rgba(0,0,0,0.04)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        color: '#334155'
+                                      }}
+                                    >
+                                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                                      </svg>
+                                      Try again
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleTryAgainAction(index, 'add_details')}
+                                      style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        borderBottom: '1px solid rgba(0,0,0,0.04)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        color: '#334155'
+                                      }}
+                                    >
+                                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
+                                      </svg>
+                                      Add details
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleTryAgainAction(index, 'more_concise')}
+                                      style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        borderBottom: '1px solid rgba(0,0,0,0.04)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        color: '#334155'
+                                      }}
+                                    >
+                                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                        <path d="M8 9h8m-8 4h6"></path>
+                                      </svg>
+                                      More concise
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleBranchChat(index)}
+                                      style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        color: '#334155'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.target.style.background = '#f8fafc';
+                                        e.target.style.color = '#1e293b';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.target.style.background = 'transparent';
+                                        e.target.style.color = '#334155';
+                                      }}
+                                    >
+                                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                                        <path d="M6 3v12"></path>
+                                        <circle cx="18" cy="6" r="3"></circle>
+                                        <circle cx="18" cy="18" r="3"></circle>
+                                        <path d="M18 9a9 9 0 0 1-9 9"></path>
+                                      </svg>
+                                      Branch in new chat
+                                    </button>
+
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </div>
+                            </div>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
 
-            {isLoading && (
-              <div style={{
-                padding: '0 1rem',
-                maxWidth: '800px',
-                margin: '0 auto',
-                width: '100%'
-              }}>
+              {isLoading && (
                 <div style={{
-                  padding: '1rem',
-                  background: 'transparent',
-                  borderRadius: '0.5rem',
-                  color: '#0A0A0A',
-                  display: 'inline-block'
-                }}>
-                  <div className="loading-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Branch Label - Horizontal Line at Bottom */}
-            {currentChat?.branchedFrom && (
-              <div style={{
-                padding: '2rem 0 1rem',
-                maxWidth: '800px',
-                margin: '0 auto',
-                width: '100%'
-              }}>
-                <div style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  padding: '0 1rem',
+                  maxWidth: '800px',
+                  margin: '0 auto',
+                  width: '100%'
                 }}>
                   <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: 0,
-                    right: 0,
-                    height: '1px',
-                    backgroundColor: '#d1d5db',
-                    transform: 'translateY(-50%)'
-                  }}></div>
-                  <span style={{
-                    backgroundColor: 'rgb(249, 248, 246)',
-                    padding: '0 1rem',
-                    fontSize: '0.875rem',
-                    color: '#9ca3af',
-                    fontStyle: 'italic',
-                    position: 'relative',
-                    zIndex: 1
+                    padding: '1rem',
+                    background: 'transparent',
+                    borderRadius: '0.5rem',
+                    color: '#0A0A0A',
+                    display: 'inline-block'
                   }}>
-                    Branch - {currentChat.branchedFrom.chatTitle}
-                  </span>
+                    <div className="loading-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
+              )}
+
+              {/* Branch Label - Horizontal Line at Bottom */}
+              {currentChat?.branchedFrom && (
+                <div style={{
+                  padding: '2rem 0 1rem',
+                  maxWidth: '800px',
+                  margin: '0 auto',
+                  width: '100%'
+                }}>
+                  <div style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: 0,
+                      right: 0,
+                      height: '1px',
+                      backgroundColor: '#d1d5db',
+                      transform: 'translateY(-50%)'
+                    }}></div>
+                    <span style={{
+                      backgroundColor: 'rgb(249, 248, 246)',
+                      padding: '0 1rem',
+                      fontSize: '0.875rem',
+                      color: '#9ca3af',
+                      fontStyle: 'italic',
+                      position: 'relative',
+                      zIndex: 1
+                    }}>
+                      Branch - {currentChat.branchedFrom.chatTitle}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
           {/* Typing Indicator - Above Input Area */}
@@ -14659,7 +14981,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                           emailToMember.set(member.email.toLowerCase(), member);
                         }
                       });
-                      
+
                       // For each typing user, match by email (now stored in typing node)
                       typingUsers.forEach(user => {
                         if (user.email) {
@@ -14775,75 +15097,75 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
 
 
-              
-              <div id="sidebar-resizer" style={{ 
-  display: isExtensionSidebarVisible ? 'flex' : 'none', 
-  width: "4px", 
-  height: 'calc(100% - 67px)', 
-  marginTop: '67px', 
-  cursor: 'ew-resize', 
-  backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  alignItems: 'center',
-  justifyContent: 'center',
-  position: 'relative',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)'
-}} onMouseEnter={(e) => {
-  if (!e.target.classList.contains('dragging')) {
-    e.target.style.width = '8px';
-    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-    e.target.style.backdropFilter = 'blur(12px)';
-  }
-}} onMouseLeave={(e) => {
-  if (!e.target.classList.contains('dragging')) {
-    e.target.style.width = '4px';
-    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-    e.target.style.backdropFilter = 'blur(8px)';
-  }
-}} onMouseDown={(e) => {
-  e.target.classList.add('dragging');
-  e.target.style.width = '8px';
-  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.15)';
-  e.target.style.backdropFilter = 'blur(16px)';
-}} onMouseUp={(e) => {
-  e.target.classList.remove('dragging');
-  e.target.style.width = '8px';
-  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-  e.target.style.backdropFilter = 'blur(12px)';
-}}>
-  <div style={{
-    width: '2px',
-    height: '60px',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: '1px',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    position: 'relative'
-  }} onMouseEnter={(e) => {
-    if (!e.target.parentElement.classList.contains('dragging')) {
-      e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-      e.target.style.transform = 'scaleY(1.2)';
-      e.target.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.2)';
-    }
-  }} onMouseLeave={(e) => {
-    if (!e.target.parentElement.classList.contains('dragging')) {
-      e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
-      e.target.style.transform = 'scaleY(1)';
-      e.target.style.boxShadow = 'none';
-    }
-  }}>
-  </div>
-</div>
 
-              <iframe 
-                id="sidebar-iframe" 
-                allow="display-capture" 
+              <div id="sidebar-resizer" style={{
+                display: isExtensionSidebarVisible ? 'flex' : 'none',
+                width: "4px",
+                height: 'calc(100% - 67px)',
+                marginTop: '67px',
+                cursor: 'ew-resize',
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)'
+              }} onMouseEnter={(e) => {
+                if (!e.target.classList.contains('dragging')) {
+                  e.target.style.width = '8px';
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                  e.target.style.backdropFilter = 'blur(12px)';
+                }
+              }} onMouseLeave={(e) => {
+                if (!e.target.classList.contains('dragging')) {
+                  e.target.style.width = '4px';
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+                  e.target.style.backdropFilter = 'blur(8px)';
+                }
+              }} onMouseDown={(e) => {
+                e.target.classList.add('dragging');
+                e.target.style.width = '8px';
+                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.15)';
+                e.target.style.backdropFilter = 'blur(16px)';
+              }} onMouseUp={(e) => {
+                e.target.classList.remove('dragging');
+                e.target.style.width = '8px';
+                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                e.target.style.backdropFilter = 'blur(12px)';
+              }}>
+                <div style={{
+                  width: '2px',
+                  height: '60px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  borderRadius: '1px',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative'
+                }} onMouseEnter={(e) => {
+                  if (!e.target.parentElement.classList.contains('dragging')) {
+                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                    e.target.style.transform = 'scaleY(1.2)';
+                    e.target.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.2)';
+                  }
+                }} onMouseLeave={(e) => {
+                  if (!e.target.parentElement.classList.contains('dragging')) {
+                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+                    e.target.style.transform = 'scaleY(1)';
+                    e.target.style.boxShadow = 'none';
+                  }
+                }}>
+                </div>
+              </div>
+
+              <iframe
+                id="sidebar-iframe"
+                allow="display-capture"
                 style={{ display: isExtensionSidebarVisible ? 'block' : 'none', borderRight: 0, width: sidebarWidth + 'px', height: '100%', backgroundColor: 'white' }}
                 onLoad={() => {
                   if (isExtensionSidebarVisible) {
                     const iframe = document.getElementById('sidebar-iframe');
                     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                    
+
                     // Create section container
                     const sectionContainer = iframeDoc.createElement('div');
                     sectionContainer.style.cssText = `
@@ -14860,7 +15182,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       margin: 3px;
                       padding: 3px;
                     `;
-                    
+
                     // Extension section
                     const extensionSection = iframeDoc.createElement('div');
                     extensionSection.innerHTML = `
@@ -14898,15 +15220,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     };
                     extensionSection.onclick = () => {
                       console.log("Extension section clicked");
-                      
-                                   // Remove active state from Messages section and reset its background
-             messagesSection.classList.remove('active');
-             messagesSection.style.background = '#fefefe';
-                      
-                                   // Add active state to Extension section
-             extensionSection.classList.add('active');
-             extensionSection.style.background = '#f2f2f2';
-                      
+
+                      // Remove active state from Messages section and reset its background
+                      messagesSection.classList.remove('active');
+                      messagesSection.style.background = '#fefefe';
+
+                      // Add active state to Extension section
+                      extensionSection.classList.add('active');
+                      extensionSection.style.background = '#f2f2f2';
+
                       // Find and click the back-messaging button in the extension
                       const backButton = iframeDoc.getElementById('Back-messaging');
                       if (backButton) {
@@ -14915,7 +15237,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         console.log("Back-messaging button not found in extension");
                       }
                     };
-                    
+
                     // Messages section
                     const messagesSection = iframeDoc.createElement('div');
                     messagesSection.innerHTML = `
@@ -14955,24 +15277,24 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       const iframe = document.getElementById('sidebar-iframe');
                       const isDisabledViaFunction = iframe && iframe.contentWindow && typeof iframe.contentWindow.isMessagingTabDisabled === 'function' && iframe.contentWindow.isMessagingTabDisabled();
                       const isDisabledViaAttribute = messagesSection.getAttribute('data-disabled') === 'true';
-                      
+
                       if (isDisabledViaAttribute || isDisabledViaFunction) {
                         console.log("Messages section is disabled - click prevented", { isDisabledViaAttribute, isDisabledViaFunction });
                         e.preventDefault();
                         e.stopPropagation();
                         return;
                       }
-                      
+
                       console.log("Messages section clicked");
-                      
-                                   // Remove active state from Extension section and reset its background
-             extensionSection.classList.remove('active');
-             extensionSection.style.background = '#fefefe';
-                      
-                                   // Add active state to Messages section
-             messagesSection.classList.add('active');
-             messagesSection.style.background = '#f2f2f2';
-                      
+
+                      // Remove active state from Extension section and reset its background
+                      extensionSection.classList.remove('active');
+                      extensionSection.style.background = '#fefefe';
+
+                      // Add active state to Messages section
+                      messagesSection.classList.add('active');
+                      messagesSection.style.background = '#f2f2f2';
+
                       // Find and click the messaging button in the extension
                       const messagingButton = iframeDoc.getElementById('Messaging');
                       if (messagingButton) {
@@ -14981,7 +15303,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         console.log("Messaging button not found in extension");
                       }
                     };
-                    
+
                     // Create tooltip element for messaging tab
                     const messagingTooltip = iframeDoc.createElement('div');
                     messagingTooltip.id = 'messaging-tooltip';
@@ -15004,12 +15326,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                       margin-bottom: 8px;
                       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                     `;
-                    
+
                     // Add text span to tooltip
                     const tooltipText = iframeDoc.createElement('span');
                     tooltipText.id = 'messaging-tooltip-text';
                     messagingTooltip.appendChild(tooltipText);
-                    
+
                     // Add arrow to tooltip
                     const tooltipArrow = iframeDoc.createElement('div');
                     tooltipArrow.style.cssText = `
@@ -15023,30 +15345,30 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     `;
                     messagingTooltip.appendChild(tooltipArrow);
                     messagesSection.appendChild(messagingTooltip);
-                    
+
                     // Track disabled state in a variable for reliable access
                     let isMessagingDisabled = false;
-                    
+
                     // Store getter for disabled state on iframe.contentWindow
                     iframe.contentWindow.isMessagingTabDisabled = () => isMessagingDisabled;
-                    
+
                     // Function to update messaging tab state based on chat privacy and member count
                     const updateMessagingTabState = (isPublic, memberCount = 0) => {
                       const isPrivate = isPublic === false;
                       const hasOnlyOneMember = memberCount <= 1;
                       const shouldDisable = isPrivate || hasOnlyOneMember;
-                      
+
                       console.log('updateMessagingTabState called:', 'isPublic=' + isPublic, 'memberCount=' + memberCount, 'isPrivate=' + isPrivate, 'hasOnlyOneMember=' + hasOnlyOneMember, 'shouldDisable=' + shouldDisable);
-                      
+
                       // Update the shared disabled state variable
                       isMessagingDisabled = shouldDisable;
-                      
+
                       if (shouldDisable) {
                         // Disable the messaging tab
                         messagesSection.style.opacity = '0.5';
                         messagesSection.style.cursor = 'not-allowed';
                         messagesSection.setAttribute('data-disabled', 'true');
-                        
+
                         // Set tooltip message based on reason
                         let tooltipMessage = '';
                         if (isPrivate) {
@@ -15058,7 +15380,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         if (tooltipTextEl) {
                           tooltipTextEl.textContent = tooltipMessage;
                         }
-                        
+
                         // Update hover handlers for disabled state
                         messagesSection.onmouseenter = () => {
                           messagingTooltip.style.opacity = '1';
@@ -15068,19 +15390,19 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                           messagingTooltip.style.opacity = '0';
                           messagingTooltip.style.visibility = 'hidden';
                         };
-                        
+
                         // If currently on Messaging tab, switch to Annotation tab
                         if (messagesSection.classList.contains('active')) {
                           console.log('Messaging tab is active but disabled - switching to Annotation tab');
-                          
+
                           // Remove active state from Messages section
                           messagesSection.classList.remove('active');
                           messagesSection.style.background = '#fefefe';
-                          
+
                           // Add active state to Extension section
                           extensionSection.classList.add('active');
                           extensionSection.style.background = '#f2f2f2';
-                          
+
                           // Click the back-messaging button to return to annotation view
                           const backButton = iframeDoc.getElementById('Back-messaging');
                           if (backButton) {
@@ -15092,11 +15414,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         messagesSection.style.opacity = '1';
                         messagesSection.style.cursor = 'pointer';
                         messagesSection.removeAttribute('data-disabled');
-                        
+
                         // Hide tooltip
                         messagingTooltip.style.opacity = '0';
                         messagingTooltip.style.visibility = 'hidden';
-                        
+
                         // Restore normal hover handlers
                         messagesSection.onmouseenter = () => {
                           if (!messagesSection.classList.contains('active')) {
@@ -15110,30 +15432,30 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         };
                       }
                     };
-                    
+
                     // Store the function on iframe.contentWindow for external access
                     iframe.contentWindow.updateMessagingTabState = updateMessagingTabState;
-                    
+
                     // Set Extension as default active section
                     extensionSection.classList.add('active');
                     extensionSection.style.background = '#e5e7eb';
-                    
+
                     // Add sections to container
                     sectionContainer.appendChild(extensionSection);
                     sectionContainer.appendChild(messagesSection);
-                    
+
                     // Insert at the top of the iframe body
                     if (iframeDoc.body) {
                       iframeDoc.body.insertBefore(sectionContainer, iframeDoc.body.firstChild);
                     }
-                    
+
                     // Initialize messaging tab state immediately after creation
                     // This ensures the tab is properly disabled/enabled on first load
                     setTimeout(() => {
                       const isPublic = currentChat ? currentChat.isPublic : true;
                       updateMessagingTabState(isPublic, projectMemberCount);
                     }, 100);
-                    
+
                     // Update the current topic in the extension when iframe loads
                     if (currentChat && !currentChat.isShared) {
                       setTimeout(() => {
@@ -15156,12 +15478,12 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
         {
           !isInsideExtension && (
             <div style={{ display: 'flex', flexDirection: 'row' }}>
-              <div id="custom-sidebar-resizer" style={{ 
-                display: isCustomSidebarVisible ? 'flex' : 'none', 
-                width: "3px", 
-                height: 'calc(100% - 67px)', 
-                marginTop: '67px', 
-                cursor: 'ew-resize', 
+              <div id="custom-sidebar-resizer" style={{
+                display: isCustomSidebarVisible ? 'flex' : 'none',
+                width: "3px",
+                height: 'calc(100% - 67px)',
+                marginTop: '67px',
+                cursor: 'ew-resize',
                 backgroundColor: '#e5e7eb',
                 position: 'relative'
               }} onMouseEnter={(e) => {
@@ -15171,15 +15493,15 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               }}>
               </div>
 
-              <div 
-                id="custom-sidebar" 
-                style={{ 
-                  display: isCustomSidebarVisible ? 'flex' : 'none', 
+              <div
+                id="custom-sidebar"
+                style={{
+                  display: isCustomSidebarVisible ? 'flex' : 'none',
                   flexDirection: 'column',
-                  borderRight: 0, 
+                  borderRight: 0,
                   width: customSidebarWidth + 'px',
                   minWidth: CUSTOM_SIDEBAR_DEFAULT_WIDTH + 'px',
-                  height: '100%', 
+                  height: '100%',
                   backgroundColor: 'white',
                   overflow: 'hidden'
                 }}
@@ -15199,26 +15521,26 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 }}>
                   {/* Activity section */}
                   <button
-                    onClick={() => setCustomSidebarActiveTab('activity')}
+                    onClick={() => setCustomSidebarActiveTab('comments')}
                     style={{
                       flex: '1 1 0%',
                       padding: '10px 14px',
                       border: 'none',
                       borderRadius: '8px',
-                      background: customSidebarActiveTab === 'activity' ? 'rgb(255, 255, 255)' : 'transparent',
-                      color: customSidebarActiveTab === 'activity' ? 'rgb(17, 17, 17)' : 'rgb(107, 114, 128)',
+                      background: customSidebarActiveTab === 'comments' ? 'rgb(255, 255, 255)' : 'transparent',
+                      color: customSidebarActiveTab === 'comments' ? 'rgb(17, 17, 17)' : 'rgb(107, 114, 128)',
                       fontWeight: 600,
                       fontSize: '0.875rem',
                       cursor: 'pointer',
                       transition: '0.2s',
-                      boxShadow: customSidebarActiveTab === 'activity' ? 'rgba(0, 0, 0, 0.1) 0px 1px 3px' : 'none',
+                      boxShadow: customSidebarActiveTab === 'comments' ? 'rgba(0, 0, 0, 0.1) 0px 1px 3px' : 'none',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px'
                     }}
                   >
-                    <HiSearch size={18} style={{ color: 'inherit' }} />
+                    <HiChat size={18} style={{ color: 'inherit' }} />
                     <span>Activity</span>
                   </button>
 
@@ -15254,22 +15576,161 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   overflow: 'auto',
                   padding: '0'
                 }}>
-                  {customSidebarActiveTab === 'activity' && (
-                    <Activity 
-                      currentProject={currentProject} 
-                      onViewMember={(memberEmail, userCompanyEmail) => {
-                        const sharedCompanyEmail = localStorage.getItem('sharedCompanyEmail');
-                        const targetCompanyEmail = sharedCompanyEmail || companyEmail;
-                        setShowAllMembers(true);
-                        setSelectedMemberEmail(memberEmail);
-                        setMemberSearchTerm('');
-                        setShowMobileMemberDetails(false);
-                        if (!memberDetails[memberEmail]) {
-                          fetchMemberDetails(memberEmail, userCompanyEmail || targetCompanyEmail);
-                        }
-                      }}
-                      isExpanded={isActivityExpanded}
-                      onToggleExpand={() => setIsActivityExpanded(!isActivityExpanded)}
+                  {customSidebarActiveTab === 'comments' && (
+                    <Activity
+                      currentProject={currentProject}
+                      onViewMember={undefined}
+                      isExpanded={isCommentsExpanded}
+                      onToggleExpand={() => setIsCommentsExpanded(prev => !prev)}
+                      renderCommentsContent={() => (
+                        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 2 }}>
+                          <div style={{ padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+                            {selectedMessageForComment ? (
+                              <>
+                                <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '6px' }}>
+                                  {(() => {
+                                    const mc = selectedMessageForComment.message?.content;
+                                    const text = typeof mc === 'string' ? mc : (Array.isArray(mc) ? mc.map(p => p?.text || '').join(' ') : '');
+                                    return 'Re: ' + (text.slice(0, 60) + (text.length > 60 ? '…' : ''));
+                                  })()}
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                                  <textarea
+                                    value={commentDraft}
+                                    onChange={(e) => setCommentDraft(e.target.value)}
+                                    placeholder="Add a comment…"
+                                    style={{
+                                      flex: 1,
+                                      minHeight: '56px',
+                                      padding: '8px 10px',
+                                      borderRadius: '6px',
+                                      border: '1px solid #e5e7eb',
+                                      fontSize: '13px',
+                                      resize: 'none',
+                                      boxSizing: 'border-box'
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={handleAddComment}
+                                    disabled={!commentDraft.trim()}
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      fontWeight: 500,
+                                      color: '#fff',
+                                      background: commentDraft.trim() ? '#111827' : '#d1d5db',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      cursor: commentDraft.trim() ? 'pointer' : 'default',
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    Post
+                                  </button>
+                                </div>
+                                <button type="button" onClick={() => { setSelectedMessageForComment(null); setCommentDraft(''); }} style={{ marginTop: '4px', padding: 0, fontSize: '11px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>Clear</button>
+                              </>
+                            ) : (
+                              <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>
+                                {commentModeEnabled ? 'Click a message to comment.' : 'Turn on Comment mode (toolbar), then click a message.'}
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            {comments.length === 0 ? (
+                              <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>No comments yet.</p>
+                            ) : (
+                              (() => {
+                                const rootComments = [...comments].filter((c) => !c.parentId);
+                                const byParent = (comments || []).reduce((acc, c) => {
+                                  if (c.parentId) {
+                                    if (!acc[c.parentId]) acc[c.parentId] = []; acc[c.parentId].push(c);
+                                  }
+                                  return acc;
+                                }, {});
+                                const formatTime = (createdAt) => {
+                                  if (!createdAt) return '';
+                                  const d = new Date(createdAt);
+                                  const now = new Date();
+                                  const diff = Math.floor((now - d) / 60000);
+                                  if (diff < 1) return 'Just now';
+                                  if (diff < 60) return `${diff}m ago`;
+                                  if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+                                  return d.toLocaleDateString();
+                                };
+                                const renderCommentCard = (c, isReply) => (
+                                  <div
+                                    key={c.id}
+                                    style={{
+                                      background: c.resolved ? '#f9fafb' : '#fff',
+                                      border: '1px solid #e5e7eb',
+                                      borderRadius: '8px',
+                                      padding: isReply ? '8px 10px' : '10px 12px',
+                                      marginTop: isReply ? '6px' : 0,
+                                      marginLeft: isReply ? '12px' : 0,
+                                      opacity: c.resolved ? 0.9 : 1
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                                      {!c.authorProfilePic ? (
+                                        <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#e5e7eb', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600, color: '#6b7280' }}>{(c.authorName || 'U').charAt(0)}</span>
+                                      ) : (
+                                        <img src={c.authorProfilePic} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} />
+                                      )}
+                                      <span style={{ fontSize: '12px', fontWeight: 500, color: '#374151' }}>{c.authorName || 'User'}</span>
+                                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>{formatTime(c.createdAt)}</span>
+                                      {c.resolved && <span style={{ fontSize: '10px', color: '#059669', fontWeight: 500 }}>· Resolved</span>}
+                                    </div>
+                                    {!isReply && (
+                                      <div
+                                        onDoubleClick={() => handleOpenCommentInChat(c)}
+                                        style={{ marginBottom: '6px', fontSize: '11px', color: '#9ca3af', cursor: 'default' }}
+                                        title="Double-click to go to message"
+                                      >
+                                        Re: "{c.messagePreview || '…'}"
+                                      </div>
+                                    )}
+                                    <div style={{ fontSize: '13px', color: '#111827', lineHeight: 1.45 }}>{c.content}</div>
+                                    {!isReply && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #f3f4f6' }}>
+                                        <button type="button" onClick={() => { setReplyingToCommentId(replyingToCommentId === c.id ? null : c.id); setReplyDraft(''); }} style={{ padding: 0, fontSize: '11px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Reply</button>
+                                        <button type="button" onClick={() => handleResolveComment(c)} style={{ padding: 0, fontSize: '11px', color: c.resolved ? '#059669' : '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>{c.resolved ? 'Reopen' : 'Resolve'}</button>
+                                      </div>
+                                    )}
+                                    {!isReply && replyingToCommentId === c.id && (
+                                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                                        <input
+                                          type="text"
+                                          value={replyDraft}
+                                          onChange={(e) => setReplyDraft(e.target.value)}
+                                          placeholder="Write a reply…"
+                                          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (replyDraft.trim()) handleReplyComment(c, replyDraft); } }}
+                                          style={{ flex: 1, padding: '6px 8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '12px', boxSizing: 'border-box' }}
+                                        />
+                                        <button type="button" onClick={() => handleReplyComment(c, replyDraft)} disabled={!replyDraft.trim()} style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 500, color: '#fff', background: replyDraft.trim() ? '#111827' : '#d1d5db', border: 'none', borderRadius: '6px', cursor: replyDraft.trim() ? 'pointer' : 'default' }}>Reply</button>
+                                        <button type="button" onClick={() => { setReplyingToCommentId(null); setReplyDraft(''); }} style={{ padding: 0, fontSize: '12px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {[...rootComments].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map((root) => (
+                                      <div key={root.id}>
+                                        {renderCommentCard(root, false)}
+                                        {(byParent[root.id] || [])
+                                          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+                                          .map((reply) => renderCommentCard(reply, true))}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()
+                            )}
+                          </div>
+                        </div>
+                      )}
                     />
                   )}
                   {customSidebarActiveTab === 'messages' && (
@@ -15435,10 +15896,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
 
             {/* Mode Toggle */}
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ 
-                display: 'flex', 
-                background: '#f3f4f6', 
-                borderRadius: 8, 
+              <div style={{
+                display: 'flex',
+                background: '#f3f4f6',
+                borderRadius: 8,
                 padding: 2,
                 border: '1px solid #e5e7eb',
                 gap: 2
@@ -15623,7 +16084,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 </div>
               </>
             ) : null}
-            
+
             {/* Share Entire Project Mode - Invite Code */}
             {shareMode === 'project' && (
               <div style={{
@@ -15631,10 +16092,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 paddingTop: '16px',
                 borderTop: '1px solid #e5e7eb'
               }}>
-                <div style={{ 
-                  padding: 12, 
-                  background: '#f0f9ff', 
-                  border: '1px solid #bae6fd', 
+                <div style={{
+                  padding: 12,
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
                   borderRadius: 8,
                   fontSize: 13,
                   color: '#0c4a6e',
@@ -15644,7 +16105,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>Invite team members to your project</div>
                   <div>Share this invite code to add people to your entire project. They'll see all public chats and can collaborate with you.</div>
                 </div>
-                
+
                 {inviteCode ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <label style={{ fontSize: 12, fontWeight: 600, color: '#111827' }}>
@@ -15720,18 +16181,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         for (let i = 0; i < 8; i++) {
                           newCode += chars.charAt(Math.floor(Math.random() * chars.length));
                         }
-                        
+
                         const companyEmail = await getMainCompanyEmail();
                         if (!companyEmail) {
                           showToast('Failed to get company information', 'error');
                           return;
                         }
-                        
+
                         await saveFirebaseData(`inviteCodes/${newCode}`, {
                           companyEmail: companyEmail,
                           createdAt: new Date().toISOString()
                         });
-                        
+
                         setInviteCode(newCode);
                         showToast('Invite code generated', 'success');
                       } catch (error) {
@@ -15887,7 +16348,7 @@ document.head.appendChild(styleTag);
 /* Add CSS for waveform animation */
 const styleTag2 = document.createElement('style');
 styleTag2.innerHTML += `\n.waveform-animated {\n  animation: waveformScale 1s infinite linear;\n}\n@keyframes waveformScale {\n  0% { transform: scale(1); }\n  50% { transform: scale(1.25); }\n  100% { transform: scale(1); }\n}`;
-document.head.appendChild(styleTag2); 
+document.head.appendChild(styleTag2);
 
 /* Add CSS for typing indicator animations */
 const typingIndicatorStyle = document.createElement('style');
