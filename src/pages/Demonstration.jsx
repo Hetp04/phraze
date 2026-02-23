@@ -15594,20 +15594,21 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                     return 'Re: ' + (text.slice(0, 60) + (text.length > 60 ? '…' : ''));
                                   })()}
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
                                   <textarea
                                     value={commentDraft}
                                     onChange={(e) => setCommentDraft(e.target.value)}
                                     placeholder="Add a comment…"
                                     style={{
                                       flex: 1,
-                                      minHeight: '56px',
-                                      padding: '8px 10px',
+                                      minHeight: '28px',
+                                      padding: '4px 10px',
                                       borderRadius: '6px',
                                       border: '1px solid #e5e7eb',
                                       fontSize: '13px',
                                       resize: 'none',
-                                      boxSizing: 'border-box'
+                                      boxSizing: 'border-box',
+                                      lineHeight: '1.4'
                                     }}
                                   />
                                   <button
@@ -15615,15 +15616,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                                     onClick={handleAddComment}
                                     disabled={!commentDraft.trim()}
                                     style={{
-                                      padding: '8px 12px',
+                                      padding: '0 10px',
                                       fontSize: '12px',
-                                      fontWeight: 500,
+                                      fontWeight: 600,
                                       color: '#fff',
                                       background: commentDraft.trim() ? '#111827' : '#d1d5db',
                                       border: 'none',
                                       borderRadius: '6px',
                                       cursor: commentDraft.trim() ? 'pointer' : 'default',
-                                      flexShrink: 0
+                                      flexShrink: 0,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
                                     }}
                                   >
                                     Post
