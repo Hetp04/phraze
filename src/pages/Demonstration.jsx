@@ -10373,14 +10373,19 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             alignItems: 'center',
             position: 'relative',
             overflow: 'visible',
-            gap: '0.5rem'
+            gap: '0.5rem',
+            height: '60px'
           }} data-project-dropdown="header">
             {/* Title with conditional dropdown */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              position: 'relative'
+              position: 'fixed',
+              top: '16px',
+              left: 'calc(50% + 150px)',
+              transform: 'translateX(-50%)',
+              zIndex: 999
             }}>
               {/* Restored Chat Title */}
               <h1
@@ -10837,8 +10842,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                   handleShareChat(currentChat);
                 }}
                 style={{
-                  position: 'absolute',
-                  right: '10rem',
+                  position: 'fixed',
+                  right: '20px',
+                  top: '16px',
                   background: (currentChat.originalId && !currentChat.isSender) ? '#f3f4f6' : 'white',
                   border: '1px solid rgba(0,0,0,0.08)',
                   borderRadius: '12px',
@@ -10887,10 +10893,10 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             {/* Model selection dropdown - always visible */}
             {!isInsideExtension && (
               <div style={{
-                position: 'absolute',
-                top: '6px',
-                left: '1.5rem',
-                zIndex: 1000
+                position: 'fixed',
+                top: '16px',
+                left: '320px',
+                zIndex: 999
               }} className="model-dropdown-container">
                 <button
                   onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
@@ -11030,8 +11036,9 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
             {/* Project Members Avatars - visible for shared projects and owners, but not for private chats */}
             {(isProjectShared || isProjectOwner) && projectMembers.length > 0 && !isInsideExtension && (!currentChat || currentChat.isPublic !== false) && (
               <div style={{
-                position: 'absolute',
-                left: '12rem',
+                position: 'fixed',
+                left: '480px',
+                top: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -11055,11 +11062,11 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         }
                       }}
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '50%',
                         border: '2px solid white',
-                        marginLeft: index === 0 ? 0 : '-8px',
+                        marginLeft: index === 0 ? 0 : '-10px',
                         overflow: 'hidden',
                         backgroundColor: '#e5e7eb',
                         display: 'flex',
@@ -11112,7 +11119,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         justifyContent: 'center',
                         backgroundColor: `hsl(${member.email.charCodeAt(0) * 10 % 360}, 60%, 70%)`,
                         color: 'white',
-                        fontSize: '12px',
+                        fontSize: '15px',
                         fontWeight: '600',
                         textTransform: 'uppercase',
                         position: 'absolute',
@@ -11143,18 +11150,18 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                         setShowMobileMemberDetails(false);
                       }}
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '50%',
                         border: '2px solid white',
-                        marginLeft: '-8px',
+                        marginLeft: '-10px',
                         backgroundColor: '#374151',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         color: 'white',
-                        fontSize: '11px',
+                        fontSize: '13px',
                         fontWeight: '600',
                         zIndex: 0,
                         cursor: 'pointer',
@@ -11182,7 +11189,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 style={{
                   position: 'fixed',
                   inset: 0,
-                  zIndex: 50,
+                  zIndex: 1000000,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -12108,7 +12115,7 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 style={{
                   position: 'fixed',
                   inset: 0,
-                  zIndex: 50,
+                  zIndex: 1000000,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

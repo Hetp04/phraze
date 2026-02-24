@@ -1948,7 +1948,7 @@ button[title="Draw on message"]:hover svg {
 .phraze-top-toolbar {
   position: fixed;
   top: 16px;
-  left: 36.5rem;
+  left: 38rem;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1959,7 +1959,7 @@ button[title="Draw on message"]:hover svg {
   border-radius: 14px;
   box-shadow: none;
   box-sizing: border-box;
-  z-index: 1000000004;
+  z-index: 999;
   backdrop-filter: blur(10px);
 }
 
