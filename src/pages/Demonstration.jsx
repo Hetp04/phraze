@@ -5008,7 +5008,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
           return;
         }
         // If not a shared project and no public chat, don't fetch members
-        if (!isSharedProject && (!currentChat || currentChat.isPublic === false)) {
+        // But always fetch for the owner so their avatar is visible
+        if (!isSharedProject && (!currentChat || currentChat.isPublic === false) && !isOwner) {
           setProjectMembers([]);
           return;
         }
@@ -10381,8 +10382,28 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               gap: '0.5rem',
               position: 'relative'
             }}>
-              {/* Dropdown arrow - only for shared projects and public chats (not private chats) */}
-              {isProjectShared && auth.currentUser && (!currentChat || currentChat.isPublic !== false) && (
+              {/* Restored Chat Title */}
+              <h1
+                onClick={(e) => {
+                  if ((isProjectShared || isProjectOwner) && auth.currentUser && (!currentChat || currentChat.isPublic !== false)) {
+                    handleProjectDropdownToggle(e);
+                  }
+                }}
+                style={{
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0,
+                  cursor: ((isProjectShared || isProjectOwner) && auth.currentUser && (!currentChat || currentChat.isPublic !== false)) ? 'pointer' : 'default',
+                  userSelect: 'none',
+                  letterSpacing: '-0.01em'
+                }}
+              >
+                {currentChat?.title || 'New Chat'}
+              </h1>
+
+              {/* Dropdown arrow - visible for owners and shared projects */}
+              {(isProjectShared || isProjectOwner) && auth.currentUser && (!currentChat || currentChat.isPublic !== false) && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -10432,8 +10453,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                 </button>
               )}
 
-              {/* Dropdown menu - only for shared projects and public chats (not private chats) */}
-              {projectDropdownOpen && isProjectShared && auth.currentUser && (!currentChat || currentChat.isPublic !== false) && (
+              {/* Dropdown menu - visible for owners and shared projects */}
+              {projectDropdownOpen && (isProjectShared || isProjectOwner) && auth.currentUser && (!currentChat || currentChat.isPublic !== false) && (
                 <div style={{
                   position: 'absolute',
                   top: '100%',
@@ -10877,7 +10898,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
                     background: 'white',
                     border: '1px solid rgba(0,0,0,0.08)',
                     borderRadius: '12px',
-                    padding: '0.625rem 1rem',
+                    height: '42px',
+                    padding: '0 1rem',
                     fontSize: '0.875rem',
                     color: '#1f2937',
                     cursor: 'pointer',
@@ -11005,8 +11027,8 @@ export default function Demonstration({ currentProject, onProjectChange, setCurr
               </div>
             )}
 
-            {/* Project Members Avatars - visible for shared projects with members, but not for private chats */}
-            {isProjectShared && projectMembers.length > 0 && !isInsideExtension && (!currentChat || currentChat.isPublic !== false) && (
+            {/* Project Members Avatars - visible for shared projects and owners, but not for private chats */}
+            {(isProjectShared || isProjectOwner) && projectMembers.length > 0 && !isInsideExtension && (!currentChat || currentChat.isPublic !== false) && (
               <div style={{
                 position: 'absolute',
                 left: '12rem',
