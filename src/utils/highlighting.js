@@ -2342,8 +2342,71 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
       annotationPopup._phrazeIgnoreScrollHideUntil = Date.now() + ms;
     } catch (_) { }
   };
-  annotationPopup.addEventListener('pointerdown', () => phrazeMarkInteracting(1200), true);
-  annotationPopup.addEventListener('focusin', () => phrazeMarkInteracting(1500), true);
+  annotationPopup.addEventListener('pointerdown', () => {
+    phrazeMarkInteracting(1200);
+    try {
+      annotationPopup._phrazeLastInteractedAt = Date.now();
+      window._phrazeLastAnnotationPopup = annotationPopup;
+    } catch (_) { }
+  }, true);
+  annotationPopup.addEventListener('focusin', () => {
+    phrazeMarkInteracting(1500);
+    try {
+      annotationPopup._phrazeLastInteractedAt = Date.now();
+      window._phrazeLastAnnotationPopup = annotationPopup;
+    } catch (_) { }
+  }, true);
+
+  // Global Enter-to-submit support.
+  // Some label interactions can leave focus on <body> (or a removed dropdown item),
+  // so a popup-scoped keydown handler may not fire. This global handler submits
+  // the *last interacted* visible annotation popup.
+  if (typeof window !== 'undefined' && !window._phrazeAnnotationEnterSubmitBound) {
+    window._phrazeAnnotationEnterSubmitBound = true;
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        try {
+          if (!e || e.key !== 'Enter') return;
+          if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+          if (e.isComposing) return;
+
+          const target = e.target;
+          const isEditable = (() => {
+            if (!target || !(target instanceof Element)) return false;
+            if (target.closest('input, textarea, select')) return true;
+            if (target.closest('[contenteditable="true"]')) return true;
+            return false;
+          })();
+          if (isEditable) return;
+
+          const popup = window._phrazeLastAnnotationPopup;
+          if (!popup || !(popup instanceof Element)) return;
+          if (!document.contains(popup)) return;
+          if (popup.style && popup.style.display === 'none') return;
+          // If dropdown is open, avoid hijacking Enter.
+          try {
+            if (popup._phrazeLabelsDropdownOpen) return;
+          } catch (_) { }
+
+          // Only submit if user interacted with this popup recently.
+          const lastAt = Number(popup._phrazeLastInteractedAt || 0);
+          if (!lastAt || Date.now() - lastAt > 15000) return;
+
+          const btn = popup.querySelector('.add-annotation-button');
+          if (!btn) return;
+          if (btn.style && btn.style.display === 'none') return;
+
+          e.preventDefault();
+          e.stopPropagation();
+          try { btn.click(); } catch (_) { }
+        } catch (_) {
+          // no-op
+        }
+      },
+      true,
+    );
+  }
   // Wheel-lock: while hovering a non-pinned popup, block underlying page/chat scroll
   // so the hover card doesn't "follow" the viewport. Allow the labels dropdown itself to scroll.
   annotationPopup.addEventListener('wheel', (e) => {
@@ -3137,6 +3200,54 @@ export async function createUnifiedAnnotationCard(highlight, containerSpan, opts
   // Create Save button
   const addAnnotationButton = document.createElement('button');
   addAnnotationButton.className = 'add-annotation-button update-btn';
+
+  // Keyboard: allow Enter to submit/update annotation.
+  // Guardrails:
+  // - do not submit when typing in inputs/textareas/contenteditable (rich text editor)
+  // - do not submit while labels dropdown is open (Enter may be used for selection)
+  // - avoid attaching duplicate listeners since popup DOM persists across opens
+  if (!annotationPopup._phrazeEnterSubmitBound) {
+    annotationPopup._phrazeEnterSubmitBound = true;
+    annotationPopup.addEventListener(
+      'keydown',
+      (e) => {
+        try {
+          if (!e || e.key !== 'Enter') return;
+          if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+          if (e.isComposing) return;
+          if (annotationPopup && annotationPopup._phrazeLabelsDropdownOpen) return;
+
+          const target = e.target;
+          const isEditable = (() => {
+            if (!target || !(target instanceof Element)) return false;
+            if (target.closest('input, textarea, select')) return true;
+            // contenteditable (rich text editor) or any editable child
+            if (target.closest('[contenteditable="true"]')) return true;
+            return false;
+          })();
+          if (isEditable) return;
+
+          // If the button is hidden (no permission), do nothing.
+          if (
+            addAnnotationButton &&
+            addAnnotationButton.style &&
+            addAnnotationButton.style.display === 'none'
+          ) {
+            return;
+          }
+
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            addAnnotationButton && addAnnotationButton.click();
+          } catch (_) { }
+        } catch (_) {
+          // no-op
+        }
+      },
+      true,
+    );
+  }
 
   // Check permissions for creating/modifying annotations
   const annotationPerms = typeof window !== 'undefined' ? window.currentUserPermissions : null;
