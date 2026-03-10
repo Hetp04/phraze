@@ -22,7 +22,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
         {showNavbar && <Navbar />}
         <main style={{ overflowX: 'visible' }}>
           <Hero />
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', marginTop: '-90px' }}>
+          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)' }}>
             <ScrollHero />
           </div>
 
@@ -169,7 +169,7 @@ const App: React.FC<AppProps> = ({ showNavbar = true }) => {
             <WorkspaceHero />
           </div>
 
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
+          <div id="how-it-works" style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', backgroundColor: '#FFFDF8' }}>
             <HowItWorksHero />
           </div>
 
